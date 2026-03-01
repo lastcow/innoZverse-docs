@@ -78,3 +78,35 @@
 * [NLP Fundamentals](artificial-intelligent-ai/nlp-llm/nlp-fundamentals.md)
 * [Working with LLMs](artificial-intelligent-ai/nlp-llm/working-with-llms.md)
 * [Building AI Applications](artificial-intelligent-ai/nlp-llm/building-ai-apps.md)
+
+## 🌐 Networking
+
+### Fundamentals
+* [Overview](networking/README.md)
+* [OSI Model](networking/fundamentals/osi-model.md)
+* [IP Addressing & Subnetting](networking/fundamentals/ip-addressing.md)
+* [Routing & Switching](networking/fundamentals/routing-switching.md)
+
+### Protocols
+* [TCP/IP](networking/protocols/tcp-ip.md)
+* [DNS & DHCP](networking/protocols/dns-dhcp.md)
+* [HTTP & HTTPS](networking/protocols/http-https.md)
+
+### Network Security
+* [Network Security Fundamentals](networking/security/network-security.md)
+* [Wireless Security](networking/security/wireless-security.md)
+
+## 🗄️ Database
+
+### SQL & Relational Databases
+* [Overview](database/README.md)
+* [SQL Fundamentals](database/sql/sql-fundamentals.md)
+* [MySQL & PostgreSQL](database/sql/mysql-postgresql.md)
+* [Indexing & Performance](database/sql/indexing-performance.md)
+
+### NoSQL Databases
+* [MongoDB](database/nosql/mongodb.md)
+* [Redis](database/nosql/redis.md)
+
+### Database Design
+* [Schema Design & Normalization](database/design/schema-design.md)
