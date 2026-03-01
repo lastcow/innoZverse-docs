@@ -93,3 +93,5 @@
 * [Lab 18: Security Metrics and KPIs](architect/labs/lab-18-security-metrics.md)
 * [Lab 19: Supply Chain Security](architect/labs/lab-19-supply-chain-security.md)
 * [Lab 20: Capstone — Enterprise Security Review](architect/labs/lab-20-capstone-enterprise.md)
+
+<!-- Updated: 2026-03-01T23:58:40Z -->
