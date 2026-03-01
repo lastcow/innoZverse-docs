@@ -4,109 +4,139 @@
 
 ## 🐧 Linux
 
-### Tier 1 — Navigation & File System Mastery
 * [Overview](linux/README.md)
-* [Introduction to the Terminal](linux/tier-1-navigation-filesystem/intro-to-terminal.md)
-* [Navigating the File System](linux/tier-1-navigation-filesystem/navigating-filesystem.md)
-* [File & Directory Management](linux/tier-1-navigation-filesystem/file-directory-management.md)
-* [Permissions & Ownership](linux/tier-1-navigation-filesystem/permissions-ownership.md)
-* [Text Editors (nano, vim)](linux/tier-1-navigation-filesystem/text-editors.md)
 
-### Tier 2 — Data Manipulation & Automation
-* [Text Processing (grep, awk, sed)](linux/tier-2-data-automation/text-processing.md)
-* [Pipes & Redirection](linux/tier-2-data-automation/pipes-redirection.md)
-* [Shell Scripting Basics](linux/tier-2-data-automation/shell-scripting-basics.md)
-* [Cron Jobs & Scheduling](linux/tier-2-data-automation/cron-jobs-scheduling.md)
+### Foundations (初级)
+* [Introduction to the Terminal](linux/foundations/intro-to-terminal.md)
+* [Navigating the File System](linux/foundations/navigating-filesystem.md)
+* [File & Directory Management](linux/foundations/file-directory-management.md)
+* [Permissions & Ownership](linux/foundations/permissions-ownership.md)
+* [Text Editors (nano, vim)](linux/foundations/text-editors.md)
 
-### Tier 3 — Networking, Security & Optimization
-* [Networking Fundamentals](linux/tier-3-networking-security/networking-fundamentals.md)
-* [SSH & Remote Access](linux/tier-3-networking-security/ssh-remote-access.md)
-* [Firewalls & Security](linux/tier-3-networking-security/firewalls-security.md)
-* [System Monitoring & Performance](linux/tier-3-networking-security/system-monitoring.md)
+### Practitioner (中级)
+* [Text Processing (grep, awk, sed)](linux/practitioner/text-processing.md)
+* [Pipes & Redirection](linux/practitioner/pipes-redirection.md)
+* [Shell Scripting Basics](linux/practitioner/shell-scripting-basics.md)
+* [Cron Jobs & Scheduling](linux/practitioner/cron-jobs-scheduling.md)
+
+### Advanced (高级)
+* [Networking Fundamentals](linux/advanced/networking-fundamentals.md)
+* [SSH & Remote Access](linux/advanced/ssh-remote-access.md)
+* [Firewalls & Security](linux/advanced/firewalls-security.md)
+* [System Monitoring & Performance](linux/advanced/system-monitoring.md)
+
+### Architect (架构师级)
+* [High Availability & Clustering](linux/architect/high-availability.md)
+* [Performance Engineering](linux/architect/performance-engineering.md)
 
 ## 🔐 Cybersecurity
 
-### Fundamentals
 * [Overview](cyber-security/README.md)
-* [OSI Model & Networking](cyber-security/fundamentals/osi-networking.md)
-* [Cryptography Basics](cyber-security/fundamentals/cryptography.md)
-* [Common Attack Vectors](cyber-security/fundamentals/attack-vectors.md)
 
-### Ethical Hacking
-* [Penetration Testing Methodology](cyber-security/ethical-hacking/pentest-methodology.md)
-* [Reconnaissance & OSINT](cyber-security/ethical-hacking/recon-osint.md)
-* [Exploitation Basics](cyber-security/ethical-hacking/exploitation-basics.md)
-* [Web Application Security](cyber-security/ethical-hacking/web-app-security.md)
+### Foundations (初级)
+* [OSI Model & Networking](cyber-security/foundations/osi-networking.md)
+* [Cryptography Basics](cyber-security/foundations/cryptography.md)
+* [Common Attack Vectors](cyber-security/foundations/attack-vectors.md)
 
-### Threat Intelligence
-* [Threat Analysis Framework](cyber-security/threat-intelligence/threat-analysis.md)
-* [Incident Response](cyber-security/threat-intelligence/incident-response.md)
-* [Log Analysis & SIEM](cyber-security/threat-intelligence/log-analysis-siem.md)
+### Practitioner (中级)
+* [Penetration Testing Methodology](cyber-security/practitioner/pentest-methodology.md)
+* [Reconnaissance & OSINT](cyber-security/practitioner/recon-osint.md)
+* [Exploitation Basics](cyber-security/practitioner/exploitation-basics.md)
+* [Web Application Security](cyber-security/practitioner/web-app-security.md)
 
-## ☁️ Cloud & DevOps (Programming)
+### Advanced (高级)
+* [Threat Analysis Framework](cyber-security/advanced/threat-analysis.md)
+* [Incident Response](cyber-security/advanced/incident-response.md)
+* [Log Analysis & SIEM](cyber-security/advanced/log-analysis-siem.md)
 
-### Cloud Fundamentals
+### Architect (架构师级)
+* [Security Architecture & Zero Trust](cyber-security/architect/security-architecture.md)
+* [Red Team Operations](cyber-security/architect/red-team-operations.md)
+
+## 🌐 Networking
+
+* [Overview](networking/README.md)
+
+### Foundations (初级)
+* [OSI Model](networking/foundations/osi-model.md)
+* [IP Addressing & Subnetting](networking/foundations/ip-addressing.md)
+* [Routing & Switching](networking/foundations/routing-switching.md)
+
+### Practitioner (中级)
+* [TCP/IP Protocol Suite](networking/practitioner/tcp-ip.md)
+* [DNS & DHCP](networking/practitioner/dns-dhcp.md)
+* [HTTP & HTTPS](networking/practitioner/http-https.md)
+
+### Advanced (高级)
+* [Network Security Fundamentals](networking/advanced/network-security.md)
+* [Wireless Security](networking/advanced/wireless-security.md)
+
+### Architect (架构师级)
+* [Enterprise Network Design](networking/architect/network-design.md)
+* [Cloud Networking Architecture](networking/architect/cloud-networking.md)
+
+## 🗄️ Database
+
+* [Overview](database/README.md)
+
+### Foundations (初级)
+* [SQL Fundamentals](database/foundations/sql-fundamentals.md)
+
+### Practitioner (中级)
+* [MySQL & PostgreSQL](database/practitioner/mysql-postgresql.md)
+* [Schema Design & Normalization](database/practitioner/schema-design.md)
+
+### Advanced (高级)
+* [Indexing & Performance](database/advanced/indexing-performance.md)
+* [MongoDB](database/advanced/mongodb.md)
+* [Redis](database/advanced/redis.md)
+
+### Architect (架构师级)
+* [Distributed Databases & Scaling](database/architect/distributed-databases.md)
+* [Advanced Query Optimization](database/architect/query-optimization.md)
+
+## ☁️ Cloud & DevOps
+
 * [Overview](programming/README.md)
-* [Cloud Computing Concepts](programming/cloud-fundamentals/cloud-concepts.md)
-* [AWS Core Services](programming/cloud-fundamentals/aws-core-services.md)
-* [Azure Fundamentals](programming/cloud-fundamentals/azure-fundamentals.md)
 
-### Containers & DevOps
-* [Docker Fundamentals](programming/containers-devops/docker-fundamentals.md)
-* [Kubernetes Basics](programming/containers-devops/kubernetes-basics.md)
-* [CI/CD Pipelines](programming/containers-devops/cicd-pipelines.md)
-* [GitHub Actions](programming/containers-devops/github-actions.md)
+### Foundations (初级)
+* [Cloud Computing Concepts](programming/foundations/cloud-concepts.md)
 
-### Infrastructure as Code
-* [Terraform Basics](programming/infrastructure/terraform-basics.md)
-* [Ansible Automation](programming/infrastructure/ansible-automation.md)
+### Practitioner (中级)
+* [AWS Core Services](programming/practitioner/aws-core-services.md)
+* [Azure Fundamentals](programming/practitioner/azure-fundamentals.md)
+* [Docker Fundamentals](programming/practitioner/docker-fundamentals.md)
+* [CI/CD Pipelines](programming/practitioner/cicd-pipelines.md)
+* [GitHub Actions](programming/practitioner/github-actions.md)
+
+### Advanced (高级)
+* [Kubernetes Basics](programming/advanced/kubernetes-basics.md)
+* [Terraform Basics](programming/advanced/terraform-basics.md)
+* [Ansible Automation](programming/advanced/ansible-automation.md)
+
+### Architect (架构师级)
+* [Cloud Architecture](programming/architect/cloud-architecture.md)
+* [Platform Engineering](programming/architect/platform-engineering.md)
 
 ## 🤖 AI & Machine Learning
 
-### Foundations
 * [Overview](artificial-intelligent-ai/README.md)
+
+### Foundations (初级)
 * [Python for AI](artificial-intelligent-ai/foundations/python-for-ai.md)
 * [Mathematics for ML](artificial-intelligent-ai/foundations/math-for-ml.md)
 * [Data Preprocessing](artificial-intelligent-ai/foundations/data-preprocessing.md)
 
-### Machine Learning
-* [Supervised Learning](artificial-intelligent-ai/machine-learning/supervised-learning.md)
-* [Neural Networks](artificial-intelligent-ai/machine-learning/neural-networks.md)
-* [Computer Vision](artificial-intelligent-ai/machine-learning/computer-vision.md)
+### Practitioner (中级)
+* [Supervised Learning](artificial-intelligent-ai/practitioner/supervised-learning.md)
+* [Neural Networks](artificial-intelligent-ai/practitioner/neural-networks.md)
+* [NLP Fundamentals](artificial-intelligent-ai/practitioner/nlp-fundamentals.md)
 
-### NLP & LLMs
-* [NLP Fundamentals](artificial-intelligent-ai/nlp-llm/nlp-fundamentals.md)
-* [Working with LLMs](artificial-intelligent-ai/nlp-llm/working-with-llms.md)
-* [Building AI Applications](artificial-intelligent-ai/nlp-llm/building-ai-apps.md)
+### Advanced (高级)
+* [Computer Vision](artificial-intelligent-ai/advanced/computer-vision.md)
+* [Working with LLMs](artificial-intelligent-ai/advanced/working-with-llms.md)
+* [Building AI Applications](artificial-intelligent-ai/advanced/building-ai-apps.md)
 
-## 🌐 Networking
-
-### Fundamentals
-* [Overview](networking/README.md)
-* [OSI Model](networking/fundamentals/osi-model.md)
-* [IP Addressing & Subnetting](networking/fundamentals/ip-addressing.md)
-* [Routing & Switching](networking/fundamentals/routing-switching.md)
-
-### Protocols
-* [TCP/IP](networking/protocols/tcp-ip.md)
-* [DNS & DHCP](networking/protocols/dns-dhcp.md)
-* [HTTP & HTTPS](networking/protocols/http-https.md)
-
-### Network Security
-* [Network Security Fundamentals](networking/security/network-security.md)
-* [Wireless Security](networking/security/wireless-security.md)
-
-## 🗄️ Database
-
-### SQL & Relational Databases
-* [Overview](database/README.md)
-* [SQL Fundamentals](database/sql/sql-fundamentals.md)
-* [MySQL & PostgreSQL](database/sql/mysql-postgresql.md)
-* [Indexing & Performance](database/sql/indexing-performance.md)
-
-### NoSQL Databases
-* [MongoDB](database/nosql/mongodb.md)
-* [Redis](database/nosql/redis.md)
-
-### Database Design
-* [Schema Design & Normalization](database/design/schema-design.md)
+### Architect (架构师级)
+* [MLOps — Production ML Systems](artificial-intelligent-ai/architect/mlops.md)
+* [AI System Design](artificial-intelligent-ai/architect/ai-system-design.md)
