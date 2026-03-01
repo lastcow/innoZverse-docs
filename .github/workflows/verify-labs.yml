@@ -1,0 +1,154 @@
+name: Verify Linux Labs
+
+on:
+  push:
+    paths:
+      - 'linux/**/labs/**.md'
+      - 'scripts/**'
+  workflow_dispatch:
+
+jobs:
+  verify-foundations:
+    name: "Linux Foundations Labs"
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q aha python3 tree curl wget net-tools \
+            vim nano htop ncdu lsof strace rsync
+
+      - name: Run Foundations Labs
+        run: |
+          mkdir -p lab-results/linux/foundations
+          for lab in linux/foundations/labs/lab-*.md; do
+            [ -f "$lab" ] || continue
+            name=$(basename "$lab" .md)
+            echo "::group::$name"
+            python3 scripts/extract_code_blocks.py "$lab" > /tmp/commands.sh 2>/dev/null && \
+              bash /tmp/commands.sh > lab-results/linux/foundations/${name}.txt 2>&1 && \
+              echo "PASS" > lab-results/linux/foundations/${name}.status && \
+              echo "✅ PASS: $name" || \
+              (echo "FAIL" > lab-results/linux/foundations/${name}.status && echo "❌ FAIL: $name")
+            echo "::endgroup::"
+          done
+
+      - name: Generate HTML screenshots
+        run: |
+          for txt in lab-results/linux/foundations/*.txt; do
+            name=$(basename "$txt" .txt)
+            cat "$txt" | aha --title "$name" > lab-results/linux/foundations/${name}.html 2>/dev/null || true
+          done
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: foundations-results
+          path: lab-results/linux/foundations/
+
+  verify-practitioner:
+    name: "Linux Practitioner Labs"
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q aha python3 gawk moreutils
+
+      - name: Run Practitioner Labs
+        run: |
+          mkdir -p lab-results/linux/practitioner
+          for lab in linux/practitioner/labs/lab-*.md; do
+            [ -f "$lab" ] || continue
+            name=$(basename "$lab" .md)
+            echo "::group::$name"
+            python3 scripts/extract_code_blocks.py "$lab" > /tmp/commands.sh 2>/dev/null && \
+              bash /tmp/commands.sh > lab-results/linux/practitioner/${name}.txt 2>&1 && \
+              echo "PASS" > lab-results/linux/practitioner/${name}.status && \
+              echo "✅ PASS: $name" || \
+              (echo "FAIL" > lab-results/linux/practitioner/${name}.status && echo "❌ FAIL: $name")
+            echo "::endgroup::"
+          done
+
+      - name: Generate HTML screenshots
+        run: |
+          for txt in lab-results/linux/practitioner/*.txt; do
+            name=$(basename "$txt" .txt)
+            cat "$txt" | aha --title "$name" > lab-results/linux/practitioner/${name}.html 2>/dev/null || true
+          done
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: practitioner-results
+          path: lab-results/linux/practitioner/
+
+  verify-advanced:
+    name: "Linux Advanced Labs"
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q aha python3 nmap ufw fail2ban \
+            sysstat dstat lvm2 rsync openssh-client net-tools
+
+      - name: Run Advanced Labs
+        run: |
+          mkdir -p lab-results/linux/advanced
+          for lab in linux/advanced/labs/lab-*.md; do
+            [ -f "$lab" ] || continue
+            name=$(basename "$lab" .md)
+            echo "::group::$name"
+            python3 scripts/extract_code_blocks.py "$lab" > /tmp/commands.sh 2>/dev/null && \
+              bash /tmp/commands.sh > lab-results/linux/advanced/${name}.txt 2>&1 && \
+              echo "PASS" > lab-results/linux/advanced/${name}.status && \
+              echo "✅ PASS: $name" || \
+              (echo "FAIL" > lab-results/linux/advanced/${name}.status && echo "❌ FAIL: $name")
+            echo "::endgroup::"
+          done
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: advanced-results
+          path: lab-results/linux/advanced/
+
+  summary:
+    name: "Lab Summary"
+    runs-on: ubuntu-22.04
+    needs: [verify-foundations, verify-practitioner, verify-advanced]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all results
+        uses: actions/download-artifact@v4
+        with:
+          path: lab-results/
+
+      - name: Generate summary
+        run: |
+          PASS=$(find lab-results -name "*.status" -exec cat {} \; | grep -c "PASS" || true)
+          FAIL=$(find lab-results -name "*.status" -exec cat {} \; | grep -c "FAIL" || true)
+          TOTAL=$((PASS + FAIL))
+          
+          echo "## 🧪 Lab Verification Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Level | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          for level in foundations practitioner advanced; do
+            p=$(find lab-results -path "*/$level/*.status" -exec cat {} \; 2>/dev/null | grep -c "PASS" || true)
+            f=$(find lab-results -path "*/$level/*.status" -exec cat {} \; 2>/dev/null | grep -c "FAIL" || true)
+            echo "| $level | ✅ $p passed / ❌ $f failed |" >> $GITHUB_STEP_SUMMARY
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total: ✅ $PASS / $TOTAL labs passing**" >> $GITHUB_STEP_SUMMARY
