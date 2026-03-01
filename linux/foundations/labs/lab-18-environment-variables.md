@@ -22,14 +22,14 @@ printenv | wc -l
 ### Step 2: Read Important Built-in Variables
 
 ```bash
-echo "USER: $USER"
+echo "USER: ${USER:-$(whoami)}"
 echo "HOME: $HOME"
 echo "SHELL: $SHELL"
 echo "PATH: $PATH"
-echo "HOSTNAME: $HOSTNAME"
+echo "HOSTNAME: ${HOSTNAME:-$(hostname)}"
 echo "PWD: $PWD"
-echo "TERM: $TERM"
-echo "LANG: $LANG"
+echo "TERM: ${TERM:-not set}"
+echo "LANG: ${LANG:-not set}"
 echo "EDITOR: ${EDITOR:-not set}"
 ```
 
@@ -134,7 +134,7 @@ echo "Lab 18 complete"
 
 ## 📝 Summary
 - `printenv` and `env` show all current environment variables
-- Key built-in variables: `$USER`, `$HOME`, `$PATH`, `$SHELL`, `$PWD`
+- Key built-in variables: `${USER:-$(whoami)}`, `$HOME`, `$PATH`, `$SHELL`, `$PWD`
 - `export MYVAR="value"` makes a variable available to child processes
 - Without `export`, a variable only exists in the current shell
 - `${VAR:-default}` uses a default value if the variable is unset

@@ -72,7 +72,7 @@ grep -E "/(nologin|false)$" /etc/passwd | head -10
 
 ```bash
 who
-echo "USER: $USER"
+echo "USER: ${USER:-$(whoami)}"
 echo "HOME: $HOME"
 echo "SHELL: $SHELL"
 grep "^$(whoami):" /etc/passwd | cut -d: -f6

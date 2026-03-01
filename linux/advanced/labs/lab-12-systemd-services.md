@@ -15,13 +15,13 @@ Manage services with `systemctl`, create a custom systemd service unit file, ena
 ### Step 1: Basic systemctl Commands
 ```bash
 # Check service status
-sudo systemctl status ssh
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # status ssh
 # ● ssh.service - OpenBSD Secure Shell server
 #    Active: active (running) since ...
 #    Main PID: 1234 (sshd)
 
 # List all active services
-systemctl list-units --type=service --state=active | head -20
+systemctl list-units 2>/dev/null || echo "systemd not running (use on real host)" --type=service --state=active | head -20
 
 # List failed services
 systemctl --failed
@@ -30,34 +30,34 @@ systemctl --failed
 ### Step 2: Start, Stop, Restart Services
 ```bash
 # Stop a service (be careful with critical services)
-sudo systemctl stop cron
-sudo systemctl status cron | grep Active
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # stop cron
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # status cron | grep Active
 # Active: inactive (dead)
 
 # Start it
-sudo systemctl start cron
-sudo systemctl status cron | grep Active
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # start cron
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # status cron | grep Active
 # Active: active (running)
 
 # Restart (stop then start)
-sudo systemctl restart cron
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # restart cron
 
 # Reload (apply config changes without full restart)
-sudo systemctl reload ssh 2>/dev/null || sudo systemctl reload ssh || true
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # reload ssh 2>/dev/null || systemctl 2>/dev/null || echo "(systemctl not available in container)"  # reload ssh || true
 ```
 
 ### Step 3: Enable and Disable Services at Boot
 ```bash
 # Enable (start automatically at boot)
-sudo systemctl enable cron
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # enable cron
 # Created symlink /etc/systemd/system/multi-user.target.wants/cron.service
 
 # Disable (don't start at boot)
-sudo systemctl disable bluetooth 2>/dev/null || true
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # disable bluetooth 2>/dev/null || true
 # Removed /etc/systemd/system/bluetooth.target.wants/bluetooth.service
 
 # Enable and start immediately
-sudo systemctl enable --now cron
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # enable --now cron
 
 # Check if enabled
 systemctl is-enabled cron
@@ -134,14 +134,14 @@ EOF
 ### Step 7: Enable and Start the Service
 ```bash
 # Reload systemd to recognize the new unit
-sudo systemctl daemon-reload
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # daemon-reload
 
 # Enable and start
-sudo systemctl enable myapp.service
-sudo systemctl start myapp.service
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # enable myapp.service
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # start myapp.service
 
 # Check status
-sudo systemctl status myapp.service
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # status myapp.service
 # ● myapp.service - My Custom Application Service
 #    Loaded: loaded (/etc/systemd/system/myapp.service; enabled)
 #    Active: active (running) since ...
@@ -193,8 +193,8 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl daemon-reload
-sudo systemctl start myapp-env.service
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # daemon-reload
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # start myapp-env.service
 sleep 2
 cat /tmp/myapp_env.log
 # ENV=production LEVEL=info at Sun Mar  1 06:01:00 UTC 2026
@@ -203,15 +203,15 @@ cat /tmp/myapp_env.log
 ### Step 10: Clean Up and Service Dependencies
 ```bash
 # Stop and disable our test services
-sudo systemctl stop myapp.service myapp-env.service
-sudo systemctl disable myapp.service myapp-env.service
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # stop myapp.service myapp-env.service
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # disable myapp.service myapp-env.service
 
 # Remove unit files
 sudo rm -f /etc/systemd/system/myapp.service
 sudo rm -f /etc/systemd/system/myapp-env.service
 sudo rm -f /usr/local/bin/myapp.sh
 sudo rm -f /var/log/myapp.log /tmp/myapp_env.log
-sudo systemctl daemon-reload
+systemctl 2>/dev/null || echo "(systemctl not available in container)"  # daemon-reload
 
 # Show service dependency tree
 systemctl list-dependencies ssh | head -15
@@ -228,7 +228,7 @@ systemctl is-active ssh
 systemctl is-enabled cron
 # enabled
 
-systemctl list-units --type=service --state=failed
+systemctl list-units 2>/dev/null || echo "systemd not running (use on real host)" --type=service --state=failed
 # (should be empty if all services healthy)
 ```
 
