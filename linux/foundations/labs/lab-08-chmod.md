@@ -1,212 +1,165 @@
-# Lab 8: chmod — Changing File Permissions
+# Lab 8: Changing Permissions with chmod
 
 ## 🎯 Objective
-Use `chmod` with both symbolic and octal notation to change file and directory permissions, and understand practical use cases for each.
+Use chmod to change file permissions using both symbolic notation (u+x, g-w, o=r) and octal notation (755, 644).
 
 ## ⏱️ Estimated Time
 25 minutes
 
 ## 📋 Prerequisites
-- Completed Lab 7 (Understanding Permissions)
-- Understanding of rwx and octal notation
+- Completed Lab 7: Understanding File Permissions
 
 ## 🔬 Lab Instructions
 
 ### Step 1: Set Up Test Files
+
 ```bash
-mkdir ~/lab08
-cd ~/lab08
-touch script.sh config.conf data.txt private.key
-ls -l
+mkdir -p /tmp/chmod-lab
+touch /tmp/chmod-lab/script.sh
+touch /tmp/chmod-lab/config.txt
+touch /tmp/chmod-lab/data.bin
+ls -l /tmp/chmod-lab
 ```
 
-### Step 2: chmod with Octal Notation
+### Step 2: Symbolic Mode — Add Permissions
+
 ```bash
-# Set permissions to 644 (rw-r--r--)
-chmod 644 data.txt
-ls -l data.txt
-# Output: -rw-r--r-- 1 student student 0 ...
+# chmod [who][operator][permission] file
+# who: u=user, g=group, o=others, a=all
+# operator: +=add, -=remove, ==set exactly
 
-# Set permissions to 755 (rwxr-xr-x) — typical for scripts
-chmod 755 script.sh
-ls -l script.sh
-# Output: -rwxr-xr-x 1 student student 0 ...
-
-# Set permissions to 600 (rw-------) — private file
-chmod 600 private.key
-ls -l private.key
-# Output: -rw------- 1 student student 0 ...
-
-# Set permissions to 400 (r--------) — read-only private
-chmod 400 config.conf
-ls -l config.conf
-# Output: -r-------- 1 student student 0 ...
+chmod u+x /tmp/chmod-lab/script.sh
+ls -l /tmp/chmod-lab/script.sh
 ```
 
-### Step 3: chmod with Symbolic Notation
-Symbolic format: `[who][operator][permissions]`
-- **who**: `u` (user/owner), `g` (group), `o` (other), `a` (all)
-- **operator**: `+` (add), `-` (remove), `=` (set exactly)
-- **permissions**: `r`, `w`, `x`
-
-```bash
-# Reset permissions first
-chmod 000 data.txt
-ls -l data.txt
-# Output: ----------
-
-# Add read permission for owner
-chmod u+r data.txt
-ls -l data.txt
-# Output: -r--------
-
-# Add write for owner
-chmod u+w data.txt
-ls -l data.txt
-# Output: -rw-------
-
-# Add read for group and other
-chmod go+r data.txt
-ls -l data.txt
-# Output: -rw-r--r--
+**Expected output:**
+```
+-rwxrw-r-- 1 zchen zchen 0 ... script.sh
 ```
 
-### Step 4: Remove Permissions Symbolically
 ```bash
-chmod 755 script.sh
-ls -l script.sh
-# Output: -rwxr-xr-x
-
-# Remove execute from group and other
-chmod go-x script.sh
-ls -l script.sh
-# Output: -rwxr--r--
-
-# Remove write from everyone
-chmod a-w script.sh
-ls -l script.sh
-# Output: -r-xr--r--
+chmod g+rw /tmp/chmod-lab/config.txt
+ls -l /tmp/chmod-lab/config.txt
+chmod o-w /tmp/chmod-lab/data.bin
+ls -l /tmp/chmod-lab/data.bin
 ```
 
-### Step 5: Set Exact Permissions with `=`
+### Step 3: Symbolic Mode — Set Exact Permissions
+
 ```bash
-# Set owner to rw, group to r, other to nothing
-chmod u=rw,g=r,o= data.txt
-ls -l data.txt
-# Output: -rw-r-----
+chmod u=rwx,g=rx,o=r /tmp/chmod-lab/script.sh
+ls -l /tmp/chmod-lab/script.sh
 ```
 
-### Step 6: Make a Script Executable
-```bash
-cat > ~/lab08/hello.sh << 'EOF'
-#!/bin/bash
-echo "Hello from the script!"
-EOF
-
-# Try to run it without execute permission
-ls -l ~/lab08/hello.sh
-# Output: -rw-rw-r--
-
-bash ~/lab08/hello.sh
-# Works (bash interprets it)
-
-./hello.sh
-# Output: bash: ./hello.sh: Permission denied
-
-# Add execute permission
-chmod +x ~/lab08/hello.sh
-ls -l ~/lab08/hello.sh
-# Output: -rwxrwxr-x
-
-./hello.sh
-# Output: Hello from the script!
+**Expected output:**
+```
+-rwxr-xr-- 1 zchen zchen 0 ... script.sh
 ```
 
-### Step 7: chmod on Directories
 ```bash
-mkdir ~/lab08/testdir
-ls -ld ~/lab08/testdir
-# Output: drwxrwxr-x
-
-# Remove execute from directory (breaks access!)
-chmod go-x ~/lab08/testdir
-ls ~/lab08/testdir
-# Output: ls: cannot access '...': Permission denied
-
-# Restore
-chmod go+x ~/lab08/testdir
-ls ~/lab08/testdir
-# Works again
+chmod a=r /tmp/chmod-lab/config.txt
+ls -l /tmp/chmod-lab/config.txt
+chmod u+w /tmp/chmod-lab/config.txt
+ls -l /tmp/chmod-lab/config.txt
 ```
 
-### Step 8: Recursive chmod with `-R`
+### Step 4: Octal Mode — Common Settings
+
 ```bash
-mkdir -p ~/lab08/project/{src,docs,tests}
-touch ~/lab08/project/src/main.py ~/lab08/project/docs/readme.md
-
-ls -lR ~/lab08/project/
-
-# Apply permissions recursively
-chmod -R 755 ~/lab08/project/
-ls -lR ~/lab08/project/
-# All files and dirs are now 755
+# 755: owner=rwx, group=r-x, others=r-x (standard for executables)
+chmod 755 /tmp/chmod-lab/script.sh
+ls -l /tmp/chmod-lab/script.sh
 ```
 
-### Step 9: Practical Permission Scenarios
-```bash
-# Web server public directory: world-readable
-chmod 755 ~/lab08/testdir
-
-# Shared group collaboration directory
-chmod 770 ~/lab08/testdir
-# Owner and group can rwx, others get nothing
-
-# Secure backup file
-chmod 600 ~/lab08/private.key
-
-# Configuration file (readable by all, writable by owner)
-chmod 644 ~/lab08/config.conf
+**Expected output:**
+```
+-rwxr-xr-x 1 zchen zchen 0 ... script.sh
 ```
 
-### Step 10: View Numeric Permissions with `stat`
 ```bash
-stat --format="%a %n" ~/lab08/script.sh
-stat --format="%a %n" ~/lab08/private.key
-stat --format="%a %n" ~/lab08/data.txt
+# 644: owner=rw-, group=r--, others=r-- (standard for files)
+chmod 644 /tmp/chmod-lab/config.txt
+ls -l /tmp/chmod-lab/config.txt
 ```
 
-### Step 11: Set Permissions at Creation Time
-```bash
-# Use install command to copy with specific permissions
-echo "data" > /tmp/source.txt
-install -m 644 /tmp/source.txt ~/lab08/installed.txt
-ls -l ~/lab08/installed.txt
-# Output: -rw-r--r--
+**Expected output:**
+```
+-rw-r--r-- 1 zchen zchen 0 ... config.txt
 ```
 
-### Step 12: Clean Up
 ```bash
-cd ~
-rm -rf ~/lab08
+# 600: owner=rw-, group=none, others=none (private files)
+chmod 600 /tmp/chmod-lab/data.bin
+ls -l /tmp/chmod-lab/data.bin
+```
+
+**Expected output:**
+```
+-rw------- 1 zchen zchen 0 ... data.bin
+```
+
+```bash
+# 700: owner=rwx, group=none, others=none (private directories)
+mkdir /tmp/chmod-lab/private
+chmod 700 /tmp/chmod-lab/private
+ls -ld /tmp/chmod-lab/private
+```
+
+### Step 5: chmod on Directories and Recursive
+
+```bash
+mkdir /tmp/chmod-lab/shared
+chmod 755 /tmp/chmod-lab/shared
+ls -ld /tmp/chmod-lab/shared
+```
+
+```bash
+mkdir -p /tmp/chmod-lab/project/src
+touch /tmp/chmod-lab/project/src/main.sh
+chmod -R 755 /tmp/chmod-lab/project
+find /tmp/chmod-lab/project -exec ls -ld {} \;
+```
+
+### Step 6: Verify with stat
+
+```bash
+chmod 644 /tmp/chmod-lab/config.txt
+stat /tmp/chmod-lab/config.txt | grep "Access:"
+```
+
+**Expected output:**
+```
+Access: (0644/-rw-r--r--)  Uid: (...)
+```
+
+```bash
+stat -c "%a %n" /tmp/chmod-lab/script.sh
+stat -c "%a %n" /tmp/chmod-lab/config.txt
+stat -c "%a %n" /tmp/chmod-lab/data.bin
 ```
 
 ## ✅ Verification
+
 ```bash
-# Create a script and set appropriate permissions
-echo '#!/bin/bash\necho "test"' > /tmp/test_chmod.sh
-chmod 750 /tmp/test_chmod.sh
-stat --format="%a %n" /tmp/test_chmod.sh
-# Output: 750 /tmp/test_chmod.sh
+cd /tmp/chmod-lab
 
-ls -l /tmp/test_chmod.sh
-# Output: -rwxr-x--- ...
+chmod 755 script.sh
+chmod 644 config.txt
+chmod 600 data.bin
 
-rm /tmp/test_chmod.sh
+echo "script.sh: $(stat -c '%a' script.sh) (expect 755)"
+echo "config.txt: $(stat -c '%a' config.txt) (expect 644)"
+echo "data.bin: $(stat -c '%a' data.bin) (expect 600)"
+
+cd /tmp && rm -r /tmp/chmod-lab
+echo "chmod lab complete"
 ```
 
 ## 📝 Summary
-- `chmod` changes file permissions using octal (e.g., `644`) or symbolic (e.g., `u+x`) notation
-- Octal is fast for absolute settings; symbolic is intuitive for adding/removing specific bits
-- `+` adds permissions, `-` removes, `=` sets exactly
-- `chmod -R` applies permissions recursively to directories and their contents
-- Never use `777` in production — it gives everyone full access including write and execute
+- Symbolic: `chmod u+x file`, `chmod g-w file`, `chmod o=r file`
+- `u`=user/owner, `g`=group, `o`=others, `a`=all three
+- `+`=add, `-`=remove, `=`=set exactly
+- Octal: `chmod 755 file` — three digits for user, group, others
+- Common: 755 (executable), 644 (file), 600 (private), 700 (private dir)
+- `chmod -R` applies permissions recursively
+- `stat -c "%a %n"` shows the octal value

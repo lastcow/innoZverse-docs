@@ -1,183 +1,191 @@
-# Lab 18: Log Parsing — SSH Auth Log Analysis
+# Lab 18: Log Parsing
 
 ## 🎯 Objective
-Parse `/var/log/auth.log` (or a simulated version) to extract failed login IPs, count occurrences, identify brute force patterns, and generate a security report.
+Create sample log files and build pipelines to extract patterns, count occurrences, and generate a top IPs report.
 
 ## ⏱️ Estimated Time
-40 minutes
+30 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Completion of Labs 1–3 and Lab 17
+- Practitioner Labs 1 (grep advanced), 2 (awk), 4 (cut/sort/uniq)
 
 ## 🔬 Lab Instructions
 
-### Step 1: Examine Auth Log Structure
-```bash
-sudo tail -10 /var/log/auth.log 2>/dev/null || echo "Using simulation"
+### Step 1: Create a Sample Log File
 
-# Create a realistic simulation
-cat > /tmp/auth.log.sim << 'EOF'
-Mar  1 05:58:01 server sshd[1234]: Failed password for root from 203.0.113.10 port 45231 ssh2
-Mar  1 05:58:03 server sshd[1234]: Failed password for admin from 203.0.113.10 port 45232 ssh2
-Mar  1 05:58:22 server sshd[1235]: Accepted publickey for ubuntu from 10.0.0.5 port 52100 ssh2
-Mar  1 05:59:01 server sshd[1236]: Failed password for root from 198.51.100.42 port 33891 ssh2
-Mar  1 05:59:11 server sshd[1236]: Failed password for root from 198.51.100.42 port 33892 ssh2
-Mar  1 05:59:21 server sshd[1236]: Failed password for root from 198.51.100.42 port 33893 ssh2
-Mar  1 06:00:01 server sshd[1237]: Failed password for ubuntu from 203.0.113.10 port 45250 ssh2
-Mar  1 06:00:15 server sshd[1238]: Accepted password for deploy from 10.0.0.10 port 41000 ssh2
-Mar  1 06:01:00 server sshd[1239]: Failed password for pi from 192.0.2.77 port 12345 ssh2
-Mar  1 06:01:10 server sshd[1239]: Failed password for pi from 192.0.2.77 port 12346 ssh2
-Mar  1 06:01:20 server sshd[1240]: Invalid user admin from 203.0.113.10 port 45260
-Mar  1 06:02:00 server sshd[1241]: Accepted publickey for alice from 10.0.0.20 port 55001 ssh2
+```bash
+cat > /tmp/access.log << 'EOF'
+192.168.1.10 - alice [01/Mar/2026:10:00:01 +0000] "GET /index.html HTTP/1.1" 200 1024
+192.168.1.20 - bob [01/Mar/2026:10:00:15 +0000] "GET /api/users HTTP/1.1" 200 2048
+192.168.1.10 - alice [01/Mar/2026:10:01:00 +0000] "POST /api/login HTTP/1.1" 200 512
+10.0.0.5 - - [01/Mar/2026:10:01:30 +0000] "GET /admin HTTP/1.1" 403 256
+192.168.1.30 - carol [01/Mar/2026:10:02:00 +0000] "GET /api/products HTTP/1.1" 200 4096
+192.168.1.10 - alice [01/Mar/2026:10:02:30 +0000] "GET /api/orders HTTP/1.1" 200 8192
+10.0.0.5 - - [01/Mar/2026:10:03:00 +0000] "POST /admin/users HTTP/1.1" 403 256
+192.168.1.20 - bob [01/Mar/2026:10:03:30 +0000] "DELETE /api/users/5 HTTP/1.1" 204 0
+192.168.1.40 - dave [01/Mar/2026:10:04:00 +0000] "GET /api/products HTTP/1.1" 200 4096
+192.168.1.10 - alice [01/Mar/2026:10:04:30 +0000] "GET /api/stats HTTP/1.1" 200 1536
+10.0.0.5 - - [01/Mar/2026:10:05:00 +0000] "GET /etc/passwd HTTP/1.1" 404 128
+192.168.1.30 - carol [01/Mar/2026:10:05:30 +0000] "PUT /api/products/1 HTTP/1.1" 200 1024
+192.168.1.20 - bob [01/Mar/2026:10:06:00 +0000] "GET /api/orders HTTP/1.1" 404 256
+192.168.1.50 - - [01/Mar/2026:10:06:30 +0000] "GET /index.html HTTP/1.1" 200 1024
+192.168.1.10 - alice [01/Mar/2026:10:07:00 +0000] "POST /api/orders HTTP/1.1" 201 512
 EOF
-echo "Simulation log: $(wc -l < /tmp/auth.log.sim) lines"
+
+wc -l /tmp/access.log
 ```
 
-### Step 2: Count Failed Logins
+### Step 2: Extract Basic Patterns
+
 ```bash
-LOG=/tmp/auth.log.sim
-grep -c 'Failed password' "$LOG"
-# 8
+# Count requests by status code
+echo "=== Status Code Distribution ==="
+awk '{ print $9 }' /tmp/access.log | sort | uniq -c | sort -rn
 ```
 
-### Step 3: Extract Source IPs from Failed Logins
-```bash
-grep 'Failed password' "$LOG" \
-  | grep -oE 'from [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
-  | awk '{print $2}'
-# 203.0.113.10
-# 203.0.113.10
-# 198.51.100.42
-# 198.51.100.42
-# 198.51.100.42
-# 203.0.113.10
-# 192.0.2.77
-# 192.0.2.77
+**Expected output:**
+```
+     10 200
+      2 403
+      1 201
+      1 204
+      1 404
 ```
 
-### Step 4: Count Failures per IP
 ```bash
-grep 'Failed password' "$LOG" \
-  | grep -oE 'from [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
-  | awk '{print $2}' \
-  | sort | uniq -c | sort -rn
-#       3 198.51.100.42
-#       3 203.0.113.10
-#       2 192.0.2.77
+# Find all 4xx and 5xx errors
+echo "=== Error Requests ==="
+awk '$9 >= 400 { print $0 }' /tmp/access.log
 ```
 
-### Step 5: Extract Targeted Usernames
+### Step 3: Top IP Addresses Report
+
 ```bash
-grep 'Failed password' "$LOG" \
-  | awk '{print $9}' \
-  | sort | uniq -c | sort -rn
-#       5 root
-#       2 pi
-#       1 ubuntu
-#       1 admin
+echo "=== Top IP Addresses ==="
+awk '{ print $1 }' /tmp/access.log | sort | uniq -c | sort -rn
 ```
 
-### Step 6: Find Successful Logins
-```bash
-grep 'Accepted' "$LOG" | awk '{print $9, "from", $11, "method:", $8}' | sort -u
-# alice from 10.0.0.20 method: publickey
-# deploy from 10.0.0.10 method: password
-# ubuntu from 10.0.0.5 method: publickey
+**Expected output:**
+```
+      5 192.168.1.10
+      3 10.0.0.5
+      3 192.168.1.20
+      2 192.168.1.30
+      1 192.168.1.40
+      1 192.168.1.50
 ```
 
-### Step 7: Identify Invalid User Attempts
 ```bash
-grep 'Invalid user' "$LOG" \
-  | awk '{print "User:", $10, "from IP:", $12}' \
-  | sort | uniq -c | sort -rn
-#       1 User: admin from IP: 203.0.113.10
+# Flag suspicious IPs (403 errors)
+echo "=== IPs with 403 Errors ==="
+awk '$9 == 403 { print $1 }' /tmp/access.log | sort | uniq -c | sort -rn
 ```
 
-### Step 8: Find Brute Force Candidates (more than 2 failures)
+### Step 4: Time-Based Analysis
+
 ```bash
-THRESHOLD=2
-grep 'Failed password' "$LOG" \
-  | grep -oE 'from [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
-  | awk '{print $2}' \
-  | sort | uniq -c | sort -rn \
-  | awk -v t="$THRESHOLD" '$1 > t {print "BRUTE FORCE:", $2, "(" $1 " attempts)"}'
-# BRUTE FORCE: 198.51.100.42 (3 attempts)
-# BRUTE FORCE: 203.0.113.10 (3 attempts)
+# Count requests per minute
+echo "=== Requests per Minute ==="
+awk '{ match($4, /[0-9]{2}:[0-9]{2}:[0-9]{2}/); print substr($4, RSTART, 5) }' /tmp/access.log | sort | uniq -c
 ```
 
-### Step 9: Timeline for a Specific IP
 ```bash
-TARGET="198.51.100.42"
-echo "=== Timeline for $TARGET ==="
-grep "$TARGET" "$LOG" | awk '{print $1, $2, $3, $6, $7, $8, $9}'
-# Mar 1 05:59:01 Failed password for root
-# Mar 1 05:59:11 Failed password for root
-# Mar 1 05:59:21 Failed password for root
+# Requests per hour
+echo "=== Requests per Hour ==="
+awk '{ match($4, /[0-9]{2}:[0-9]{2}/); print substr($4, RSTART, 5) }' /tmp/access.log | cut -c1-3 | sort | uniq -c
 ```
 
-### Step 10: Full Security Report Script
+### Step 5: Traffic Volume Analysis
+
 ```bash
-cat > ~/auth_report.sh << 'EOF'
+# Total bytes transferred
+echo "=== Total Bytes Transferred ==="
+awk '{ sum += $10 } END { printf "Total: %d bytes (%.2f KB)\n", sum, sum/1024 }' /tmp/access.log
+```
+
+```bash
+# Bytes per IP
+echo "=== Bytes per IP ==="
+awk '{ bytes[$1] += $10 } END { for (ip in bytes) printf "%15s: %7d bytes\n", ip, bytes[ip] }' /tmp/access.log | sort -k2 -rn
+```
+
+### Step 6: HTTP Method Analysis
+
+```bash
+echo "=== HTTP Method Distribution ==="
+awk '{ gsub(/"/, "", $6); print $6 }' /tmp/access.log | sort | uniq -c | sort -rn
+```
+
+**Expected output:**
+```
+      9 GET
+      3 POST
+      2 PUT
+      1 DELETE
+```
+
+### Step 7: Full Log Analysis Script
+
+```bash
+cat > /tmp/log-analyzer.sh << 'EOF'
 #!/bin/bash
-set -euo pipefail
-LOG="${1:-/var/log/auth.log}"
-[[ -f "$LOG" ]] || { echo "Log not found: $LOG" >&2; exit 1; }
-THRESHOLD=3
+LOG="${1:-/tmp/access.log}"
 
-echo "======================================="
-echo " SSH Auth Security Report"
-echo " Log  : $LOG"
-echo " Date : $(date)"
-echo "======================================="
+[[ -f "$LOG" ]] || { echo "Log file not found: $LOG"; exit 1; }
 
-echo ""
-echo "--- Failed Login Summary ---"
-total=$(grep -c 'Failed password' "$LOG" || echo 0)
-echo "Total failed attempts: $total"
+echo "================================================"
+echo "  LOG ANALYSIS REPORT"
+echo "  File: $LOG"
+echo "  Lines: $(wc -l < "$LOG")"
+echo "================================================"
 
 echo ""
-echo "--- Top Attacking IPs ---"
-grep 'Failed password' "$LOG" \
-  | grep -oE 'from [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
-  | awk '{print $2}' \
-  | sort | uniq -c | sort -rn | head -10 \
-  | awk '{printf "  %-18s %s attempts\n", $2, $1}'
+echo "--- Top 5 IP Addresses ---"
+awk '{ print $1 }' "$LOG" | sort | uniq -c | sort -rn | head -5 | awk '{ printf "  %5d requests from %s\n", $1, $2 }'
 
 echo ""
-echo "--- Brute Force Candidates (>$THRESHOLD attempts) ---"
-grep 'Failed password' "$LOG" \
-  | grep -oE 'from [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
-  | awk '{print $2}' \
-  | sort | uniq -c | sort -rn \
-  | awk -v t="$THRESHOLD" '$1 > t {print "  ALERT:", $2, "(" $1 " attempts)"}'
+echo "--- Status Code Summary ---"
+awk '{ print $9 }' "$LOG" | sort | uniq -c | sort -rn | awk '{ printf "  %5d  HTTP %s\n", $1, $2 }'
 
 echo ""
-echo "--- Targeted Usernames ---"
-grep 'Failed password' "$LOG" | awk '{print $9}' \
-  | sort | uniq -c | sort -rn | head -5 \
-  | awk '{printf "  %-15s %s times\n", $2, $1}'
+echo "--- Total Bytes Served ---"
+awk '{ sum += $10 } END { printf "  %d bytes (%.2f KB)\n", sum, sum/1024 }' "$LOG"
 
 echo ""
-echo "--- Successful Logins ---"
-grep 'Accepted' "$LOG" \
-  | awk '{print "  " $9, "from", $11, "at", $1, $2, $3}' | sort -u
+echo "--- Error Requests (4xx) ---"
+awk '$9 >= 400 && $9 < 500 { print "  " $1, $6, $7, "->", $9 }' "$LOG"
 EOF
-chmod +x ~/auth_report.sh
-~/auth_report.sh /tmp/auth.log.sim
+
+bash /tmp/log-analyzer.sh
+```
+
+### Step 8: Parse System Logs
+
+```bash
+# Parse journald for SSH events
+journalctl -n 50 --no-pager 2>/dev/null | grep -i "ssh\|sshd" | head -10 || echo "No recent SSH events"
+```
+
+```bash
+# Count events by hour from journald
+journalctl --no-pager --since "1 hour ago" 2>/dev/null | awk '{ print $3 }' | cut -c1-2 | sort | uniq -c | head -5
 ```
 
 ## ✅ Verification
+
 ```bash
-grep -c 'Failed password' /tmp/auth.log.sim   # 8
-grep -c 'Accepted' /tmp/auth.log.sim           # 3
-~/auth_report.sh /tmp/auth.log.sim | grep "Total failed"
-# Total failed attempts: 8
+echo "=== Total log lines ===" && wc -l < /tmp/access.log
+echo "=== Top IP ===" && awk '{ print $1 }' /tmp/access.log | sort | uniq -c | sort -rn | head -1
+echo "=== Error count ===" && awk '$9 >= 400' /tmp/access.log | wc -l
+echo "=== 200 count ===" && awk '$9 == 200' /tmp/access.log | wc -l
+rm /tmp/access.log /tmp/log-analyzer.sh 2>/dev/null
+echo "Practitioner Lab 18 complete"
 ```
 
 ## 📝 Summary
-- `grep 'Failed password'` filters SSH brute force attempts from auth.log
-- `grep -oE 'from IP_REGEX'` extracts just the attacker IP addresses
-- `sort | uniq -c | sort -rn` counts and ranks occurrences
-- Combine `grep + awk + sort + uniq` into complete security report pipelines
-- In production, use `sudo cat /var/log/auth.log` or `sudo journalctl -u ssh`
+- `awk '{ print $1 }' log | sort | uniq -c | sort -rn` generates frequency reports
+- `awk '$9 >= 400'` filters by numeric field value (status codes)
+- `awk '{ sum += $10 } END { print sum }'` calculates running totals
+- Build log parsers incrementally: extract, filter, count, format
+- Associative arrays in awk (`bytes[$1] += $10`) aggregate data by key
+- Use `journalctl --no-pager` to read system logs programmatically

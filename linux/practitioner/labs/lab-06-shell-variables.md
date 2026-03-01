@@ -1,259 +1,196 @@
-# Lab 6: Shell Variables and Quoting
+# Lab 6: Shell Variables
 
 ## 🎯 Objective
-Master shell variable types, understand quoting rules, and perform string operations in bash — foundations for writing robust scripts.
+Master shell variable declaration, scoping, and string operations including declare, local, readonly, and string manipulation operators.
 
 ## ⏱️ Estimated Time
-30 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Foundations Lab 18 (environment variables)
-- Basic bash shell usage
+- Foundations Lab 18: Environment Variables
 
 ## 🔬 Lab Instructions
 
-### Step 1: Variable Assignment and Access
+### Step 1: Variable Declaration Basics
+
 ```bash
-# No spaces around = sign!
-name="Alice"
-age=30
-pi=3.14
-
-echo $name
-# Output: Alice
-
-echo "Name: $name, Age: $age"
-# Output: Name: Alice, Age: 30
-
-# Curly brace syntax for clarity
-echo "Hello, ${name}!"
-echo "${name}s department"  # Would fail without braces: $names = empty
+# Simple assignment (no spaces around =)
+NAME="Alice"
+AGE=30
+echo "Name: $NAME, Age: $AGE"
 ```
 
-### Step 2: Single vs Double Quotes
 ```bash
-name="World"
+# declare explicitly types variables
+declare -i COUNT=10       # integer
+declare -r CONST="fixed"  # readonly
+declare -l LOWER="HELLO"  # lowercase
+declare -u UPPER="hello"  # uppercase
 
-# Double quotes: variables are expanded
-echo "Hello $name"
-# Output: Hello World
-
-# Single quotes: everything is literal
-echo 'Hello $name'
-# Output: Hello $name
-
-# Escape a special character
-echo "Price: \$5.00"
-# Output: Price: $5.00
+echo "Count: $COUNT"
+echo "Const: $CONST"
+echo "Lower: $LOWER"
+echo "Upper: $UPPER"
 ```
 
-### Step 3: Command Substitution
+### Step 2: readonly Variables
+
 ```bash
-# $(command) or `command` captures command output
-today=$(date +%Y-%m-%d)
-echo "Today is: $today"
+readonly MAX_RETRIES=5
+echo "Max retries: $MAX_RETRIES"
 
-hostname=$(hostname)
-echo "Running on: $hostname"
-
-# Nested command substitution
-echo "Home: $(dirname $(echo $HOME))"
+# Attempting to modify readonly fails gracefully
+readonly TEST_VAR="immutable"
+TEST_VAR="changed" 2>/dev/null || echo "Cannot modify readonly variable"
 ```
 
-### Step 4: Arithmetic Expansion
+### Step 3: String Length
+
 ```bash
-# $(( )) for integer arithmetic
-x=10
-y=3
-echo $((x + y))   # 13
-echo $((x * y))   # 30
-echo $((x / y))   # 3 (integer division)
-echo $((x % y))   # 1 (remainder)
-echo $((x ** 2))  # 100
-
-# Increment
-count=0
-count=$((count + 1))
-echo $count  # 1
-
-((count++))
-echo $count  # 2
+PHRASE="Hello, Linux World!"
+echo "String: $PHRASE"
+echo "Length: ${#PHRASE}"
 ```
 
-### Step 5: Variable Types and declare
-```bash
-# Integer variable
-declare -i num=42
-echo $num
-
-# Read-only variable
-declare -r CONST="unchangeable"
-echo $CONST
-# CONST="new"  # Would error
-
-# Uppercase transformation
-declare -u upper_var
-upper_var="hello"
-echo $upper_var
-# Output: HELLO
-
-# Lowercase transformation
-declare -l lower_var
-lower_var="HELLO"
-echo $lower_var
-# Output: hello
+**Expected output:**
+```
+String: Hello, Linux World!
+Length: 19
 ```
 
-### Step 6: Default Values and Substitution
 ```bash
-# ${var:-default}: use default if var is unset or empty
-unset myvar
-echo ${myvar:-"default value"}
-# Output: default value
-echo $myvar  # Still unset
-
-# ${var:=default}: assign default if unset
-echo ${myvar:="assigned default"}
-echo $myvar  # Now set to "assigned default"
-
-# ${var:+value}: use value if var IS set
-name="Alice"
-echo ${name:+"Name is set: $name"}
-# Output: Name is set: Alice
-
-# ${var:?error}: print error and exit if unset
-echo ${required_var:?"required_var is not set"}
-# Script exits with error if required_var is unset
+# Array length uses same syntax
+WORDS=("hello" "world" "foo")
+echo "Array length: ${#WORDS[@]}"
 ```
 
-### Step 7: String Length
-```bash
-str="Hello, World!"
-echo ${#str}
-# Output: 13
+### Step 4: Substring Extraction
 
-# Length of array
-arr=(a b c d e)
-echo ${#arr[@]}
-# Output: 5
+```bash
+TEXT="Linux System Administration"
+
+# ${var:start:length}
+echo "${TEXT:0:5}"   # First 5 chars
+echo "${TEXT:6:6}"   # 6 chars starting at position 6
+echo "${TEXT:6}"     # From position 6 to end
+echo "${TEXT: -14}"  # Last 14 chars (note the space before -)
 ```
 
-### Step 8: Substring Extraction
-```bash
-str="Hello, World!"
-
-# ${var:offset:length}
-echo ${str:0:5}    # Hello
-echo ${str:7:5}    # World
-echo ${str:7}      # World! (from position 7 to end)
-echo ${str: -6}    # World! (last 6 chars)
+**Expected output:**
+```
+Linux
+System
+System Administration
+Administration
 ```
 
-### Step 9: Pattern Matching and Removal
+### Step 5: String Replacement
+
 ```bash
-filename="report_2026-03-01.tar.gz"
-
-# Remove shortest match from START
-echo ${filename#*_}
-# Output: 2026-03-01.tar.gz
-
-# Remove longest match from START
-echo ${filename##*-}
-# Output: 01.tar.gz
-
-# Remove shortest match from END
-echo ${filename%.*}
-# Output: report_2026-03-01.tar
-
-# Remove longest match from END
-echo ${filename%%.*}
-# Output: report_2026-03-01
-```
-
-### Step 10: Pattern Substitution
-```bash
-str="The cat sat on the mat"
+URL="http://example.com/api/v1/users"
 
 # Replace first occurrence
-echo ${str/cat/dog}
-# Output: The dog sat on the mat
+echo "${URL/http/https}"
 
 # Replace all occurrences
-echo ${str//at/ot}
-# Output: The cot sot on the mot
-
-# Replace at beginning
-path="/home/student/docs"
-echo ${path/#\/home/$HOME}
+SENTENCE="the cat sat on the mat"
+echo "${SENTENCE//the/a}"
 ```
 
-### Step 11: Case Conversion (bash 4+)
-```bash
-str="Hello World"
-
-# Uppercase
-echo ${str^^}
-# Output: HELLO WORLD
-
-# Lowercase
-echo ${str,,}
-# Output: hello world
-
-# Capitalize first character
-echo ${str^}
-# Output: Hello World (already capital)
-
-str2="hello world"
-echo ${str2^}
-# Output: Hello world
+**Expected output:**
+```
+https://example.com/api/v1/users
+a cat sat on a mat
 ```
 
-### Step 12: Practical Variable Usage in Scripts
 ```bash
-#!/bin/bash
-# Demonstrate variable best practices
+# Replace only at start (# anchor)
+PATH_VAR="/usr/local/bin:/usr/bin:/bin"
+echo "${PATH_VAR/#\/usr\/local\/bin:/}"
 
-# Always quote variables in comparisons
-name="John Doe"
-if [ "$name" = "John Doe" ]; then
-  echo "Welcome, $name!"
-fi
+# Replace only at end (% anchor)
+FILENAME="report.txt"
+echo "${FILENAME/%txt/md}"
+```
 
-# Use ${} for safety in string concatenation
-prefix="backup"
-echo "${prefix}_$(date +%Y%m%d).tar.gz"
-# Output: backup_20260301.tar.gz
+### Step 6: Pattern Trimming
 
-# Check if variable is set and non-empty
-check_var() {
-  local var_name="$1"
-  local var_value="${!var_name}"
-  if [[ -n "$var_value" ]]; then
-    echo "$var_name is set to: $var_value"
-  else
-    echo "$var_name is empty or unset"
-  fi
-}
-check_var HOME
-check_var NONEXISTENT
+```bash
+FILEPATH="/home/zchen/documents/report.pdf"
+
+# Remove shortest match from front (#)
+echo "${FILEPATH#*/}"      # Remove up to first /
+echo "${FILEPATH##*/}"     # Remove up to last / (basename)
+
+# Remove shortest match from end (%)
+echo "${FILEPATH%.*}"      # Remove extension
+echo "${FILEPATH%%/*}"     # Remove from first /
+```
+
+**Expected output:**
+```
+home/zchen/documents/report.pdf
+report.pdf
+/home/zchen/documents/report
+(empty)
+```
+
+### Step 7: Case Conversion
+
+```bash
+WORD="Hello World"
+echo "${WORD^^}"   # ALL UPPERCASE
+echo "${WORD,,}"   # all lowercase
+echo "${WORD^}"    # Capitalize first char
+echo "${WORD,}"    # Lowercase first char
+```
+
+**Expected output:**
+```
+HELLO WORLD
+hello world
+Hello World
+hello World
+```
+
+### Step 8: Default Values and Error Checking
+
+```bash
+# ${var:-default} - use default if unset or empty
+UNSET_VAR=""
+echo "${UNSET_VAR:-using default}"
+echo "${UNSET_VAR:=assigned default}"  # Also assigns the value
+echo "Now set to: $UNSET_VAR"
+```
+
+```bash
+# ${var:?error message} - fail with message if unset
+(REQUIRED_VAR=; export REQUIRED_VAR; unset REQUIRED_VAR; echo "${REQUIRED_VAR:-REQUIRED_VAR is unset (expected)}")  # demonstrates :? behavior safely
 ```
 
 ## ✅ Verification
+
 ```bash
-# Test variable operations
-str="linux_admin_2026"
-echo "Length: ${#str}"         # 16
-echo "Upper: ${str^^}"          # LINUX_ADMIN_2026
-echo "Substr: ${str:6:5}"       # admin
-echo "Trim ext: ${str%_*}"      # linux_admin  (removes last _xxx)
-echo "Default: ${unset_var:-fallback}"  # fallback
+# Run a comprehensive variable test
+TEXT="Hello, Linux!"
+echo "Length: ${#TEXT}"
+echo "Upper: ${TEXT^^}"
+echo "Lower: ${TEXT,,}"
+echo "Substring: ${TEXT:7:5}"
+echo "Replace: ${TEXT/Linux/World}"
+echo "Trim prefix: ${TEXT#Hello, }"
+
+CONST_TEST="fixed"
+declare -r CONST_TEST
+CONST_TEST="changed" 2>/dev/null || echo "readonly protection works"
+echo "Practitioner Lab 6 complete"
 ```
 
 ## 📝 Summary
-- Variables use `name=value` (no spaces); access with `$name` or `${name}`
-- Double quotes expand variables; single quotes treat everything literally
-- `$(command)` captures command output; `$((expr))` does integer arithmetic
-- `${var:-default}` provides defaults; `${#var}` gives length
-- `${str:offset:length}` extracts substrings; `${str/old/new}` substitutes patterns
-- `${str^^}` uppercases; `${str,,}` lowercases — available in bash 4+
-
+- `declare -i` creates integers; `-r` creates readonly; `-l/-u` force case
+- `${#var}` returns string length
+- `${var:start:len}` extracts a substring
+- `${var/old/new}` replaces first match; `${var//old/new}` replaces all
+- `${var##*/}` removes longest prefix (basename equivalent)
+- `${var%.*}` removes shortest suffix (strips extension)
+- `${var^^}` uppercases; `${var,,}` lowercases

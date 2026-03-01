@@ -1,211 +1,213 @@
 # Lab 8: UFW Firewall
 
 ## 🎯 Objective
-Configure Ubuntu's Uncomplicated Firewall (UFW): enable/disable, allow/deny rules, check status, and use application profiles.
+Understand UFW (Uncomplicated Firewall) configuration by inspecting status, application profiles, and understanding rule management.
 
 ## ⏱️ Estimated Time
-30 minutes
+20 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access with sudo privileges
-- Basic understanding of ports and protocols
+- Advanced Lab 7: iptables Basics
 
 ## 🔬 Lab Instructions
 
 ### Step 1: Check UFW Status
-```bash
-sudo ufw status
-# Status: inactive
-# or
-# Status: active
-# To                         Action      From
-# --                         ------      ----
-# 22/tcp                     ALLOW       Anywhere
 
-sudo ufw status verbose
-# Status: active
-# Logging: on (low)
-# Default: deny (incoming), allow (outgoing), deny (routed)
+```bash
+# UFW status (read-only, no sudo needed for status)
+ufw status 2>/dev/null || echo "UFW not available or requires root"
 ```
 
-### Step 2: Enable UFW (Allow SSH First!)
 ```bash
-# CRITICAL: Allow SSH before enabling to avoid lockout
-sudo ufw allow ssh
-# Rules updated
-# Rules updated (v6)
-
-# Enable UFW
-sudo ufw enable
-# Command may disrupt existing ssh connections. Proceed with operation (y|n)? y
-# Firewall is active and enabled on system startup
-
-sudo ufw status
-# Status: active
+which ufw && echo "UFW is installed" || echo "UFW not installed"
 ```
 
-### Step 3: Allow Ports by Number and Name
 ```bash
-# Allow by port number
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 8080/tcp
-
-# Allow by service name (from /etc/services)
-sudo ufw allow http    # port 80
-sudo ufw allow https   # port 443
-
-# Allow UDP
-sudo ufw allow 53/udp
-
-sudo ufw status
-# To                         Action      From
-# --                         ------      ----
-# 22/tcp                     ALLOW       Anywhere
-# 80/tcp                     ALLOW       Anywhere
-# 443/tcp                    ALLOW       Anywhere
-# 8080/tcp                   ALLOW       Anywhere
+# Check if UFW is active via systemd
+systemctl is-active ufw 2>/dev/null || echo "Cannot check UFW status via systemd"
 ```
 
-### Step 4: Allow Specific Source IPs
+### Step 2: UFW Application Profiles
+
 ```bash
-# Allow from a specific IP
-sudo ufw allow from 10.0.0.10
-
-# Allow from IP to specific port
-sudo ufw allow from 10.0.0.0/24 to any port 5432
-# (Allow PostgreSQL from internal network only)
-
-# Allow from subnet to any port
-sudo ufw allow from 192.168.1.0/24
-
-sudo ufw status numbered
+# List available application profiles
+ufw app list 2>/dev/null | head -20 || echo "Cannot list app profiles (may need privileges)"
 ```
 
-### Step 5: Deny and Reject Rules
 ```bash
-# Deny (silently drop)
-sudo ufw deny from 192.0.2.100
-
-# Deny a port
-sudo ufw deny 23/tcp    # block telnet
-
-# Reject (send error back to sender)
-sudo ufw reject 23/tcp
-
-sudo ufw status numbered
-# [ 1] 22/tcp                     ALLOW IN    Anywhere
-# [ 2] 80/tcp                     ALLOW IN    Anywhere
-# ...
+# View profile locations
+ls /etc/ufw/applications.d/ 2>/dev/null | head -10
+cat /etc/ufw/applications.d/openssh-server 2>/dev/null || echo "No openssh profile found"
 ```
 
-### Step 6: Delete Rules
+### Step 3: UFW Rule Syntax Reference
+
 ```bash
-# View rules with numbers
-sudo ufw status numbered
-# [ 6] 23/tcp                     DENY IN     Anywhere
+cat > /tmp/ufw-syntax.txt << 'EOF'
+UFW COMMAND REFERENCE:
 
-# Delete by number
-sudo ufw delete 6
+Status and Info:
+  ufw status                  Show enabled/disabled + rules
+  ufw status verbose          Show with interface and policy info
+  ufw status numbered         Show rules with numbers
+  ufw app list                Show available application profiles
+  ufw show raw                Show underlying iptables rules
 
-# Delete by rule specification
-sudo ufw delete allow 8080/tcp
-sudo ufw delete allow from 192.168.1.0/24
+Enable/Disable (requires root):
+  ufw enable                  Enable firewall
+  ufw disable                 Disable firewall
+  ufw reset                   Reset to defaults (deletes all rules)
 
-sudo ufw status
+Allow Rules (requires root):
+  ufw allow ssh               Allow SSH (uses app profile)
+  ufw allow 22/tcp            Allow port 22 TCP
+  ufw allow 80                Allow port 80 (all protocols)
+  ufw allow from 192.168.1.0/24  Allow from subnet
+  ufw allow from 10.0.0.5 to any port 5432  Specific IP to port
+  ufw allow 8080:8090/tcp     Allow port range
+
+Deny Rules (requires root):
+  ufw deny 23                 Block telnet
+  ufw deny from 1.2.3.4      Block a specific IP
+
+Delete Rules (requires root):
+  ufw delete allow 80         Delete by rule
+  ufw delete 5                Delete by number (from ufw status numbered)
+
+Logging (requires root):
+  ufw logging on              Enable logging
+  ufw logging off             Disable logging
+  ufw logging medium          Log level: low|medium|high|full
+EOF
+
+cat /tmp/ufw-syntax.txt
 ```
 
-### Step 7: Application Profiles
+### Step 4: UFW Default Policies
+
 ```bash
-# UFW includes application profiles from /etc/ufw/applications.d/
-sudo ufw app list
-# Available applications:
-#   OpenSSH
-#   Nginx Full
-#   Nginx HTTP
-#   Nginx HTTPS
-#   Apache Full
-#   Apache
+cat > /tmp/ufw-policies.txt << 'EOF'
+UFW DEFAULT POLICIES:
 
-# View profile details
-sudo ufw app info OpenSSH
-# Profile: OpenSSH
-# Title: Secure Shell Server
-# Description: OpenSSH is a free implementation of the Secure Shell protocol.
-# Ports: 22/tcp
+Ubuntu's default UFW configuration:
+  Incoming: DENY (block all inbound traffic unless allowed)
+  Outgoing: ALLOW (permit all outbound traffic)
+  Forward:  DISABLED
 
-# Allow by application name
-sudo ufw allow 'OpenSSH'
-sudo ufw allow 'Nginx Full'
+This means:
+  - Services only become accessible after you explicitly allow them
+  - The system can still initiate outbound connections
+  - Routing/forwarding is disabled
+
+Best practices:
+  1. Enable UFW immediately after SSH access is confirmed
+  2. Always allow SSH BEFORE enabling UFW:
+     ufw allow ssh && ufw enable
+  3. Enable logging for security monitoring:
+     ufw logging on
+  4. Use app profiles when available (maintained automatically)
+
+Config files:
+  /etc/default/ufw          Main configuration
+  /etc/ufw/before.rules     Rules applied before UFW rules
+  /etc/ufw/after.rules      Rules applied after UFW rules
+  /etc/ufw/user.rules       User-defined rules (managed by ufw)
+EOF
+
+cat /tmp/ufw-policies.txt
 ```
 
-### Step 8: Logging
+### Step 5: Example Web Server Firewall Config
+
 ```bash
-# Enable logging
-sudo ufw logging on
-# Logging enabled
+cat > /tmp/ufw-webserver-example.txt << 'EOF'
+# Example: Web server firewall setup
+# Commands shown for reference (require root to execute)
 
-# Set log level
-sudo ufw logging medium    # options: off, low, medium, high, full
+# Reset and start fresh
+# ufw reset
 
-# View UFW logs
-sudo tail -20 /var/log/ufw.log 2>/dev/null || sudo journalctl -k | grep UFW | tail -10
-# Mar  1 06:01:23 server kernel: [UFW BLOCK] IN=eth0 OUT= MAC=... SRC=192.0.2.100 DST=10.0.0.5 ...
+# Set default policies
+# ufw default deny incoming
+# ufw default allow outgoing
+
+# Allow SSH (ALWAYS do this first!)
+# ufw allow ssh
+
+# Allow web traffic
+# ufw allow 'Nginx Full'    # or 'Apache Full'
+# ufw allow 80/tcp
+# ufw allow 443/tcp
+
+# Allow specific admin IP for management ports
+# ufw allow from 192.168.1.100 to any port 3306  # MySQL from admin only
+# ufw allow from 192.168.1.100 to any port 6379  # Redis from admin only
+
+# Enable the firewall
+# ufw --force enable
+
+# Verify
+# ufw status verbose
+EOF
+
+cat /tmp/ufw-webserver-example.txt
 ```
 
-### Step 9: Default Policies
+### Step 6: UFW Logs
+
 ```bash
-# View current defaults
-sudo ufw status verbose | grep Default
-# Default: deny (incoming), allow (outgoing), deny (routed)
-
-# Change default policies
-sudo ufw default deny incoming    # block all inbound by default
-sudo ufw default allow outgoing   # allow all outbound by default
-sudo ufw default deny forward     # block routing
-
-# After changing defaults, re-check your allow rules are still in place
-sudo ufw status
+# UFW log location
+ls /var/log/ufw.log 2>/dev/null && head -10 /var/log/ufw.log || echo "UFW log not found"
 ```
 
-### Step 10: Disable and Reset UFW
 ```bash
-# Disable UFW (rules stay but firewall is inactive)
-sudo ufw disable
-# Firewall stopped and disabled on system startup
+# Or via journalctl
+journalctl -k --no-pager 2>/dev/null | grep -i "ufw\|BLOCK\|ALLOW" | head -10 || echo "No UFW journal entries"
+```
 
-# Reset UFW completely (removes all rules)
-sudo ufw reset
-# Resetting all rules to installed defaults. Proceed with operation (y|n)? y
-# ...
+### Step 7: UFW Application Profile Format
 
-# Re-enable with minimal ruleset
-sudo ufw allow ssh
-sudo ufw enable
-sudo ufw status
-# Status: active
-# To   Action  From
-# --   ------  ----
-# 22   ALLOW   Anywhere
+```bash
+cat > /tmp/custom-ufw-profile.txt << 'EOF'
+# Example custom UFW application profile
+# Save to: /etc/ufw/applications.d/myapp
+
+[MyApp]
+title=My Application
+description=Custom application server
+ports=8080,8443/tcp
+
+# After creating, run: ufw app update MyApp
+# Then: ufw allow MyApp
+EOF
+
+cat /tmp/custom-ufw-profile.txt
 ```
 
 ## ✅ Verification
+
 ```bash
-sudo ufw status verbose
-# Status: active
-# Default: deny (incoming), allow (outgoing)
+echo "=== UFW availability ==="
+which ufw 2>/dev/null && echo "UFW installed" || echo "UFW not found"
 
-sudo ufw status numbered
-# [1] 22/tcp ALLOW IN Anywhere
+echo "=== UFW config files ==="
+ls /etc/ufw/ 2>/dev/null | head -10
 
-sudo ufw app list | grep OpenSSH
-# OpenSSH
+echo "=== UFW app profiles ==="
+ls /etc/ufw/applications.d/ 2>/dev/null | head -10
+
+echo "=== UFW log ==="
+ls -la /var/log/ufw.log 2>/dev/null || echo "No UFW log file"
+
+rm /tmp/ufw-syntax.txt /tmp/ufw-policies.txt /tmp/ufw-webserver-example.txt /tmp/custom-ufw-profile.txt 2>/dev/null
+echo "Advanced Lab 8 complete"
 ```
 
 ## 📝 Summary
-- Always `ufw allow ssh` before `ufw enable` to prevent lockout
-- `ufw allow PORT/proto` or `ufw allow from IP to any port PORT`
-- Application profiles in `/etc/ufw/applications.d/` simplify common services
-- `ufw status numbered` shows rules with numbers for easy deletion
-- `ufw delete N` removes rule by number; `ufw delete allow PORT` by specification
-- `ufw logging on` enables firewall log to `/var/log/ufw.log`
+- UFW is Ubuntu's simplified firewall frontend that manages iptables rules
+- `ufw status` shows current state; `ufw app list` shows available profiles
+- Default policy: deny incoming, allow outgoing
+- Always allow SSH before enabling UFW to avoid locking yourself out
+- `ufw allow ssh` uses the application profile; `ufw allow 22/tcp` is explicit
+- Application profiles in `/etc/ufw/applications.d/` define common services
+- Enable logging with `ufw logging on` for security monitoring

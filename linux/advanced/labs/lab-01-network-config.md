@@ -1,155 +1,194 @@
-# Lab 1: Network Configuration with ip and nmcli
+# Lab 1: Network Configuration
 
 ## 🎯 Objective
-Configure and inspect network interfaces using `ip addr`, `ip route`, `ip link`, and `nmcli` on Ubuntu 22.04.
+Inspect network interface configuration using ip commands, hostname, and ss to understand how your system is connected.
 
 ## ⏱️ Estimated Time
-35 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Basic Linux command line familiarity
+- Foundations Lab 1: Terminal Basics
+- Basic understanding of TCP/IP
 
 ## 🔬 Lab Instructions
 
 ### Step 1: View Network Interfaces
+
 ```bash
 ip addr show
-# 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN
-#     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-#     inet 127.0.0.1/8 scope host lo
-# 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP
-#     link/ether 02:11:22:33:44:55 brd ff:ff:ff:ff:ff:ff
-#     inet 10.0.0.5/24 brd 10.0.0.255 scope global dynamic eth0
-
-# Brief format
-ip -brief addr show
-# lo               UNKNOWN        127.0.0.1/8
-# eth0             UP             10.0.0.5/24
 ```
 
-### Step 2: Inspect a Specific Interface
+**Expected output:**
+```
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 ...
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+2: ens34: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 ...
+    link/ether 00:0c:29:50:6c:2e brd ff:ff:ff:ff:ff:ff
+    inet 192.168.x.x/24 scope global ens34
+```
+
 ```bash
-IFACE=$(ip -brief link show | grep -v lo | awk 'NR==1{print $1}')
-echo "Primary interface: $IFACE"
-
-ip addr show dev "$IFACE"
-# Shows full details: MAC, IP, broadcast, scope
+# Short form
+ip a
 ```
 
-### Step 3: View the Routing Table
+```bash
+# Show a specific interface
+ip addr show lo
+ip addr show $(ip -o link show | grep -v "lo" | head -1 | cut -d: -f2 | xargs)
+```
+
+### Step 2: View Routing Table
+
 ```bash
 ip route show
-# default via 10.0.0.1 dev eth0 proto dhcp src 10.0.0.5 metric 100
-# 10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.5
-
-# Show default gateway only
-ip route show default
-# default via 10.0.0.1 dev eth0
 ```
 
-### Step 4: View Link Layer Details
+**Expected output:**
+```
+default via 192.168.1.1 dev ens34 proto dhcp
+192.168.1.0/24 dev ens34 proto kernel scope link
+```
+
+```bash
+ip route
+ip route show table main
+```
+
+```bash
+# Find default gateway
+ip route | grep default
+```
+
+### Step 3: View Link Layer Info
+
 ```bash
 ip link show
-# 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 ...
-#     link/ether 02:11:22:33:44:55 brd ff:ff:ff:ff:ff:ff
-
-# Check interface statistics
-ip -s link show eth0
-# RX: bytes  packets  errors  dropped  missed  mcast
-#     ...
 ```
 
-### Step 5: Add a Temporary IP Address
-```bash
-# Add a secondary IP (temporary, lost on reboot)
-sudo ip addr add 192.168.99.1/24 dev lo
-ip addr show lo
-# inet 127.0.0.1/8 scope host lo
-# inet 192.168.99.1/24 scope global lo
-
-# Test connectivity
-ping -c 2 192.168.99.1
-# PING 192.168.99.1: 64 bytes from 192.168.99.1: icmp_seq=0 ttl=64 time=0.05 ms
+**Expected output:**
+```
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 ...
+2: ens34: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 ...
+    link/ether 00:0c:29:50:6c:2e brd ff:ff:ff:ff:ff:ff
 ```
 
-### Step 6: Remove the Temporary IP Address
 ```bash
-sudo ip addr del 192.168.99.1/24 dev lo
-ip addr show lo
-# inet 127.0.0.1/8 scope host lo  (back to original)
+# Link state (UP/DOWN)
+ip link show | grep -E "^[0-9]+:"
 ```
 
-### Step 7: Bring an Interface Down and Up
+### Step 4: hostname Commands
+
 ```bash
-# View current state
-ip link show lo | grep state
-# lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 ... state UNKNOWN
-
-# Bring loopback down
-sudo ip link set lo down
-ip link show lo | grep state
-# state DOWN
-
-# Bring it back up
-sudo ip link set lo up
-ip link show lo | grep state
-# state UNKNOWN
+# Short hostname
+hostname
 ```
 
-### Step 8: nmcli Basics — View Connections
 ```bash
-nmcli connection show
-# NAME    UUID                                  TYPE      DEVICE
-# eth0    xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  ethernet  eth0
-
-nmcli device status
-# DEVICE  TYPE      STATE      CONNECTION
-# eth0    ethernet  connected  eth0
-# lo      loopback  unmanaged  --
+# All IP addresses
+hostname -I
 ```
 
-### Step 9: nmcli — View Connection Details
-```bash
-nmcli connection show eth0
-# connection.id:                eth0
-# connection.type:              802-3-ethernet
-# IP4.ADDRESS[1]:               10.0.0.5/24
-# IP4.GATEWAY:                  10.0.0.1
-# IP4.DNS[1]:                   8.8.8.8
-
-# Show only IP info
-nmcli -f IP4 connection show eth0
+**Expected output:**
+```
+192.168.1.100 
 ```
 
-### Step 10: Check DNS Configuration
 ```bash
-# View current DNS settings
-resolvectl status
-# Global
-#   DNS Servers: 8.8.8.8 1.1.1.1
-# Link 2 (eth0)
-#   DNS Servers: 10.0.0.1
+# FQDN (may just return hostname if DNS not configured)
+hostname -f 2>/dev/null || hostname
+```
 
-# Or check resolv.conf
+### Step 5: Socket Statistics with ss
+
+```bash
+# Show all sockets with numeric addresses
+ss -tuln
+```
+
+**Expected output:**
+```
+Netid State  Recv-Q Send-Q  Local Address:Port   Peer Address:Port
+udp   UNCONN 0      0       127.0.0.53:53        0.0.0.0:*
+tcp   LISTEN 0      128     0.0.0.0:22           0.0.0.0:*
+```
+
+```bash
+# TCP listening ports
+ss -tlnp
+```
+
+```bash
+# All established TCP connections
+ss -tn state established | head -10
+```
+
+```bash
+# Summary statistics
+ss -s
+```
+
+**Expected output:**
+```
+Total: 150
+TCP:   12 (estab 4, closed 3, orphaned 0, timewait 3)
+```
+
+### Step 6: Network Interface Statistics
+
+```bash
+# Interface statistics
+ip -s link show | head -30
+```
+
+```bash
+# Read from /proc/net
+cat /proc/net/dev | head -10
+```
+
+```bash
+# Receive and transmit statistics
+cat /proc/net/dev | awk 'NR>2 { printf "%-10s RX=%s TX=%s\n", $1, $2, $10 }' | head -5
+```
+
+### Step 7: DNS Configuration
+
+```bash
 cat /etc/resolv.conf
-# nameserver 127.0.0.53
-# options edns0 trust-ad
+```
+
+```bash
+cat /etc/hosts | head -10
+```
+
+```bash
+# Test DNS lookup
+cat /etc/nsswitch.conf | grep hosts
 ```
 
 ## ✅ Verification
-```bash
-ip addr show | grep 'inet ' | awk '{print $2}'
-# 127.0.0.1/8
-# 10.0.0.5/24
 
-ip route show default | awk '{print "Gateway:", $3}'
-# Gateway: 10.0.0.1
+```bash
+echo "=== Interface summary ==="
+ip addr show | grep "inet " | awk '{print $2, $NF}'
+
+echo "=== Default gateway ==="
+ip route | grep default | head -2
+
+echo "=== Listening ports ==="
+ss -tlnp | head -10
+
+echo "=== Hostname ==="
+hostname && hostname -I
+echo "Advanced Lab 1 complete"
 ```
 
 ## 📝 Summary
-- `ip addr show` displays interfaces and IP addresses
-- `ip route show` shows the routing table; `ip route show default` for gateway
-- `ip link show` and `ip -s link show` display link layer and statistics
-- `ip addr add/del` manages temporary IP addresses
-- `nmcli connection show` and `nmcli device status` manage NetworkManager connections
+- `ip addr show` (or `ip a`) shows all network interfaces and IP addresses
+- `ip route show` displays the routing table including the default gateway
+- `ip link show` shows the link layer state and MAC addresses
+- `hostname -I` shows all IP addresses assigned to the host
+- `ss -tuln` shows listening TCP/UDP ports with numeric addresses
+- `ss -s` provides a summary of all socket states

@@ -1,262 +1,206 @@
-# Lab 7: Bash Conditionals
+# Lab 7: Conditionals in bash
 
 ## 🎯 Objective
-Write bash conditionals using `if/elif/else`, the `test` command, `[[]]` extended tests, and comparison operators for strings, numbers, and files.
+Use if/elif/else with [[ ]] for string and file tests, and numeric comparisons with -eq, -gt, -lt, -ne.
 
 ## ⏱️ Estimated Time
-30 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Practitioner Lab 6 (shell variables)
-- Basic bash scripting knowledge
+- Foundations Lab 18: Environment Variables
+- Practitioner Lab 6: Shell Variables
 
 ## 🔬 Lab Instructions
 
-### Step 1: Basic if Statement
+### Step 1: Basic if/elif/else Structure
+
 ```bash
-# if condition; then ... fi
-if true; then
-  echo "Condition is true"
-fi
+AGE=25
 
-# Always check exit code: 0 = true, non-zero = false
-if ls /etc > /dev/null 2>&1; then
-  echo "/etc exists"
-fi
-```
-
-### Step 2: if/else Structure
-```bash
-age=25
-
-if [ $age -ge 18 ]; then
-  echo "Adult"
+if [[ $AGE -ge 18 ]]; then
+    echo "Adult"
+elif [[ $AGE -ge 13 ]]; then
+    echo "Teenager"
 else
-  echo "Minor"
+    echo "Child"
 fi
 ```
 
-### Step 3: if/elif/else Chain
-```bash
-score=75
-
-if [ $score -ge 90 ]; then
-  echo "Grade: A"
-elif [ $score -ge 80 ]; then
-  echo "Grade: B"
-elif [ $score -ge 70 ]; then
-  echo "Grade: C"
-elif [ $score -ge 60 ]; then
-  echo "Grade: D"
-else
-  echo "Grade: F"
-fi
+**Expected output:**
+```
+Adult
 ```
 
-### Step 4: test Command and [ ] Syntax
+### Step 2: String Tests
+
 ```bash
-# [ ] is an alias for the test command
-# Numeric comparisons: -eq -ne -lt -le -gt -ge
-x=10
-[ $x -eq 10 ] && echo "equal"
-[ $x -ne 5 ]  && echo "not equal to 5"
-[ $x -gt 5 ]  && echo "greater than 5"
-[ $x -lt 20 ] && echo "less than 20"
-[ $x -ge 10 ] && echo "greater or equal to 10"
-[ $x -le 10 ] && echo "less or equal to 10"
-```
+NAME="Linux"
 
-### Step 5: String Comparisons
-```bash
-name="Alice"
-
-# String equality
-if [ "$name" = "Alice" ]; then
-  echo "Hello, Alice!"
+if [[ "$NAME" == "Linux" ]]; then
+    echo "Exact match"
 fi
 
-# Not equal
-if [ "$name" != "Bob" ]; then
-  echo "You are not Bob"
+if [[ "$NAME" != "Windows" ]]; then
+    echo "Not Windows"
 fi
-
-# Empty string check
-if [ -z "$name" ]; then
-  echo "name is empty"
-else
-  echo "name is set: $name"
-fi
-
-# Non-empty string check
-if [ -n "$name" ]; then
-  echo "name is not empty"
-fi
-```
-
-### Step 6: [[ ]] Extended Test — Preferred in bash
-```bash
-# [[ ]] is bash-specific, more powerful than [ ]
-# No word splitting, so no need to always quote
-
-name="Alice Smith"
 
 # Pattern matching with ==
-if [[ "$name" == Alice* ]]; then
-  echo "Name starts with Alice"
+if [[ "$NAME" == L* ]]; then
+    echo "Starts with L"
 fi
 
-# Regex matching with =~
-if [[ "$name" =~ ^[A-Z][a-z]+ ]]; then
-  echo "Name starts with a capital letter"
+# Test empty/non-empty
+EMPTY=""
+if [[ -z "$EMPTY" ]]; then
+    echo "Variable is empty"
 fi
 
-# Logical operators: && and ||
-age=25
-if [[ $age -ge 18 && $age -lt 65 ]]; then
-  echo "Working age adult"
-fi
-```
-
-### Step 7: File Test Operators
-```bash
-# -f: is a regular file
-# -d: is a directory
-# -e: exists (file or dir)
-# -r: is readable
-# -w: is writable
-# -x: is executable
-# -s: exists and is not empty
-# -L: is a symbolic link
-
-file="/etc/passwd"
-if [ -f "$file" ]; then
-  echo "$file is a regular file"
-fi
-
-if [ -r "$file" ]; then
-  echo "$file is readable"
-fi
-
-dir="/tmp"
-if [ -d "$dir" ]; then
-  echo "$dir is a directory"
-fi
-
-# Check if file is non-empty
-if [ -s "$file" ]; then
-  echo "$file is not empty"
+if [[ -n "$NAME" ]]; then
+    echo "Variable is not empty: $NAME"
 fi
 ```
 
-### Step 8: Logical Operators in Conditions
+### Step 3: Numeric Comparisons
+
 ```bash
-# AND: -a in [ ], && in [[ ]]
-x=15
-if [ $x -gt 10 ] && [ $x -lt 20 ]; then
-  echo "x is between 10 and 20"
+X=10
+Y=20
+
+if [[ $X -eq 10 ]]; then echo "X equals 10"; fi
+if [[ $X -ne $Y ]]; then echo "X not equal to Y"; fi
+if [[ $X -lt $Y ]]; then echo "X less than Y"; fi
+if [[ $X -le 10 ]]; then echo "X less than or equal to 10"; fi
+if [[ $Y -gt $X ]]; then echo "Y greater than X"; fi
+if [[ $Y -ge 20 ]]; then echo "Y greater than or equal to 20"; fi
+```
+
+### Step 4: File Tests
+
+```bash
+# Create test files
+touch /tmp/testfile.txt
+mkdir -p /tmp/testdir
+
+if [[ -f "/tmp/testfile.txt" ]]; then
+    echo "Is a regular file"
 fi
 
-# OR: -o in [ ], || in [[ ]]
-color="red"
-if [[ "$color" == "red" || "$color" == "blue" ]]; then
-  echo "Color is red or blue"
+if [[ -d "/tmp/testdir" ]]; then
+    echo "Is a directory"
 fi
 
-# NOT: !
-if ! [ -f /tmp/nonexistent ]; then
-  echo "/tmp/nonexistent does not exist"
+if [[ -e "/tmp/testfile.txt" ]]; then
+    echo "File exists"
+fi
+
+if [[ -r "/tmp/testfile.txt" ]]; then
+    echo "File is readable"
+fi
+
+if [[ -w "/tmp/testfile.txt" ]]; then
+    echo "File is writable"
+fi
+
+chmod +x /tmp/testfile.txt
+if [[ -x "/tmp/testfile.txt" ]]; then
+    echo "File is executable"
+fi
+
+if [[ ! -f "/tmp/nonexistent.txt" ]]; then
+    echo "File does not exist"
 fi
 ```
 
-### Step 9: Case Statement
+### Step 5: Combining Conditions
+
 ```bash
-day="Monday"
+AGE=25
+SCORE=85
 
-case $day in
-  Monday|Tuesday|Wednesday|Thursday|Friday)
-    echo "Weekday"
-    ;;
-  Saturday|Sunday)
-    echo "Weekend"
-    ;;
-  *)
-    echo "Unknown day"
-    ;;
-esac
-```
-
-### Step 10: Ternary-Style with && and ||
-```bash
-# If condition, then do A; else do B
-[ -f /etc/passwd ] && echo "file exists" || echo "file missing"
-
-# Assign based on condition
-status=$([ -f /etc/passwd ] && echo "present" || echo "missing")
-echo "Status: $status"
-```
-
-### Step 11: Checking Command Success
-```bash
-# Check if a command succeeds
-if ping -c 1 -W 1 8.8.8.8 &>/dev/null; then
-  echo "Network is up"
-else
-  echo "Network is unreachable"
+# AND with &&
+if [[ $AGE -ge 18 && $SCORE -ge 80 ]]; then
+    echo "Eligible: adult with good score"
 fi
 
-# Check if a package is installed
-if dpkg -l curl 2>/dev/null | grep -q "^ii"; then
-  echo "curl is installed"
-else
-  echo "curl is not installed"
+# OR with ||
+ROLE="admin"
+if [[ "$ROLE" == "admin" || "$ROLE" == "superuser" ]]; then
+    echo "Has elevated permissions"
+fi
+
+# Negation with !
+if [[ ! -d "/tmp/nonexistent_dir" ]]; then
+    echo "Directory does not exist"
 fi
 ```
 
-### Step 12: Practical Script — System Check
+### Step 6: test Command vs [[ ]]
+
 ```bash
-cat > /tmp/syscheck.sh << 'EOF'
+# test and [ ] are equivalent but older
+test -f /tmp/testfile.txt && echo "test: file exists"
+[ -f /tmp/testfile.txt ] && echo "[ ]: file exists"
+[[ -f /tmp/testfile.txt ]] && echo "[[ ]]: file exists"
+
+# [[ ]] is preferred: handles spaces and special chars better
+FILENAME="my file.txt"
+touch "/tmp/$FILENAME"
+if [[ -f "/tmp/$FILENAME" ]]; then
+    echo "File with spaces found"
+fi
+```
+
+### Step 7: Practical if/else Script
+
+```bash
+cat > /tmp/check-system.sh << 'EOF'
 #!/bin/bash
-echo "=== System Check ==="
 
-# Check disk space
-usage=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
-if [ "$usage" -gt 90 ]; then
-  echo "WARNING: Disk usage is ${usage}%"
-elif [ "$usage" -gt 75 ]; then
-  echo "NOTICE: Disk usage is ${usage}%"
+# Check available disk space
+USAGE=$(df / | awk 'NR==2 { gsub(/%/,""); print $5 }')
+
+if [[ $USAGE -ge 90 ]]; then
+    echo "CRITICAL: Disk usage at ${USAGE}%"
+elif [[ $USAGE -ge 80 ]]; then
+    echo "WARNING: Disk usage at ${USAGE}%"
+elif [[ $USAGE -ge 70 ]]; then
+    echo "NOTICE: Disk usage at ${USAGE}%"
 else
-  echo "OK: Disk usage is ${usage}%"
+    echo "OK: Disk usage at ${USAGE}%"
 fi
 
-# Check if SSH is running
-if systemctl is-active --quiet ssh 2>/dev/null; then
-  echo "OK: SSH is running"
-else
-  echo "WARNING: SSH is not running"
-fi
+# Check if important files exist
+for f in /etc/passwd /etc/hostname /etc/os-release; do
+    if [[ -f "$f" ]]; then
+        echo "OK: $f exists"
+    else
+        echo "MISSING: $f"
+    fi
+done
 EOF
-chmod +x /tmp/syscheck.sh
-bash /tmp/syscheck.sh
-rm /tmp/syscheck.sh
+
+bash /tmp/check-system.sh
 ```
 
 ## ✅ Verification
-```bash
-# Test file operators
-[ -f /etc/passwd ] && echo "PASS: file exists" || echo "FAIL"
-[ -d /tmp ] && echo "PASS: dir exists" || echo "FAIL"
-[ ! -f /tmp/nonexistent ] && echo "PASS: file missing confirmed" || echo "FAIL"
 
-# Test string comparison
-name="test"
-[[ "$name" == t* ]] && echo "PASS: pattern match" || echo "FAIL"
+```bash
+# Test all condition types
+NUM=42
+[[ $NUM -gt 40 ]] && echo "PASS: numeric comparison" || echo "FAIL"
+[[ -f "/etc/passwd" ]] && echo "PASS: file test" || echo "FAIL"
+[[ -z "" ]] && echo "PASS: empty string test" || echo "FAIL"
+[[ -n "hello" ]] && echo "PASS: non-empty test" || echo "FAIL"
+[[ "hello" == "hello" ]] && echo "PASS: string equality" || echo "FAIL"
+
+rm /tmp/testfile.txt /tmp/testdir /tmp/check-system.sh "/tmp/my file.txt" 2>/dev/null
+echo "Practitioner Lab 7 complete"
 ```
 
 ## 📝 Summary
-- `if condition; then ... elif ...; else ...; fi` is the full conditional structure
-- `[ ]` (test) works in all POSIX shells; `[[ ]]` is bash-specific and more powerful
-- Numeric operators: `-eq -ne -lt -le -gt -ge`; string: `= != -z -n`
-- File tests: `-f` (file), `-d` (dir), `-e` (exists), `-r/-w/-x` (permissions), `-s` (non-empty)
-- `[[ ]]` supports glob patterns (`==`) and regex (`=~`) — prefer it in bash scripts
-- `case` is cleaner than long `if/elif` chains for matching a variable against multiple values
-
+- `if [[ condition ]]; then ... elif ...; else ...; fi` is the standard structure
+- Numeric comparisons: `-eq`, `-ne`, `-lt`, `-le`, `-gt`, `-ge`
+- String tests: `==`, `!=`, `-z` (empty), `-n` (non-empty)
+- File tests: `-f` (file), `-d` (dir), `-e` (exists), `-r/-w/-x` (permissions)
+- Combine: `&&` for AND, `||` for OR, `!` for NOT
+- Use `[[ ]]` instead of `[ ]` — handles spaces and patterns better

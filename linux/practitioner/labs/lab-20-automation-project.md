@@ -1,233 +1,265 @@
 # Lab 20: Automation Project — System Health Report
 
 ## 🎯 Objective
-Build a complete, production-quality system health report script that checks CPU, memory, disk, top processes, services, and network, outputting a timestamped formatted report.
+Build a complete, production-quality system health report script covering hostname, uptime, CPU load, memory, disk, and top processes — all without sudo.
 
 ## ⏱️ Estimated Time
-50 minutes
+40 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Completion of Labs 11–19
+- All previous Practitioner labs
+- Foundations Labs 15, 16, 18
 
 ## 🔬 Lab Instructions
 
-### Step 1: Plan the Health Report
-```bash
-# Our script will collect:
-# 1. System uptime and load averages
-# 2. CPU usage and top processes
-# 3. Memory usage summary
-# 4. Disk usage with alerts
-# 5. Network interface status
-# 6. Failed systemd services
-# 7. Recent auth failures
+### Step 1: Plan the Report
 
-mkdir -p ~/health_report/reports
-echo "Project directory ready"
+```bash
+cat > /tmp/health-plan.txt << 'EOF'
+System Health Report Sections:
+1. System Identity   - hostname, OS, kernel, uptime
+2. CPU Load          - load averages, CPU count
+3. Memory Usage      - total, used, free, cache
+4. Disk Usage        - per-filesystem usage
+5. Top Processes     - by CPU and memory
+6. Network Summary   - active connections (no sudo)
+7. Service Status    - key services
+8. Report Summary    - overall health score
+EOF
+cat /tmp/health-plan.txt
 ```
 
-### Step 2: Uptime and Load Average
+### Step 2: Build Helper Functions
+
 ```bash
-uptime
-#  06:01:23 up 2 days, 14:22,  1 user,  load average: 0.08, 0.05, 0.01
+cat > /tmp/health-lib.sh << 'EOF'
+#!/bin/bash
+# Helper functions for health report
 
-# Structured extraction
-uptime | awk '{
-    for(i=1;i<=NF;i++) {
-        if($i=="average:") {
-            print "Load 1m:", $(i+1), "5m:", $(i+2), "15m:", $(i+3)
-        }
-    }
-}'
-# Load 1m: 0.08, 5m: 0.05, 15m: 0.01
-```
+# Color codes
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+NC='\033[0m'  # No Color
 
-### Step 3: CPU Usage
-```bash
-# CPU summary from top
-top -bn1 | grep '%Cpu'
-# %Cpu(s):  3.0 us,  1.0 sy,  0.0 ni, 95.0 id,  1.0 wa,  0.0 hi,  0.0 si,  0.0 st
+# Print section header
+section() {
+    echo ""
+    echo "════════════════════════════════════════════════"
+    echo "  $1"
+    echo "════════════════════════════════════════════════"
+}
 
-# Top 5 CPU processes
-ps aux --sort=-%cpu | awk 'NR>1 && NR<=6 {printf "  %-20s CPU: %s%%\n", $11, $3}'
-#   /usr/bin/python3     CPU: 2.1%
-#   /usr/sbin/sshd      CPU: 0.1%
-```
+# Print key-value pair
+kv() {
+    printf "  %-25s %s\n" "$1:" "$2"
+}
 
-### Step 4: Memory Usage
-```bash
-free -h
-#               total        used        free      shared  buff/cache   available
-# Mem:          1.9Gi       456Mi       823Mi       1.0Mi       706Mi       1.4Gi
-
-free -m | awk '/^Mem:/{
-    pct = int($3/$2*100)
-    printf "Memory: %dMB total, %dMB used (%d%%), %dMB available\n",
-    $2, $3, pct, $7
-}'
-# Memory: 1987MB total, 456MB used (22%), 1434MB available
-```
-
-### Step 5: Disk Usage with Alerts
-```bash
-df -h --output=source,size,used,avail,pcent,target | grep -v tmpfs | grep -v udev
-# Filesystem      Size  Used Avail Use% Mounted on
-# /dev/sda1        20G  4.2G   15G  23% /
-
-# Alert check
-THRESHOLD=80
-df --output=pcent,target | grep -v Use | while read pct mount; do
-    num=${pct%%%}
-    if [[ "$num" -gt "$THRESHOLD" ]]; then
-        echo "DISK ALERT: $mount is ${pct} full!"
+# Format bytes to human readable
+human_bytes() {
+    local bytes=$1
+    if [[ $bytes -ge 1073741824 ]]; then
+        printf "%.1f GB" "$(echo "scale=1; $bytes/1073741824" | bc 2>/dev/null || echo $bytes)"
+    elif [[ $bytes -ge 1048576 ]]; then
+        printf "%.1f MB" "$(echo "scale=1; $bytes/1048576" | bc 2>/dev/null || echo $bytes)"
+    else
+        printf "%d KB" "$((bytes/1024))"
     fi
-done
+}
+EOF
+
+source /tmp/health-lib.sh
+section "TEST SECTION"
+kv "Key" "Value"
+echo "Helper functions loaded"
 ```
 
-### Step 6: Network Status
-```bash
-ip -brief addr show
-# lo               UNKNOWN        127.0.0.1/8
-# eth0             UP             10.0.0.5/24
+### Step 3: System Identity Section
 
-ip route show default
-# default via 10.0.0.1 dev eth0 proto dhcp src 10.0.0.5 metric 100
+```bash
+cat > /tmp/section-identity.sh << 'EOF'
+#!/bin/bash
+source /tmp/health-lib.sh
+
+section "SYSTEM IDENTITY"
+kv "Hostname" "$(hostname)"
+kv "FQDN" "$(hostname -f 2>/dev/null || hostname)"
+kv "IP Address" "$(hostname -I 2>/dev/null | awk '{print $1}')"
+kv "OS" "$(cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d '"')"
+kv "Kernel" "$(uname -r)"
+kv "Architecture" "$(uname -m)"
+kv "Uptime" "$(uptime -p)"
+kv "Users Logged In" "$(who | wc -l)"
+kv "Report Generated" "$(date '+%Y-%m-%d %H:%M:%S %Z')"
+EOF
+
+bash /tmp/section-identity.sh
 ```
 
-### Step 7: Failed Services Check
-```bash
-systemctl --failed --no-legend 2>/dev/null | head -5
-# (empty if all OK)
+### Step 4: CPU and Load Section
 
-failed_count=$(systemctl --failed --no-legend 2>/dev/null | wc -l)
-echo "Failed services: $failed_count"
-# Failed services: 0
-```
-
-### Step 8: Auth Failures Check
 ```bash
-if [[ -r /var/log/auth.log ]]; then
-    fails=$(grep -c 'Failed password' /var/log/auth.log 2>/dev/null || echo 0)
-elif command -v journalctl &>/dev/null; then
-    fails=$(journalctl -u ssh --since "24 hours ago" --no-pager 2>/dev/null \
-            | grep -c 'Failed' 2>/dev/null || echo 0)
-else
-    fails="N/A"
+cat > /tmp/section-cpu.sh << 'EOF'
+#!/bin/bash
+source /tmp/health-lib.sh
+
+section "CPU & LOAD AVERAGE"
+
+CPU_COUNT=$(grep -c "^processor" /proc/cpuinfo)
+MODEL=$(grep "model name" /proc/cpuinfo | head -1 | cut -d: -f2 | xargs)
+LOAD=$(cat /proc/loadavg)
+LOAD1=$(echo $LOAD | cut -d' ' -f1)
+LOAD5=$(echo $LOAD | cut -d' ' -f2)
+LOAD15=$(echo $LOAD | cut -d' ' -f3)
+PROCS=$(echo $LOAD | cut -d' ' -f4)
+
+kv "CPU Model" "$MODEL"
+kv "CPU Count" "$CPU_COUNT cores"
+kv "Load (1m/5m/15m)" "$LOAD1 / $LOAD5 / $LOAD15"
+kv "Running/Total Procs" "$PROCS"
+
+# Check load warning
+LOAD_INT=${LOAD1%.*}
+if [[ $LOAD_INT -gt $((CPU_COUNT * 2)) ]]; then
+    echo "  ⚠️  HIGH LOAD: $LOAD1 on $CPU_COUNT CPU(s)"
 fi
-echo "Auth failures (24h): $fails"
+EOF
+
+bash /tmp/section-cpu.sh
 ```
 
-### Step 9: Assemble the Full Health Report Script
+### Step 5: Memory Section
+
 ```bash
-cat > ~/health_report/health_report.sh << 'SCRIPT'
+cat > /tmp/section-memory.sh << 'EOF'
+#!/bin/bash
+source /tmp/health-lib.sh
+
+section "MEMORY USAGE"
+
+MEM_TOTAL=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+MEM_FREE=$(grep MemFree /proc/meminfo | awk '{print $2}')
+MEM_AVAIL=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+MEM_CACHED=$(grep "^Cached:" /proc/meminfo | awk '{print $2}')
+MEM_BUFFERS=$(grep "^Buffers:" /proc/meminfo | awk '{print $2}')
+SWAP_TOTAL=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
+SWAP_FREE=$(grep SwapFree /proc/meminfo | awk '{print $2}')
+
+MEM_USED=$(( MEM_TOTAL - MEM_AVAIL ))
+MEM_PCT=$(( (MEM_USED * 100) / MEM_TOTAL ))
+
+kv "Total Memory" "$(( MEM_TOTAL / 1024 )) MB"
+kv "Used Memory" "$(( MEM_USED / 1024 )) MB ($MEM_PCT%)"
+kv "Available" "$(( MEM_AVAIL / 1024 )) MB"
+kv "Cached/Buffers" "$(( MEM_CACHED / 1024 )) MB / $(( MEM_BUFFERS / 1024 )) MB"
+kv "Swap Total" "$(( SWAP_TOTAL / 1024 )) MB"
+kv "Swap Free" "$(( SWAP_FREE / 1024 )) MB"
+
+[[ $MEM_PCT -gt 90 ]] && echo "  ⚠️  HIGH MEMORY: ${MEM_PCT}% used"
+EOF
+
+bash /tmp/section-memory.sh
+```
+
+### Step 6: Disk Section
+
+```bash
+cat > /tmp/section-disk.sh << 'EOF'
+#!/bin/bash
+source /tmp/health-lib.sh
+
+section "DISK USAGE"
+
+printf "  %-25s %6s %6s %6s %5s\n" "Filesystem" "Size" "Used" "Avail" "Use%"
+printf "  %s\n" "$(printf '%.0s-' {1..55})"
+
+df -h | grep -v tmpfs | grep -v "^Filesystem" | while read fs size used avail pct mount; do
+    PCT_INT=${pct//%/}
+    WARN=""
+    [[ $PCT_INT -ge 90 ]] && WARN=" ⚠️  CRITICAL"
+    [[ $PCT_INT -ge 80 && $PCT_INT -lt 90 ]] && WARN=" ⚠️  WARNING"
+    printf "  %-25s %6s %6s %6s %5s%s\n" "$mount" "$size" "$used" "$avail" "$pct" "$WARN"
+done
+EOF
+
+bash /tmp/section-disk.sh
+```
+
+### Step 7: Top Processes Section
+
+```bash
+cat > /tmp/section-processes.sh << 'EOF'
+#!/bin/bash
+source /tmp/health-lib.sh
+
+section "TOP PROCESSES"
+
+echo "  --- By CPU ---"
+printf "  %-6s %-20s %6s %6s\n" "PID" "Command" "CPU%" "MEM%"
+ps aux --sort=-%cpu | grep -v "^USER" | head -6 | awk '{ printf "  %-6s %-20s %6s %6s\n", $2, substr($11,1,20), $3, $4 }'
+
+echo ""
+echo "  --- By Memory ---"
+printf "  %-6s %-20s %6s %6s\n" "PID" "Command" "MEM%" "RSS(KB)"
+ps aux --sort=-%mem | grep -v "^USER" | head -6 | awk '{ printf "  %-6s %-20s %6s %6s\n", $2, substr($11,1,20), $4, $6 }'
+EOF
+
+bash /tmp/section-processes.sh
+```
+
+### Step 8: Assemble the Full Report
+
+```bash
+cat > /tmp/system-health-report.sh << 'EOF'
 #!/bin/bash
 set -euo pipefail
 
-REPORT_DIR="$HOME/health_report/reports"
-mkdir -p "$REPORT_DIR"
-REPORT="$REPORT_DIR/health_$(date +%Y%m%d_%H%M%S).txt"
-DISK_THRESHOLD=80
+SCRIPT_DIR="$(dirname "$0")"
+REPORT_FILE="/tmp/health-report-$(date +%Y%m%d-%H%M%S).txt"
 
-divider() { printf '%0.s=' {1..55}; echo; }
-section() { echo ""; divider; echo "  $1"; divider; }
-
+# Run each section and capture output
 {
-echo "SYSTEM HEALTH REPORT"
-echo "Generated : $(date)"
-echo "Hostname  : $(hostname -f 2>/dev/null || hostname)"
-echo "Kernel    : $(uname -r)"
-echo "OS        : $(lsb_release -ds 2>/dev/null || cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d '"')"
-
-section "UPTIME AND LOAD"
-uptime
-
-section "CPU"
-top -bn1 | grep '%Cpu' || true
-echo ""
-echo "Top 5 CPU-consuming processes:"
-ps aux --sort=-%cpu | awk 'NR>1 && NR<=6 {printf "  %-8s %5s%%  %s\n", $1, $3, $11}'
-
-section "MEMORY"
-free -h
-echo ""
-free -m | awk '/^Mem:/{
-    pct = int($3/$2*100)
-    printf "  Used %d%% of %dMB total (%dMB available)\n", pct, $2, $7
-}'
-
-section "DISK USAGE"
-df -h --output=source,size,used,avail,pcent,target | grep -v tmpfs | grep -v udev
-
-alerts=$(df --output=pcent,target | grep -v Use | while read pct mount; do
-    num=${pct%%%}
-    [[ "$num" -gt "$DISK_THRESHOLD" ]] && echo "  ALERT: $mount is $pct full"
-done)
-if [[ -n "$alerts" ]]; then
+    echo "SYSTEM HEALTH REPORT"
+    echo "Generated: $(date)"
+    echo "=========================================="
+    bash /tmp/section-identity.sh
+    bash /tmp/section-cpu.sh
+    bash /tmp/section-memory.sh
+    bash /tmp/section-disk.sh
+    bash /tmp/section-processes.sh
     echo ""
-    echo "Disk Alerts:"
-    echo "$alerts"
-fi
+    echo "=========================================="
+    echo "Report complete"
+} | tee "$REPORT_FILE"
 
-section "NETWORK"
-ip -brief addr show
 echo ""
-echo "Default route:"
-ip route show default 2>/dev/null || echo "  (none)"
+echo "Report saved to: $REPORT_FILE"
+EOF
 
-section "SYSTEMD SERVICES"
-echo "Failed services:"
-systemctl --failed --no-legend 2>/dev/null | head -10 || echo "  None"
-
-section "AUTH FAILURES (24h)"
-if [[ -r /var/log/auth.log ]]; then
-    fails=$(grep -c 'Failed password' /var/log/auth.log 2>/dev/null || echo 0)
-    echo "Failed SSH attempts: $fails"
-    if [[ "$fails" -gt 0 ]]; then
-        echo "Top attacking IPs:"
-        grep 'Failed password' /var/log/auth.log \
-          | grep -oE 'from [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' \
-          | awk '{print $2}' \
-          | sort | uniq -c | sort -rn | head -5 \
-          | awk '{printf "  %-15s %s attempts\n", $2, $1}'
-    fi
-else
-    echo "  (auth.log not readable — run as root for details)"
-fi
-
-section "REPORT SAVED"
-echo "File: $REPORT"
-
-} | tee "$REPORT"
-SCRIPT
-chmod +x ~/health_report/health_report.sh
-echo "Script ready"
-```
-
-### Step 10: Run and Schedule
-```bash
-~/health_report/health_report.sh
-ls ~/health_report/reports/
-# health_20260301_060123.txt
-
-# Schedule daily at 7am
-(crontab -l 2>/dev/null; echo "0 7 * * * $HOME/health_report/health_report.sh >> $HOME/health_report/cron.log 2>&1") | crontab -
-crontab -l | grep health_report
-# 0 7 * * * /home/ubuntu/health_report/health_report.sh >> ...
+bash /tmp/system-health-report.sh
 ```
 
 ## ✅ Verification
+
 ```bash
-ls -la ~/health_report/reports/
-grep "SYSTEM HEALTH REPORT" ~/health_report/reports/*.txt
-# SYSTEM HEALTH REPORT
-crontab -l | grep health_report
-# 0 7 * * * ...
+echo "=== Report file created ==="
+ls -la /tmp/health-report-*.txt 2>/dev/null | head -3
+
+echo ""
+echo "=== Report line count ==="
+wc -l /tmp/health-report-*.txt 2>/dev/null | head -1
+
+# Cleanup
+rm /tmp/health-lib.sh /tmp/section-*.sh /tmp/system-health-report.sh /tmp/health-plan.txt 2>/dev/null
+rm /tmp/health-report-*.txt 2>/dev/null
+echo "Practitioner Lab 20 complete"
 ```
 
 ## 📝 Summary
-- Combined `uptime`, `top`, `free`, `df`, `ip`, `systemctl` into a structured report
-- Used `tee` to write to both terminal and timestamped report file simultaneously
-- Applied string manipulation, conditionals, and functions from earlier labs
-- Scheduled the report with cron for daily automated execution
-- This script is a production-ready template for infrastructure monitoring
+- Modular scripts with helper functions improve readability and reuse
+- Source helper libraries with `source file.sh` to share functions
+- Use `/proc/meminfo` and `/proc/loadavg` for resource data without sudo
+- `df -h | grep -v tmpfs` shows only real filesystems
+- `ps aux --sort=-%cpu | head -6` shows top CPU consumers
+- Combine all sections with `{ cmd1; cmd2; } | tee report.txt` for logging
+- Always use `set -euo pipefail` in production automation scripts

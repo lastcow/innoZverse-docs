@@ -1,166 +1,202 @@
-# Lab 3: SSH Key Generation and Setup
+# Lab 3: SSH Key Generation
 
 ## 🎯 Objective
-Generate SSH key pairs, copy public keys to remote servers, and understand the `authorized_keys` mechanism for passwordless authentication.
+Generate SSH key pairs, examine public keys, manage the known_hosts file, and understand key fingerprints.
 
 ## ⏱️ Estimated Time
-30 minutes
+20 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- SSH installed (`openssh-client`, `openssh-server`)
+- Advanced Lab 1: Network Configuration
 
 ## 🔬 Lab Instructions
 
-### Step 1: Check SSH Installation
+### Step 1: Generate an ed25519 Key Pair
+
 ```bash
-ssh -V
-# OpenSSH_8.9p1 Ubuntu-3ubuntu0.6, OpenSSL 3.0.2
-
-which ssh-keygen
-# /usr/bin/ssh-keygen
-
-ls ~/.ssh/ 2>/dev/null || echo "~/.ssh does not exist yet"
+# -t ed25519: modern, secure algorithm
+# -N "": no passphrase (for automation)
+# -f: specify output file
+ssh-keygen -t ed25519 -N "" -f /tmp/testkey -q
+ls -la /tmp/testkey*
 ```
 
-### Step 2: Generate an Ed25519 Key Pair (Recommended)
-```bash
-ssh-keygen -t ed25519 -C "your_email@example.com"
-# Generating public/private ed25519 key pair.
-# Enter file in which to save the key (/home/ubuntu/.ssh/id_ed25519):  [press Enter]
-# Enter passphrase (empty for no passphrase): [enter passphrase or leave empty]
-# Enter same passphrase again:
-# Your identification has been saved in /home/ubuntu/.ssh/id_ed25519
-# Your public key has been saved in /home/ubuntu/.ssh/id_ed25519.pub
-# The key fingerprint is: SHA256:xxxxx your_email@example.com
-# The key's randomart image is: ...
+**Expected output:**
+```
+-rw------- 1 zchen zchen 411 Mar  1 17:00 /tmp/testkey
+-rw-r--r-- 1 zchen zchen  96 Mar  1 17:00 /tmp/testkey.pub
 ```
 
-### Step 3: Generate an RSA 4096-bit Key (Alternative)
 ```bash
-ssh-keygen -t rsa -b 4096 -C "backup_key" -f ~/.ssh/id_rsa_backup
-# Creates ~/.ssh/id_rsa_backup and ~/.ssh/id_rsa_backup.pub
+# Note the permissions:
+# Private key: 600 (owner read/write only — CRITICAL!)
+# Public key:  644 (readable by all)
+stat /tmp/testkey | grep Access:
 ```
 
-### Step 4: Inspect the Generated Keys
-```bash
-ls -la ~/.ssh/
-# drwx------ 2 ubuntu ubuntu 4096 Mar  1 06:01 .
-# -rw------- 1 ubuntu ubuntu  419 Mar  1 06:01 id_ed25519      (private)
-# -rw-r--r-- 1 ubuntu ubuntu  104 Mar  1 06:01 id_ed25519.pub  (public)
+### Step 2: Examine the Keys
 
+```bash
 # View the public key
-cat ~/.ssh/id_ed25519.pub
-# ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your_email@example.com
-
-# View key fingerprint
-ssh-keygen -lf ~/.ssh/id_ed25519.pub
-# 256 SHA256:xxxxxxxxxxxxx your_email@example.com (ED25519)
+cat /tmp/testkey.pub
 ```
 
-### Step 5: Understand Key Permissions
-```bash
-# Correct permissions are critical
-chmod 700 ~/.ssh
-chmod 600 ~/.ssh/id_ed25519
-chmod 644 ~/.ssh/id_ed25519.pub
-
-ls -la ~/.ssh/
-# drwx------  (700 - directory: owner rwx only)
-# -rw-------  (600 - private key: owner read/write only)
-# -rw-r--r--  (644 - public key: world readable)
+**Expected output:**
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... zchen@hostname
 ```
 
-### Step 6: Set Up authorized_keys (Local Simulation)
 ```bash
-# authorized_keys stores public keys of trusted clients
-mkdir -p ~/.ssh
-touch ~/.ssh/authorized_keys
-chmod 600 ~/.ssh/authorized_keys
+# Public key parts:
+# 1. Algorithm: ssh-ed25519
+# 2. Base64-encoded key data: AAAAC3NzaC1...
+# 3. Comment: user@host
 
-# Add your own public key (for local testing)
-cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
-cat ~/.ssh/authorized_keys
-# ssh-ed25519 AAAAC3NzaC1... your_email@example.com
+# View private key format (not the actual key - just first line)
+head -1 /tmp/testkey
 ```
 
-### Step 7: ssh-copy-id — Copy Key to Remote Server
-```bash
-# Syntax: ssh-copy-id -i ~/.ssh/id_ed25519.pub user@remote_host
-# This copies your public key to remote's ~/.ssh/authorized_keys
-
-# Example (replace with your actual remote host):
-# ssh-copy-id -i ~/.ssh/id_ed25519.pub ubuntu@192.168.1.100
-
-# Manual equivalent:
-cat ~/.ssh/id_ed25519.pub | ssh user@host "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
-echo "Public key copy method demonstrated"
+**Expected output:**
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
 ```
 
-### Step 8: Test Key-Based Authentication
-```bash
-# After copying key to remote, connect without password:
-# ssh ubuntu@192.168.1.100
-# (should connect without prompting for password)
+### Step 3: Generate RSA Key (for compatibility)
 
-# Test local SSH with key (if SSH server is running locally)
-if systemctl is-active --quiet ssh 2>/dev/null || systemctl is-active --quiet sshd 2>/dev/null; then
-    ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 localhost "echo 'Key auth works: $(hostname)'"
-else
-    echo "SSH server not running locally — test against a remote host"
-fi
+```bash
+ssh-keygen -t rsa -b 4096 -N "" -f /tmp/testkey-rsa -q
+ls -la /tmp/testkey-rsa*
+cat /tmp/testkey-rsa.pub | cut -c1-40
 ```
 
-### Step 9: Use ssh-agent to Cache Passphrase
+### Step 4: Check Key Fingerprint
+
 ```bash
-# Start the agent
-eval $(ssh-agent -s)
-# Agent pid 12345
-
-# Add key to agent (prompts for passphrase once)
-ssh-add ~/.ssh/id_ed25519
-# Identity added: /home/ubuntu/.ssh/id_ed25519
-
-# List loaded keys
-ssh-add -l
-# 256 SHA256:xxxxx your_email@example.com (ED25519)
-
-# Stop the agent when done
-ssh-agent -k
-# Agent pid 12345 killed
+# Fingerprint helps verify key identity
+ssh-keygen -l -f /tmp/testkey
 ```
 
-### Step 10: Revoke Access by Removing a Key
+**Expected output:**
+```
+256 SHA256:abc123... zchen@hostname (ED25519)
+```
+
 ```bash
-# To revoke access from a remote server:
-# 1. SSH into the remote server
-# 2. Edit ~/.ssh/authorized_keys
-# 3. Remove the line containing that public key
+# Fingerprint of RSA key
+ssh-keygen -l -f /tmp/testkey-rsa
+```
 
-# View authorized_keys
-cat ~/.ssh/authorized_keys
+```bash
+# Show fingerprint in different formats
+ssh-keygen -l -E md5 -f /tmp/testkey
+ssh-keygen -l -E sha256 -f /tmp/testkey
+```
 
-# Count authorized keys
-wc -l ~/.ssh/authorized_keys
-# 1 /home/ubuntu/.ssh/authorized_keys
+### Step 5: View Your Existing SSH Keys
 
-# Good security practice: audit authorized_keys regularly
-echo "Audit: $(wc -l < ~/.ssh/authorized_keys) key(s) authorized"
+```bash
+# List any existing keys in ~/.ssh/
+ls -la ~/.ssh/ 2>/dev/null || echo "~/.ssh/ does not exist yet"
+```
+
+```bash
+# Check for common key files
+for keytype in id_ed25519 id_rsa id_ecdsa; do
+    [[ -f "$HOME/.ssh/$keytype" ]] && echo "Found: $HOME/.ssh/$keytype" || echo "Not found: $HOME/.ssh/$keytype"
+done
+```
+
+### Step 6: Understanding ~/.ssh/authorized_keys
+
+```bash
+# authorized_keys format: each line is one public key
+# Syntax: options algorithm key-data comment
+
+cat > /tmp/authorized_keys_example.txt << 'EOF'
+# Simple entry (most common)
+ssh-ed25519 AAAAC3Nza... user@workstation
+
+# With options (restrict to specific command)
+command="/usr/bin/backup.sh",no-pty,no-port-forwarding ssh-ed25519 AAAA... backup@server
+
+# With IP restriction
+from="192.168.1.0/24" ssh-ed25519 AAAA... alice@internal
+EOF
+
+cat /tmp/authorized_keys_example.txt
+```
+
+### Step 7: SSH Key Best Practices
+
+```bash
+cat > /tmp/ssh-best-practices.txt << 'EOF'
+SSH KEY SECURITY BEST PRACTICES:
+
+1. Use ed25519 (modern) or RSA-4096 (legacy compatibility)
+   ssh-keygen -t ed25519 -C "your_email@example.com"
+
+2. Always use a strong passphrase for keys in ~/.ssh/
+   (Only skip passphrase for automation/service accounts)
+
+3. Private key permissions MUST be 600
+   chmod 600 ~/.ssh/id_ed25519
+
+4. ~/.ssh directory permissions MUST be 700
+   chmod 700 ~/.ssh
+
+5. Never share or copy your private key
+   Only distribute the .pub file
+
+6. Rotate keys periodically (annually minimum)
+
+7. Use separate keys for different services/environments
+EOF
+
+cat /tmp/ssh-best-practices.txt
+```
+
+### Step 8: known_hosts File
+
+```bash
+# known_hosts stores fingerprints of servers you've connected to
+cat ~/.ssh/known_hosts 2>/dev/null | head -5 || echo "No known_hosts file yet"
+```
+
+```bash
+# View structure explanation
+cat > /tmp/known_hosts_example.txt << 'EOF'
+# known_hosts format:
+# hostname algorithm public-key
+# [hostname]:port algorithm public-key  (non-standard ports)
+
+# Example entries:
+github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GkZl
+[myserver.com]:2222 ssh-rsa AAAAB3NzaC1yc2EAAAA...
+
+# Hashed entries (more secure):
+|1|abc123=|xyz789= ssh-ed25519 AAAAC3Nza...
+EOF
+
+cat /tmp/known_hosts_example.txt
 ```
 
 ## ✅ Verification
-```bash
-ls -la ~/.ssh/id_ed25519* 2>/dev/null
-# -rw------- ... id_ed25519
-# -rw-r--r-- ... id_ed25519.pub
 
-ssh-keygen -lf ~/.ssh/id_ed25519.pub
-# 256 SHA256:... (ED25519)
+```bash
+echo "=== Key files ===" && ls -la /tmp/testkey*
+echo "=== ed25519 fingerprint ===" && ssh-keygen -l -f /tmp/testkey
+echo "=== RSA fingerprint ===" && ssh-keygen -l -f /tmp/testkey-rsa
+echo "=== Public key format ===" && cat /tmp/testkey.pub
+
+rm /tmp/testkey /tmp/testkey.pub /tmp/testkey-rsa /tmp/testkey-rsa.pub 2>/dev/null
+rm /tmp/authorized_keys_example.txt /tmp/ssh-best-practices.txt /tmp/known_hosts_example.txt 2>/dev/null
+echo "Advanced Lab 3 complete"
 ```
 
 ## 📝 Summary
-- `ssh-keygen -t ed25519` generates a modern, secure key pair
-- Private key (`id_ed25519`) must be `600`; public key (`id_ed25519.pub`) can be `644`
-- `ssh-copy-id` copies your public key to a remote server's `authorized_keys`
-- `authorized_keys` (mode `600`) lists trusted public keys for passwordless login
-- `ssh-agent` caches your passphrase so you don't re-enter it every connection
+- `ssh-keygen -t ed25519 -N "" -f keyfile` generates a key pair non-interactively
+- Private key (no extension) must be chmod 600; public key (.pub) is shareable
+- `ssh-keygen -l -f keyfile` shows the fingerprint for verification
+- ed25519 is preferred for new keys; RSA-4096 for compatibility with older systems
+- Never share private keys; only distribute `.pub` files
+- `~/.ssh/authorized_keys` stores public keys of users allowed to log in

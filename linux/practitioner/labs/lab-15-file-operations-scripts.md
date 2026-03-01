@@ -1,199 +1,204 @@
 # Lab 15: File Operations in Scripts
 
 ## 🎯 Objective
-Use file test operators (`-f`, `-d`, `-e`, `-s`), read files line by line, and safely handle file creation and deletion in Bash scripts.
+Use file test operators, read file contents in scripts, and use process substitution for advanced file processing.
 
 ## ⏱️ Estimated Time
-35 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Completion of Labs 7–8 (Conditionals and Loops)
+- Practitioner Labs 7 (Conditionals) and 8 (Loops)
 
 ## 🔬 Lab Instructions
 
 ### Step 1: File Test Operators
-```bash
-# Common test operators:
-# -e  file exists (any type)
-# -f  regular file
-# -d  directory
-# -L  symbolic link
-# -r  readable
-# -w  writable
-# -x  executable
-# -s  file exists and is non-empty
 
-test -f /etc/passwd && echo "exists as file"
-# exists as file
-test -d /etc && echo "exists as directory"
-# exists as directory
-[[ -e /tmp ]] && echo "/tmp exists"
-# /tmp exists
+```bash
+# Set up test environment
+mkdir -p /tmp/fileops-lab
+echo "content" > /tmp/fileops-lab/readable.txt
+chmod 400 /tmp/fileops-lab/readable.txt   # read-only
+touch /tmp/fileops-lab/empty.txt
+echo "executable" > /tmp/fileops-lab/script.sh
+chmod 755 /tmp/fileops-lab/script.sh
+
+# Test each operator
+[[ -e "/tmp/fileops-lab/readable.txt" ]] && echo "-e: file exists"
+[[ -f "/tmp/fileops-lab/readable.txt" ]] && echo "-f: is regular file"
+[[ -d "/tmp/fileops-lab" ]] && echo "-d: is directory"
+[[ -r "/tmp/fileops-lab/readable.txt" ]] && echo "-r: is readable"
+[[ -w "/tmp/fileops-lab/readable.txt" ]] && echo "-w: is writable" || echo "-w: NOT writable (expected)"
+[[ -x "/tmp/fileops-lab/script.sh" ]] && echo "-x: is executable"
+[[ -s "/tmp/fileops-lab/readable.txt" ]] && echo "-s: non-empty file"
+[[ ! -s "/tmp/fileops-lab/empty.txt" ]] && echo "!-s: empty file"
 ```
 
-### Step 2: Check File Existence Before Acting
-```bash
-FILE="/etc/hosts"
-
-if [[ -f "$FILE" ]]; then
-    echo "File exists: $FILE"
-    echo "Size: $(wc -c < "$FILE") bytes"
-else
-    echo "File not found: $FILE"
-fi
-# File exists: /etc/hosts
-# Size: 221 bytes
+**Expected output:**
+```
+-e: file exists
+-f: is regular file
+-d: is directory
+-r: is readable
+-w: NOT writable (expected)
+-x: is executable
+-s: non-empty file
+!-s: empty file
 ```
 
-### Step 3: Check Permissions
-```bash
-FILE="/etc/shadow"
-if [[ -r "$FILE" ]]; then
-    echo "Readable"
-else
-    echo "Not readable (need root)"
-fi
-# Not readable (need root)
+### Step 2: Compare Files
 
-SCRIPT=~/cron_test.sh
-if [[ -x "$SCRIPT" ]]; then
-    echo "Executable"
-else
-    echo "Not executable"
-fi
+```bash
+cp /tmp/fileops-lab/readable.txt /tmp/fileops-lab/copy.txt
+chmod 644 /tmp/fileops-lab/readable.txt
+
+# -nt: newer than; -ot: older than; -ef: same file (hard link)
+[[ "/tmp/fileops-lab/copy.txt" -nt "/tmp/fileops-lab/readable.txt" ]] && echo "copy is newer" || echo "copy is older or same"
+[[ "/tmp/fileops-lab/readable.txt" -ot "/tmp/fileops-lab/copy.txt" ]] && echo "readable is older"
 ```
 
-### Step 4: Create Test Files and Directories
-```bash
-mkdir -p ~/lab15/{input,output,logs}
-echo "line one"   > ~/lab15/input/file1.txt
-echo "line two"  >> ~/lab15/input/file1.txt
-echo "line three" >> ~/lab15/input/file1.txt
-touch ~/lab15/input/empty.txt
+### Step 3: Read File Line by Line
 
-[[ -s ~/lab15/input/file1.txt ]] && echo "file1.txt is non-empty"
-# file1.txt is non-empty
-[[ -s ~/lab15/input/empty.txt ]] || echo "empty.txt is empty or zero-size"
-# empty.txt is empty or zero-size
-```
-
-### Step 5: Read a File Line by Line
 ```bash
+cat > /tmp/fileops-lab/hosts.txt << 'EOF'
+192.168.1.10 web01.local
+192.168.1.11 web02.local
+192.168.1.20 db01.local
+192.168.1.30 cache01.local
+EOF
+
+# Read line by line preserving whitespace
 while IFS= read -r line; do
-    echo "LINE: $line"
-done < ~/lab15/input/file1.txt
-# LINE: line one
-# LINE: line two
-# LINE: line three
+    echo "Line: $line"
+done < /tmp/fileops-lab/hosts.txt
 ```
 
-### Step 6: Process File Lines with Logic
 ```bash
-cat > ~/lab15/input/servers.txt << 'EOF'
-web01 192.168.1.10
-web02 192.168.1.11
-db01  192.168.1.20
-cache01 192.168.1.30
+# Parse specific fields while reading
+while IFS=" " read -r ip hostname; do
+    echo "IP: $ip -> Host: $hostname"
+done < /tmp/fileops-lab/hosts.txt
+```
+
+**Expected output:**
+```
+IP: 192.168.1.10 -> Host: web01.local
+IP: 192.168.1.11 -> Host: web02.local
+...
+```
+
+### Step 4: Skip Comments and Blank Lines
+
+```bash
+cat > /tmp/fileops-lab/config.conf << 'EOF'
+# Server configuration
+host = web01
+
+# Database settings
+db_host = db01
+db_port = 5432
+
+# Cache
+cache_host = cache01
 EOF
 
-while IFS=' ' read -r name ip; do
-    echo "Server: $name  IP: $ip"
-done < ~/lab15/input/servers.txt
-# Server: web01  IP: 192.168.1.10
-# Server: web02  IP: 192.168.1.11
-# Server: db01   IP: 192.168.1.20
-# Server: cache01 IP: 192.168.1.30
+while IFS= read -r line; do
+    # Skip comments and blank lines
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// }" ]] && continue
+    echo "Config: $line"
+done < /tmp/fileops-lab/config.conf
 ```
 
-### Step 7: Find Files Matching Criteria
-```bash
-# Find all .txt files in lab15
-find ~/lab15 -name "*.txt" -type f
-# /home/ubuntu/lab15/input/file1.txt
-# /home/ubuntu/lab15/input/servers.txt
-# /home/ubuntu/lab15/input/empty.txt
-
-# Find files modified in last 10 minutes
-find ~/lab15 -mmin -10 -type f
+**Expected output:**
+```
+Config: host = web01
+Config: db_host = db01
+Config: db_port = 5432
+Config: cache_host = cache01
 ```
 
-### Step 8: Safe File Deletion
+### Step 5: Process Substitution
+
 ```bash
-FILE=~/lab15/input/empty.txt
-if [[ -f "$FILE" ]]; then
-    rm "$FILE"
-    echo "Deleted: $FILE"
-else
-    echo "File not found, skipping deletion"
-fi
-# Deleted: /home/ubuntu/lab15/input/empty.txt
+# <() creates a virtual file from command output
+while IFS= read -r user; do
+    echo "System user: $user"
+done < <(cut -d: -f1 /etc/passwd | head -5)
 ```
 
-### Step 9: Write Script Output to Log Files
 ```bash
-LOGFILE=~/lab15/logs/run.log
-
-{
-    echo "=== Run started: $(date) ==="
-    echo "User: $USER"
-    echo "Hostname: $(hostname)"
-    uptime
-    echo "=== Run complete ==="
-} >> "$LOGFILE"
-
-cat "$LOGFILE"
-# === Run started: Sun Mar  1 06:01:00 UTC 2026 ===
-# User: ubuntu
-# Hostname: myserver
+# Compare two command outputs
+diff <(cut -d: -f1 /etc/passwd | sort) <(cut -d: -f1 /etc/group | sort) | head -15
 ```
 
-### Step 10: Full Script — Batch File Processor
 ```bash
-cat > ~/lab15/process_files.sh << 'EOF'
+# Feed sorted output to while
+while IFS=: read -r name _ uid _; do
+    echo "UID $uid: $name"
+done < <(sort -t: -k3 -n /etc/passwd | head -5)
+```
+
+### Step 6: Write to Files Safely
+
+```bash
+# Atomic write: write to temp then move
+cat > /tmp/fileops-lab/write-safe.sh << 'EOF'
 #!/bin/bash
-INPUT_DIR="${1:-$HOME/lab15/input}"
-OUTPUT_DIR="${2:-$HOME/lab15/output}"
-LOG="$HOME/lab15/logs/process.log"
+OUTPUT_FILE="/tmp/fileops-lab/config-final.txt"
+TEMP_FILE=$(mktemp /tmp/fileops-lab/config.XXXXXX)
 
-[[ -d "$INPUT_DIR" ]] || { echo "Input dir not found: $INPUT_DIR"; exit 1; }
-mkdir -p "$OUTPUT_DIR"
+# Write to temp file
+cat > "$TEMP_FILE" << 'CONFEOF'
+host = production
+port = 443
+debug = false
+CONFEOF
 
-echo "Processing files in $INPUT_DIR" | tee -a "$LOG"
-
-for file in "$INPUT_DIR"/*.txt; do
-    [[ -f "$file" ]] || continue
-    [[ -s "$file" ]] || { echo "Skipping empty: $file" | tee -a "$LOG"; continue; }
-
-    bname=$(basename "$file")
-    out="$OUTPUT_DIR/${bname%.txt}_processed.txt"
-    lines=$(wc -l < "$file")
-    echo "Processing $bname ($lines lines)" | tee -a "$LOG"
-    tr '[:lower:]' '[:upper:]' < "$file" > "$out"
-    echo "  Written: $out" | tee -a "$LOG"
-done
-
-echo "Done. Check $OUTPUT_DIR" | tee -a "$LOG"
+# Atomically replace (move is atomic on same filesystem)
+mv "$TEMP_FILE" "$OUTPUT_FILE"
+echo "Written: $OUTPUT_FILE"
+cat "$OUTPUT_FILE"
 EOF
-chmod +x ~/lab15/process_files.sh
-~/lab15/process_files.sh
-# Processing files in /home/ubuntu/lab15/input
-# Processing file1.txt (3 lines)
-#   Written: /home/ubuntu/lab15/output/file1_processed.txt
+
+bash /tmp/fileops-lab/write-safe.sh
+```
+
+### Step 7: Find and Process Files
+
+```bash
+# Process all .txt files
+find /tmp/fileops-lab -name "*.txt" -type f | while IFS= read -r f; do
+    lines=$(wc -l < "$f")
+    echo "$f: $lines lines"
+done
+```
+
+```bash
+# Check if any files need attention
+find /tmp/fileops-lab -type f -newer /tmp/fileops-lab/empty.txt 2>/dev/null | while IFS= read -r f; do
+    echo "Recently modified: $f"
+done
 ```
 
 ## ✅ Verification
+
 ```bash
-[[ -f ~/lab15/output/file1_processed.txt ]] && cat ~/lab15/output/file1_processed.txt
-# LINE ONE
-# LINE TWO
-# LINE THREE
-cat ~/lab15/logs/process.log
+[[ -f "/tmp/fileops-lab/readable.txt" ]] && echo "PASS: -f test"
+[[ -d "/tmp/fileops-lab" ]] && echo "PASS: -d test"
+[[ -x "/tmp/fileops-lab/script.sh" ]] && echo "PASS: -x test"
+
+echo "PASS: while read test:"
+echo -e "line1\nline2\nline3" | while IFS= read -r line; do echo "  $line"; done
+
+rm -r /tmp/fileops-lab
+echo "Practitioner Lab 15 complete"
 ```
 
 ## 📝 Summary
-- `-f` tests regular file; `-d` directory; `-e` any type; `-s` non-empty
-- `while IFS= read -r line; do ... done < file` reads files safely
-- Always verify file existence before reading or deleting
-- `find` with `-name`, `-type`, `-mmin` locates files matching criteria
-- Use `tee -a logfile` to log output while still printing to screen
+- File tests: `-f` (regular file), `-d` (directory), `-e` (exists), `-r/-w/-x` (permissions)
+- `-s` tests non-empty file; `-nt` newer than; `-ot` older than
+- `while IFS= read -r line; do ... done < file` reads file line by line
+- `IFS=" " read -r field1 field2` splits each line into variables
+- Skip lines with `[[ "$line" =~ ^# ]] && continue`
+- Process substitution `< <(command)` feeds command output like a file
+- Use `mktemp` + `mv` for atomic file writes

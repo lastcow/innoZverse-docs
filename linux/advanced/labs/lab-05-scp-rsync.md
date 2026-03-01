@@ -1,191 +1,199 @@
-# Lab 5: File Transfer with scp and rsync
+# Lab 5: File Transfer with rsync
 
 ## 🎯 Objective
-Transfer files securely using `scp` and efficiently sync directories with `rsync`, including `--delete`, bandwidth limiting, and dry-run modes.
+Use rsync for efficient local file synchronization with dry-run, delete, and stats options to understand what will change before committing.
 
 ## ⏱️ Estimated Time
-35 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- SSH key-based authentication configured (Lab 3)
+- Advanced Lab 3: SSH Key Generation
 
 ## 🔬 Lab Instructions
 
-### Step 1: Prepare Test Files
-```bash
-mkdir -p ~/transfer_lab/{source,dest}
-echo "Hello from file1" > ~/transfer_lab/source/file1.txt
-echo "Hello from file2" > ~/transfer_lab/source/file2.txt
-mkdir -p ~/transfer_lab/source/subdir
-echo "Nested file" > ~/transfer_lab/source/subdir/nested.txt
+### Step 1: Set Up Test Directories
 
-ls -la ~/transfer_lab/source/
-# total 16
-# -rw-rw-r-- 1 ubuntu ubuntu  18 ... file1.txt
-# -rw-rw-r-- 1 ubuntu ubuntu  18 ... file2.txt
-# drwxrwxr-x 2 ubuntu ubuntu 4096 ... subdir/
+```bash
+mkdir -p /tmp/rsync-src/docs /tmp/rsync-src/scripts /tmp/rsync-dst
+
+echo "Document 1" > /tmp/rsync-src/docs/report.txt
+echo "Document 2" > /tmp/rsync-src/docs/notes.txt
+echo "#!/bin/bash" > /tmp/rsync-src/scripts/deploy.sh
+echo "#!/bin/bash" > /tmp/rsync-src/scripts/backup.sh
+echo "Config v1" > /tmp/rsync-src/config.txt
+
+find /tmp/rsync-src
 ```
 
-### Step 2: scp — Copy a Single File
+### Step 2: Basic rsync
+
 ```bash
-# Syntax: scp [options] source destination
-# Copy to remote:
-# scp ~/transfer_lab/source/file1.txt ubuntu@192.168.1.100:/tmp/
-
-# Copy from remote:
-# scp ubuntu@192.168.1.100:/tmp/file1.txt ~/transfer_lab/dest/
-
-# Local copy (for practice):
-scp ~/transfer_lab/source/file1.txt ~/transfer_lab/dest/
-ls ~/transfer_lab/dest/
-# file1.txt
+# -a: archive mode (recursive, preserves permissions, timestamps, symlinks)
+# -v: verbose
+# -z: compress during transfer
+rsync -avz /tmp/rsync-src/ /tmp/rsync-dst/
 ```
 
-### Step 3: scp — Copy a Directory Recursively
-```bash
-# -r flag for recursive directory copy
-scp -r ~/transfer_lab/source/ ~/transfer_lab/dest/source_copy/
-# file1.txt     100%   18     ...
-# file2.txt     100%   18     ...
-# nested.txt    100%   12     ...
-
-ls -R ~/transfer_lab/dest/
-# dest/:
-# file1.txt  source_copy/
-# dest/source_copy/:
-# file1.txt  file2.txt  subdir/
+**Expected output:**
+```
+sending incremental file list
+./
+config.txt
+docs/
+docs/notes.txt
+docs/report.txt
+scripts/
+scripts/backup.sh
+scripts/deploy.sh
+...
+sent 456 bytes  received 137 bytes  1186.00 bytes/sec
 ```
 
-### Step 4: scp — With SSH Options
 ```bash
-# Specify port, key, or other SSH options
-# scp -P 2222 -i ~/.ssh/id_ed25519 file.txt user@host:/dest/
+# Note: trailing / on source is important!
+# /tmp/rsync-src/  = sync CONTENTS of src into dst
+# /tmp/rsync-src   = sync src DIRECTORY INTO dst (creates src/ inside dst)
 
-# Limit bandwidth (in Kbit/s):
-# scp -l 1024 largefile.tar.gz user@host:/backup/
-# (limits to 1 Mbit/s)
-
-echo "scp options: -P port, -i key, -l bandwidth_kbit, -r recursive, -C compress"
+ls /tmp/rsync-dst
 ```
 
-### Step 5: rsync — Basic Sync
+### Step 3: Dry Run (Preview Changes)
+
 ```bash
-# rsync is faster than scp for incremental transfers
-# Only transfers changed files
-
-rsync ~/transfer_lab/source/ ~/transfer_lab/dest/rsync_copy/
-ls ~/transfer_lab/dest/rsync_copy/
-# file1.txt  file2.txt  subdir/
-
-# rsync local syntax: rsync SOURCE/ DESTINATION/
-# (trailing slash on source = copy contents, not the directory itself)
+# --dry-run: show what WOULD happen without doing it
+rsync -avz --dry-run /tmp/rsync-src/ /tmp/rsync-dst/
+echo "Nothing changed (dry-run)"
 ```
 
-### Step 6: rsync -avz — Archive, Verbose, Compressed
 ```bash
-rsync -avz ~/transfer_lab/source/ ~/transfer_lab/dest/rsync_verbose/
-# sending incremental file list
-# ./
-# file1.txt
-# file2.txt
-# subdir/
-# subdir/nested.txt
-#
-# sent 456 bytes  received 92 bytes  1096.00 bytes/sec
-# total size is 48  speedup is 0.09
+# Make a change and preview the delta
+echo "Updated content" > /tmp/rsync-src/config.txt
+echo "New file" > /tmp/rsync-src/new-file.txt
 
-# -a = archive (preserves permissions, timestamps, symlinks, owner)
-# -v = verbose
-# -z = compress during transfer
+rsync -avz --dry-run /tmp/rsync-src/ /tmp/rsync-dst/
+echo ""
+echo "Items above would be transferred"
 ```
 
-### Step 7: rsync — Incremental Update
 ```bash
-# Modify one file and sync again
-echo "Updated content" >> ~/transfer_lab/source/file1.txt
-
-rsync -avz ~/transfer_lab/source/ ~/transfer_lab/dest/rsync_verbose/
-# sending incremental file list
-# file1.txt     <-- only changed file is transferred!
-#
-# sent 248 bytes  received 35 bytes  566.00 bytes/sec
-# total size is 64  speedup is 0.23
+# Now actually sync
+rsync -avz /tmp/rsync-src/ /tmp/rsync-dst/
 ```
 
-### Step 8: rsync --delete — Mirror Exactly
+### Step 4: Show Statistics
+
 ```bash
-# Create a file in dest that doesn't exist in source
-touch ~/transfer_lab/dest/rsync_verbose/orphan_file.txt
-
-# Without --delete: orphan_file.txt stays
-rsync -avz ~/transfer_lab/source/ ~/transfer_lab/dest/rsync_verbose/
-ls ~/transfer_lab/dest/rsync_verbose/
-# file1.txt  file2.txt  orphan_file.txt  subdir/  <-- orphan remains
-
-# With --delete: exact mirror of source
-rsync -avz --delete ~/transfer_lab/source/ ~/transfer_lab/dest/rsync_verbose/
-# deleting orphan_file.txt
-ls ~/transfer_lab/dest/rsync_verbose/
-# file1.txt  file2.txt  subdir/  <-- orphan removed
+# --stats: show detailed transfer statistics
+rsync -avz --stats /tmp/rsync-src/ /tmp/rsync-dst/ 2>/dev/null | tail -15
 ```
 
-### Step 9: rsync --dry-run — Preview Changes
-```bash
-# Always test destructive operations with --dry-run first!
-echo "extra file" > ~/transfer_lab/source/newfile.txt
-touch ~/transfer_lab/dest/rsync_verbose/will_be_deleted.txt
-
-rsync -avz --delete --dry-run ~/transfer_lab/source/ ~/transfer_lab/dest/rsync_verbose/
-# (dry run)
-# sending incremental file list
-# deleting will_be_deleted.txt
-# newfile.txt
-#
-# sent 192 bytes  received 22 bytes  428.00 bytes/sec
-# total size is 80  speedup is 0.37 (DRY RUN)
-# (no actual changes made)
+**Expected output (excerpt):**
+```
+Number of files: 7 (reg: 6, dir: 1)
+Number of files transferred: 0
+Total file size: 89 bytes
+Total transferred file size: 0 bytes
+Speedup is 0.00
 ```
 
-### Step 10: rsync Backup Script
+### Step 5: Delete Files Not in Source
+
 ```bash
-cat > ~/rsync_backup.sh << 'EOF'
-#!/bin/bash
-set -euo pipefail
-SOURCE="${1:-$HOME/transfer_lab/source}"
-DEST="${2:-$HOME/transfer_lab/backup}"
-LOG="$HOME/transfer_lab/rsync_backup.log"
+# --delete: remove files in dst that don't exist in src
+touch /tmp/rsync-dst/orphan-file.txt
+ls /tmp/rsync-dst/
 
-echo "=== Backup: $(date) ===" | tee -a "$LOG"
-echo "Source: $SOURCE" | tee -a "$LOG"
-echo "Dest  : $DEST" | tee -a "$LOG"
+echo "Before delete sync:"
+ls /tmp/rsync-dst/
 
-rsync -avz --delete \
-    --exclude='*.tmp' \
-    --exclude='.git/' \
-    --log-file="$LOG" \
-    "$SOURCE/" "$DEST/"
+rsync -avz --delete /tmp/rsync-src/ /tmp/rsync-dst/
 
-echo "Backup complete: $(date)" | tee -a "$LOG"
+echo "After delete sync:"
+ls /tmp/rsync-dst/
+```
+
+**Expected output:**
+```
+Before: orphan-file.txt  config.txt  docs/  new-file.txt  scripts/
+After:  config.txt  docs/  new-file.txt  scripts/
+```
+
+### Step 6: Include and Exclude Patterns
+
+```bash
+# Exclude specific files or patterns
+rsync -avz --exclude="*.sh" --exclude="*.bak" /tmp/rsync-src/ /tmp/rsync-dst/
+echo "Synced without .sh files"
+```
+
+```bash
+# Exclude a directory
+rsync -avz --exclude="scripts/" /tmp/rsync-src/ /tmp/rsync-dst/
+ls /tmp/rsync-dst/
+```
+
+```bash
+# Include only specific files
+rsync -avz --include="*.txt" --include="*/" --exclude="*" /tmp/rsync-src/ /tmp/rsync-dst/
+ls /tmp/rsync-dst/
+```
+
+### Step 7: Sync Only Changed Files (Checksum)
+
+```bash
+# --checksum: compare by checksum instead of size+time
+rsync -avz --checksum /tmp/rsync-src/ /tmp/rsync-dst/
+
+# --update: skip files that are newer in destination
+rsync -avzu /tmp/rsync-src/ /tmp/rsync-dst/
+```
+
+### Step 8: Remote rsync Syntax (Reference)
+
+```bash
+cat > /tmp/rsync-remote-examples.txt << 'EOF'
+# rsync over SSH (remote syntax):
+
+# Local to Remote:
+rsync -avz /local/path/ user@server:/remote/path/
+
+# Remote to Local:
+rsync -avz user@server:/remote/path/ /local/path/
+
+# With custom SSH options:
+rsync -avz -e "ssh -i ~/.ssh/mykey -p 2222" /local/ user@server:/remote/
+
+# Remote to Remote (through local machine):
+rsync -avz user@server1:/path/ user@server2:/path/
+
+# Common production command:
+rsync -avz --delete --stats --exclude="*.log" \
+      /var/www/html/ user@webserver:/var/www/html/
 EOF
-chmod +x ~/rsync_backup.sh
-~/rsync_backup.sh
-# === Backup: Sun Mar  1 06:01:00 UTC 2026 ===
-# Source: /home/ubuntu/transfer_lab/source
-# Dest  : /home/ubuntu/transfer_lab/backup
-# Backup complete: Sun Mar  1 06:01:00 UTC 2026
+
+cat /tmp/rsync-remote-examples.txt
 ```
 
 ## ✅ Verification
+
 ```bash
-diff -r ~/transfer_lab/source/ ~/transfer_lab/dest/rsync_verbose/ 2>/dev/null \
-  && echo "Directories are identical" \
-  || echo "Differences found"
+mkdir -p /tmp/rsync-verify-src /tmp/rsync-verify-dst
+echo "test1" > /tmp/rsync-verify-src/file1.txt
+echo "test2" > /tmp/rsync-verify-src/file2.txt
+
+rsync -avz --dry-run /tmp/rsync-verify-src/ /tmp/rsync-verify-dst/ | grep -c "sending"
+rsync -avz /tmp/rsync-verify-src/ /tmp/rsync-verify-dst/
+echo "Synced files: $(ls /tmp/rsync-verify-dst | wc -l) (expect 2)"
+
+rm -r /tmp/rsync-src /tmp/rsync-dst /tmp/rsync-verify-src /tmp/rsync-verify-dst /tmp/rsync-remote-examples.txt 2>/dev/null
+echo "Advanced Lab 5 complete"
 ```
 
 ## 📝 Summary
-- `scp -r source/ user@host:/dest/` copies directories recursively over SSH
-- `rsync -avz source/ dest/` syncs with archive mode, verbose, and compression
-- `rsync --delete` creates an exact mirror (removes files not in source)
-- `rsync --dry-run` previews changes without applying them — always use before `--delete`
-- `rsync --exclude='pattern'` skips files matching the pattern
+- `rsync -avz src/ dst/` syncs contents of src into dst (trailing / matters)
+- `-a` (archive) preserves permissions, timestamps, symlinks, owner, group
+- `--dry-run` shows what would happen without making changes
+- `--delete` removes files in destination that no longer exist in source
+- `--stats` shows detailed transfer statistics
+- `--exclude="pattern"` skips matching files; `--include` overrides excludes
+- Remote syntax: `rsync -avz local/ user@host:/remote/`

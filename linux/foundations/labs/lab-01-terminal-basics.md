@@ -1,159 +1,170 @@
 # Lab 1: Terminal Basics
 
 ## 🎯 Objective
-Get comfortable with the Linux terminal: logging in, understanding the prompt, running basic commands like `pwd`, `ls`, and `clear`, and navigating your first shell session.
+Learn the essential commands every Linux user needs from their very first terminal session: navigating identity, system info, and orientation commands.
 
 ## ⏱️ Estimated Time
 20 minutes
 
 ## 📋 Prerequisites
-- Access to an Ubuntu 22.04 system (physical, VM, or cloud)
-- A user account with login credentials
+- Access to a Linux terminal (Ubuntu 22.04)
+- No prior Linux knowledge required
 
 ## 🔬 Lab Instructions
 
-### Step 1: Open a Terminal
-On a desktop Ubuntu system, press **Ctrl+Alt+T** to open the terminal emulator. On a server, you will be at a terminal after logging in via SSH or directly.
+### Step 1: Find Out Who You Are
 
-You will see a prompt similar to:
 ```bash
-student@ubuntu:~$
+# Display your current username
+whoami
 ```
-This tells you: `username@hostname:current_directory$`
 
-### Step 2: Identify Your Current Location with `pwd`
-`pwd` stands for **Print Working Directory**. It shows where you are in the filesystem.
+**Expected output:**
+```
+zchen
+```
 
 ```bash
+# Display detailed user and group information
+id
+```
+
+**Expected output:**
+```
+uid=1000(zchen) gid=1000(zchen) groups=1000(zchen),4(adm),27(sudo),...
+```
+
+### Step 2: Find Out Where You Are
+
+```bash
+# Print working directory (your current location)
 pwd
-# Expected output:
-# /home/student
 ```
 
-### Step 3: List Files and Directories with `ls`
-`ls` lists the contents of the current directory.
-
-```bash
-ls
-# Shows files and directories in your home folder
+**Expected output:**
+```
+/home/zchen
 ```
 
-Try with options for more detail:
+### Step 3: Get System Information
+
 ```bash
-ls -l
-# Long format: permissions, owner, size, date, name
-
-ls -la
-# Long format including hidden files (starting with .)
-
-ls -lh
-# Human-readable file sizes (KB, MB, GB)
+# Show kernel and system architecture
+uname -a
 ```
 
-### Step 4: Understand the Prompt Components
-Look at your prompt:
-```bash
-student@ubuntu:~$
-# student  = your username
-# ubuntu   = hostname of the machine
-# ~        = shorthand for your home directory (/home/student)
-# $        = regular user (# means root)
+**Expected output:**
+```
+Linux hostname 6.14.0-37-generic #37-Ubuntu SMP ... x86_64 GNU/Linux
 ```
 
-### Step 5: Clear the Screen with `clear`
-When the screen gets cluttered:
 ```bash
-clear
-# Clears terminal output
-# Shortcut: Ctrl+L does the same thing
+# Show just the OS type
+uname -s
 ```
 
-### Step 6: Use `echo` to Print Text
-```bash
-echo "Hello, Linux!"
-# Output: Hello, Linux!
-
-echo $USER
-# Prints your current username
-
-echo $HOME
-# Prints your home directory path
+**Expected output:**
+```
+Linux
 ```
 
-### Step 7: Check the Date and Time
 ```bash
+# Show machine hostname
+hostname
+```
+
+**Expected output:**
+```
+openclaw
+```
+
+### Step 4: Check the Date and System Uptime
+
+```bash
+# Show current date and time
 date
-# Output: Sun Mar  1 05:42:00 UTC 2026
-
-date +"%Y-%m-%d"
-# Output: 2026-03-01
 ```
 
-### Step 8: View System Uptime
+**Expected output:**
+```
+Sun Mar  1 17:00:00 UTC 2026
+```
+
 ```bash
+# Show how long the system has been running
 uptime
-# Output: 05:42:00 up 2 days,  3:15,  1 user,  load average: 0.00, 0.01, 0.00
 ```
 
-### Step 9: Use Command History
-The shell keeps a history of commands you've run:
-```bash
-history
-# Lists numbered history of past commands
-
-# Press Up/Down arrows to cycle through previous commands
-# Ctrl+R to reverse search through history
+**Expected output:**
+```
+ 17:00:00 up 2 days,  5:00,  2 users,  load average: 0.10, 0.20, 0.15
 ```
 
-### Step 10: Use Tab Completion
-Tab completion saves time and avoids typos:
-```bash
-# Type 'ls /et' then press Tab
-ls /et<TAB>
-# Auto-completes to: ls /etc/
+### Step 5: List Files and Directories
 
-# Press Tab twice to see all options when there are multiple matches
-ls /etc/ap<TAB><TAB>
+```bash
+# List files in current directory
+ls
 ```
 
-### Step 11: Learn About a Command with `type`
 ```bash
-type ls
-# Output: ls is aliased to `ls --color=auto'
-
-type pwd
-# Output: pwd is a shell builtin
-
-type date
-# Output: date is /usr/bin/date
+# List files with details (long format)
+ls -l ~
 ```
 
-### Step 12: Exit the Terminal Session
+**Expected output:**
+```
+total 0
+drwxr-xr-x 2 zchen zchen 4096 Mar  1 12:00 Documents
+```
+
 ```bash
-exit
-# Or press Ctrl+D to logout/close the session
+# List all files including hidden ones
+ls -la ~
+```
+
+```bash
+# List with human-readable sizes
+ls -lh /tmp
+```
+
+### Step 6: Print Messages to the Screen
+
+```bash
+# Print a simple message
+echo "Hello, Linux!"
+```
+
+**Expected output:**
+```
+Hello, Linux!
+```
+
+```bash
+# Print the value of a variable
+echo "You are logged in as: $(whoami) on $(hostname)"
+```
+
+**Expected output:**
+```
+You are logged in as: zchen on openclaw
 ```
 
 ## ✅ Verification
-Run these commands to confirm you understand terminal basics:
 
 ```bash
-# Print your working directory
-pwd
-# Should show: /home/yourusername
-
-# List home directory contents
-ls -lah ~
-# Should show files including hidden ones like .bashrc
-
-# Show username and hostname
-echo "User: $USER on $(hostname)"
-# Output: User: student on ubuntu
+echo "User: $(whoami)"
+echo "Host: $(hostname)"
+echo "Dir:  $(pwd)"
+echo "Date: $(date +%Y-%m-%d)"
+uname -r
+uptime -p
 ```
 
 ## 📝 Summary
-- The terminal prompt shows `user@host:directory$` — read it to know your context
-- `pwd` tells you where you are; `ls` shows what's there
-- `clear` (or Ctrl+L) cleans the screen; `exit` (or Ctrl+D) closes the session
-- Tab completion and command history (Up arrow, Ctrl+R) dramatically speed up your workflow
-- `echo` prints text and variables; `date` and `uptime` show system state
+- `whoami` and `id` reveal your identity and group memberships
+- `pwd` shows your current location in the filesystem
+- `hostname` and `uname -a` describe the system you're on
+- `date` and `uptime` show time and system availability
+- `ls`, `ls -l`, and `ls -la` list files with increasing detail
+- `echo` prints text and variable values to the screen

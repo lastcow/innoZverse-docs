@@ -1,160 +1,236 @@
-# Lab 13: String Manipulation in Bash
+# Lab 13: String Manipulation
 
 ## 🎯 Objective
-Master Bash string operations: substring extraction, replacement, length, case conversion, and pattern matching.
+Master bash string manipulation: case conversion, substring extraction, prefix/suffix removal, and string replacement.
 
 ## ⏱️ Estimated Time
-35 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Completion of Lab 6 (Shell Variables)
+- Practitioner Lab 6: Shell Variables
 
 ## 🔬 Lab Instructions
 
 ### Step 1: String Length
-```bash
-name="Hello, World!"
-echo ${#name}
-# 13
 
-path="/usr/local/bin/script.sh"
-echo "Path length: ${#path}"
-# Path length: 26
+```bash
+GREETING="Hello, Linux World!"
+echo "String: $GREETING"
+echo "Length: ${#GREETING}"
 ```
 
-### Step 2: Substring Extraction
-```bash
-# ${var:offset:length}
-str="Ubuntu 22.04 LTS"
-echo ${str:0:6}    # Ubuntu
-echo ${str:7:5}    # 22.04
-echo ${str: -3}    # LTS (negative = from end)
-echo ${str:7}      # 22.04 LTS (to end)
+**Expected output:**
+```
+String: Hello, Linux World!
+Length: 19
 ```
 
-### Step 3: Remove Prefix (# and ##)
 ```bash
-path="/home/ubuntu/docs/report.txt"
-echo ${path#/}          # home/ubuntu/docs/report.txt  (remove shortest match)
-echo ${path##*/}        # report.txt  (remove longest match up to last /)
-
-filename="report.tar.gz"
-echo ${filename#*.}     # tar.gz
-echo ${filename##*.}    # gz
+EMPTY=""
+echo "Empty string length: ${#EMPTY}"
 ```
 
-### Step 4: Remove Suffix (% and %%)
-```bash
-filename="report.tar.gz"
-echo ${filename%.*}     # report.tar
-echo ${filename%%.*}    # report
+### Step 2: Case Conversion
 
-url="https://example.com/page"
-echo ${url%/*}          # https://example.com
+```bash
+TEXT="Hello World"
+
+echo "${TEXT^^}"   # ALL UPPERCASE
+echo "${TEXT,,}"   # all lowercase
+echo "${TEXT^}"    # Capitalize first character
+echo "${TEXT,}"    # Lowercase first character
 ```
 
-### Step 5: String Replacement
-```bash
-sentence="the cat sat on the mat"
-echo ${sentence/cat/dog}        # the dog sat on the mat  (first match)
-echo ${sentence//at/AT}         # the cAT sAT on the mAT  (all matches)
-
-path="/home/ubuntu/file.txt"
-echo ${path/ubuntu/alice}       # /home/alice/file.txt
+**Expected output:**
+```
+HELLO WORLD
+hello world
+Hello World
+hello World
 ```
 
-### Step 6: Case Conversion (Bash 4+)
 ```bash
-str="Hello World"
-echo ${str,,}    # hello world  (all lowercase)
-echo ${str^^}    # HELLO WORLD  (all uppercase)
-echo ${str^}     # Hello world  (first char uppercase)
-
 # Practical: normalize input
-answer="YES"
-answer=${answer,,}   # normalize to lowercase
-if [[ "$answer" == "yes" ]]; then echo "Confirmed"; fi
-# Confirmed
+INPUT="  ALICE  "
+NORMALIZED="${INPUT,,}"
+echo "Normalized: $NORMALIZED"
+
+# Convert filename to lowercase
+FILENAME="Report_2026_Q1.CSV"
+echo "${FILENAME,,}"
 ```
 
-### Step 7: Check if String Contains Substring
-```bash
-haystack="Ubuntu Linux 22.04"
-needle="Linux"
+### Step 3: Substring Extraction
 
-if [[ "$haystack" == *"$needle"* ]]; then
-    echo "Found: $needle"
-else
-    echo "Not found"
+```bash
+PATH_STR="/home/zchen/documents/report-2026.pdf"
+
+# ${var:start:length} — start is 0-indexed
+echo "${PATH_STR:0:5}"      # First 5 chars
+echo "${PATH_STR:6:5}"      # 5 chars from position 6
+echo "${PATH_STR:6}"        # From position 6 to end
+echo "${PATH_STR: -3}"      # Last 3 chars (space before -)
+```
+
+**Expected output:**
+```
+/home
+zchen
+zchen/documents/report-2026.pdf
+pdf
+```
+
+### Step 4: Prefix Removal (# and ##)
+
+```bash
+PATH_STR="/home/zchen/documents/report.pdf"
+
+# Remove shortest matching prefix (#)
+echo "${PATH_STR#/}"         # Remove leading /
+echo "${PATH_STR#*/}"        # Remove up to first /
+
+# Remove longest matching prefix (##)
+echo "${PATH_STR##*/}"       # Remove up to last / (basename!)
+```
+
+**Expected output:**
+```
+home/zchen/documents/report.pdf
+home/zchen/documents/report.pdf
+report.pdf
+```
+
+```bash
+# Practical basename equivalent
+FILE="/var/log/syslog.1"
+echo "Basename: ${FILE##*/}"
+```
+
+### Step 5: Suffix Removal (% and %%)
+
+```bash
+PATH_STR="/home/zchen/documents/report.pdf"
+
+# Remove shortest matching suffix (%)
+echo "${PATH_STR%.*}"        # Remove extension
+echo "${PATH_STR%/*}"        # Remove last path component (dirname!)
+
+# Remove longest matching suffix (%%)
+echo "${PATH_STR%%.*}"       # Remove everything after first dot
+```
+
+**Expected output:**
+```
+/home/zchen/documents/report
+/home/zchen/documents
+/home/zchen/documents/report
+```
+
+```bash
+# Practical examples
+VERSIONED="myapp-v1.2.3.tar.gz"
+echo "Without .gz:    ${VERSIONED%.gz}"
+echo "Without .tar.gz: ${VERSIONED%.tar.gz}"
+echo "Without version: ${VERSIONED%-v*}"
+```
+
+### Step 6: String Replacement
+
+```bash
+SENTENCE="the quick brown fox jumps over the lazy dog"
+
+# Replace first occurrence
+echo "${SENTENCE/the/a}"
+
+# Replace ALL occurrences (//)
+echo "${SENTENCE//the/a}"
+
+# Replace only at start (match anchored to beginning)
+URL="http://example.com/api"
+echo "${URL/#http/https}"
+
+# Replace only at end (match anchored to end)
+FILE="config.txt"
+echo "${FILE/%txt/yaml}"
+```
+
+### Step 7: Practical String Processing
+
+```bash
+# Extract date components from a filename
+REPORT="sales-report-2026-03-01.csv"
+DATE_PART="${REPORT%.csv}"
+DATE_PART="${DATE_PART##*-report-}"
+echo "Date: $DATE_PART"
+YEAR="${DATE_PART%%-*}"
+echo "Year: $YEAR"
+```
+
+```bash
+# Process a list of paths
+PATHS="/etc/nginx/nginx.conf:/etc/apache2/apache2.conf:/etc/ssh/sshd_config"
+
+# Extract config filenames only
+IFS=: read -ra PATH_ARRAY <<< "$PATHS"
+for p in "${PATH_ARRAY[@]}"; do
+    echo "Config file: ${p##*/}"
+done
+```
+
+**Expected output:**
+```
+Config file: nginx.conf
+Config file: apache2.conf
+Config file: sshd_config
+```
+
+### Step 8: String Testing
+
+```bash
+EMAIL="user@example.com"
+
+# Check if string contains @
+if [[ "$EMAIL" == *@* ]]; then
+    echo "Valid email format (contains @)"
 fi
-# Found: Linux
-```
 
-### Step 8: Split String into Parts
-```bash
-# Using IFS to split
-csv="apple,banana,cherry"
-IFS=',' read -ra fruits <<< "$csv"
-echo ${fruits[0]}   # apple
-echo ${fruits[1]}   # banana
-echo ${fruits[2]}   # cherry
-echo "Count: ${#fruits[@]}"   # Count: 3
-```
+# Check prefix
+URL="https://secure.site.com"
+if [[ "$URL" == https://* ]]; then
+    echo "Secure URL"
+fi
 
-### Step 9: Trim Whitespace
-```bash
-str="   hello world   "
-# Trim using sed
-trimmed=$(echo "$str" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-echo "'$trimmed'"
-# 'hello world'
-
-# Or using parameter expansion
-trimmed="${str#"${str%%[![:space:]]*}"}"
-trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
-echo "'$trimmed'"
-# 'hello world'
-```
-
-### Step 10: Practical Script — Filename Parser
-```bash
-cat > ~/parse_filename.sh << 'EOF'
-#!/bin/bash
-filepath="$1"
-filename="${filepath##*/}"       # base name
-dirpart="${filepath%/*}"         # directory
-ext="${filename##*.}"            # extension
-base="${filename%.*}"            # name without ext
-
-echo "Full path : $filepath"
-echo "Directory : $dirpart"
-echo "Filename  : $filename"
-echo "Basename  : $base"
-echo "Extension : $ext"
-EOF
-chmod +x ~/parse_filename.sh
-~/parse_filename.sh /home/ubuntu/reports/sales_2026.csv
-# Full path : /home/ubuntu/reports/sales_2026.csv
-# Directory : /home/ubuntu/reports
-# Filename  : sales_2026.csv
-# Basename  : sales_2026
-# Extension : csv
+# Check suffix
+SCRIPT="deploy.sh"
+if [[ "$SCRIPT" == *.sh ]]; then
+    echo "Is a shell script"
+fi
 ```
 
 ## ✅ Verification
+
 ```bash
-str="Linux Rocks 2026"
-echo ${#str}              # 17
-echo ${str^^}             # LINUX ROCKS 2026
-echo ${str/Rocks/Rules}   # Linux Rules 2026
-echo ${str: -4}           # 2026
+TEXT="Hello World 2026"
+
+echo "Length: ${#TEXT}"
+echo "Upper: ${TEXT^^}"
+echo "Lower: ${TEXT,,}"
+echo "Substr: ${TEXT:6:5}"
+echo "Replace: ${TEXT/World/Linux}"
+echo "Suffix rm: ${TEXT% *}"
+
+FILE="backup-2026-03-01.tar.gz"
+echo "Basename would be: ${FILE##*/}"
+echo "No extension: ${FILE%.gz}"
+echo "No .tar.gz: ${FILE%.tar.gz}"
+echo "Practitioner Lab 13 complete"
 ```
 
 ## 📝 Summary
 - `${#var}` returns string length
-- `${var:offset:length}` extracts substrings; negative offset counts from end
-- `${var#pattern}` / `${var##pattern}` strips prefix (shortest/longest)
-- `${var%pattern}` / `${var%%pattern}` strips suffix (shortest/longest)
-- `${var/old/new}` replaces first; `${var//old/new}` replaces all
-- `${var,,}` lowercases; `${var^^}` uppercases (Bash 4+)
+- `${var^^}` uppercases; `${var,,}` lowercases
+- `${var:start:len}` extracts substring (0-indexed)
+- `${var#pattern}` removes shortest prefix; `##` removes longest
+- `${var%pattern}` removes shortest suffix; `%%` removes longest
+- `${var/old/new}` replaces first match; `//` replaces all
+- `${var/#old/new}` replaces at start; `/%old/new` replaces at end

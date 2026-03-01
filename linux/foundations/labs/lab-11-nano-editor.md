@@ -1,160 +1,169 @@
-# Lab 11: nano — Terminal Text Editor
+# Lab 11: The nano Text Editor
 
 ## 🎯 Objective
-Get comfortable using the `nano` text editor: opening files, navigating, editing, searching, saving, and exiting — without needing to memorize complex commands.
+Understand how to use the nano text editor. Learn nano's keyboard shortcuts and practice file operations using echo and cat as safe alternatives.
 
 ## ⏱️ Estimated Time
-20 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Completed Labs 1–4
-- Basic terminal navigation
+- Completed Lab 10: Users and Groups
 
 ## 🔬 Lab Instructions
 
-### Step 1: Install nano (if not present)
+### Step 1: Check if nano is Available
+
 ```bash
-which nano || sudo apt install nano -y
-nano --version
-# Output: GNU nano, version 6.2
+which nano
+nano --version | head -2
 ```
 
-### Step 2: Open nano with a New File
+**Expected output:**
+```
+/usr/bin/nano
+GNU nano, version 6.x
+```
+
+### Step 2: nano Key Reference
+
+nano is a terminal text editor. Key shortcuts (^ means Ctrl):
+
+```text
+OPEN/SAVE/EXIT:
+  nano filename   Open a file
+  Ctrl+O          Save (WriteOut), then Enter to confirm
+  Ctrl+X          Exit nano
+
+NAVIGATION:
+  Ctrl+A          Go to beginning of line
+  Ctrl+E          Go to end of line
+  Ctrl+Y          Page Up
+  Ctrl+V          Page Down
+  Ctrl+_          Go to specific line number
+
+EDITING:
+  Ctrl+K          Cut current line
+  Ctrl+U          Paste (Uncut)
+  Ctrl+6          Mark text for selection
+
+SEARCH:
+  Ctrl+W          Search for text
+  Ctrl+\          Search and replace
+  Alt+W           Find next occurrence
+
+OTHER:
+  Ctrl+G          Display help
+  Ctrl+C          Show cursor position
+```
+
+### Step 3: Create Files Without Opening an Editor
+
 ```bash
-nano ~/myfile.txt
-# Opens nano editor
-# The bottom shows key shortcuts (^ = Ctrl)
+cat > /tmp/myconfig.conf << 'EOF'
+# Application Configuration
+server_name = webserver01
+listen_port = 8080
+debug_mode = false
+log_file = /var/log/app.log
+max_workers = 4
+EOF
+
+cat /tmp/myconfig.conf
 ```
 
-### Step 3: Understand the nano Interface
-When nano opens, you'll see:
+**Expected output:**
 ```
-  GNU nano 6.2           myfile.txt
-
-  (cursor is here — start typing)
-
-
-
-
-^G Help     ^O Write Out  ^W Where Is  ^K Cut Line   ^T Execute
-^X Exit     ^R Read File  ^\ Replace   ^U Paste       ^J Justify
+# Application Configuration
+server_name = webserver01
+listen_port = 8080
+debug_mode = false
+log_file = /var/log/app.log
+max_workers = 4
 ```
-- `^` means Ctrl key
-- The status bar shows the filename and modification status
 
-### Step 4: Type Some Content
+### Step 4: Simulate Editing — Append Content
+
 ```bash
-# In nano, just start typing:
-# Line 1: This is my first file.
-# Line 2: Nano is easy to use.
-# Line 3: Press Enter for new lines.
-# Line 4: Let's learn nano!
+cat >> /tmp/myconfig.conf << 'EOF'
+timeout = 30
+retry_count = 3
+EOF
+
+cat /tmp/myconfig.conf
 ```
 
-### Step 5: Navigate with Arrow Keys and Shortcuts
-```
-Arrow keys: move cursor
-Ctrl+A:     go to beginning of line
-Ctrl+E:     go to end of line
-Ctrl+Y:     scroll up one page
-Ctrl+V:     scroll down one page
-Ctrl+W:     search (Where Is)
-Ctrl+_:     go to specific line number
-```
+### Step 5: Simulate Editing — Replace a Line
 
-### Step 6: Search for Text
 ```bash
-# While in nano, press Ctrl+W
-# Type: nano
-# Press Enter to find it
-# Press Ctrl+W again and Enter to find next occurrence
+sed -i 's/debug_mode = false/debug_mode = true/' /tmp/myconfig.conf
+grep debug_mode /tmp/myconfig.conf
 ```
 
-### Step 7: Search and Replace
-```bash
-# Press Ctrl+\  (that's backslash)
-# Enter: easy
-# Press Enter
-# Enter replacement: simple
-# Press Enter
-# Press Y to replace this instance, or A to replace all
+**Expected output:**
+```
+debug_mode = true
 ```
 
-### Step 8: Cut and Paste Lines
+### Step 6: Create a Script File
+
 ```bash
-# Move cursor to a line you want to cut
-# Press Ctrl+K to cut the entire line
-# Move to where you want to paste
-# Press Ctrl+U to paste (uncut)
+cat > /tmp/greet.sh << 'EOF'
+#!/bin/bash
+NAME=${1:-"World"}
+echo "Hello, $NAME!"
+echo "Today is $(date +%A, %B %d, %Y)"
+EOF
+
+chmod +x /tmp/greet.sh
+bash /tmp/greet.sh Linux
 ```
 
-### Step 9: Copy Lines (Mark + Cut + Paste)
-```bash
-# Move cursor to start of text to copy
-# Press Ctrl+^ (Ctrl+Shift+6) to set mark
-# Move cursor to end of selection (text highlights)
-# Press Ctrl+K to cut (but we'll paste it back)
-# Move to destination
-# Press Ctrl+U to paste
+**Expected output:**
+```
+Hello, Linux!
+Today is Sunday, March 01, 2026
 ```
 
-### Step 10: Save the File
+### Step 7: Practice File Creation Workflow
+
 ```bash
-# Press Ctrl+O (Write Out)
-# nano shows: File Name to Write: myfile.txt
-# Press Enter to confirm
+cat > /tmp/nano-practice.txt << 'EOF'
+Line 1: First entry
+Line 2: Second entry
+Line 3: Third entry
+EOF
 
-# The status bar briefly shows:
-# [ Wrote X lines ]
-```
+echo "File created:"
+cat -n /tmp/nano-practice.txt
 
-### Step 11: Open and Edit an Existing File
-```bash
-# Exit nano first: Ctrl+X
-# Then reopen:
-nano ~/myfile.txt
+echo "After appending:"
+echo "Line 4: Added by append" >> /tmp/nano-practice.txt
+cat -n /tmp/nano-practice.txt
 
-# Navigate to line 2 and add text
-# Ctrl+_ → enter line number 2 → Enter
-# Home key to go to start of line, or End to go to end
-# Add some text and save again with Ctrl+O
-```
-
-### Step 12: Exit nano
-```bash
-# Press Ctrl+X
-# If there are unsaved changes:
-# nano asks: Save modified buffer?
-# Y = yes (save and exit)
-# N = no (discard changes and exit)
-# Ctrl+C = cancel (go back to editing)
+echo "After modification:"
+sed -i 's/First/Modified First/' /tmp/nano-practice.txt
+cat -n /tmp/nano-practice.txt
 ```
 
 ## ✅ Verification
+
 ```bash
-# Create a file with nano, verify content
-nano /tmp/nanotest.txt
-# Type: "Nano works!"
-# Save with Ctrl+O, exit with Ctrl+X
+cat > /tmp/lab11-verify.txt << 'EOF'
+Test file for Lab 11
+nano would be used to create this interactively
+EOF
 
-cat /tmp/nanotest.txt
-# Output: Nano works!
+wc -l /tmp/lab11-verify.txt
+head -1 /tmp/lab11-verify.txt
 
-# Edit a system-like config (in /tmp for safety)
-cp /etc/hosts /tmp/hosts_test.txt
-nano /tmp/hosts_test.txt
-# Add a comment line: # test comment
-# Save and exit
-
-grep "test comment" /tmp/hosts_test.txt
-# Output: # test comment
-
-rm /tmp/nanotest.txt /tmp/hosts_test.txt
+rm /tmp/lab11-verify.txt /tmp/nano-practice.txt /tmp/myconfig.conf /tmp/greet.sh 2>/dev/null
+echo "Lab 11 complete"
 ```
 
 ## 📝 Summary
-- nano is a beginner-friendly terminal editor — key shortcuts are shown at the bottom
-- `Ctrl+O` saves; `Ctrl+X` exits; `Ctrl+W` searches; `Ctrl+\` replaces
-- `Ctrl+K` cuts a line; `Ctrl+U` pastes it
-- When exiting with unsaved changes, nano asks whether to save — press Y, N, or Ctrl+C
-- nano is ideal for quick edits; for complex work, consider learning vim (Lab 12)
+- nano is a terminal text editor started with `nano filename`
+- `Ctrl+O` saves; `Ctrl+X` exits; `Ctrl+W` searches
+- nano shows shortcuts at the bottom of the screen (^ = Ctrl)
+- For scripts and automation, use `echo`, `cat`, and heredocs instead
+- `sed -i` modifies files in-place without opening an interactive editor
+- nano is ideal for quick edits on servers without a GUI

@@ -1,282 +1,243 @@
-# Lab 9: Bash Functions
+# Lab 9: Functions in bash
 
 ## 🎯 Objective
-Define and use functions in bash: pass arguments, use local variables, return values, and organize scripts with reusable function libraries.
+Define and use bash functions with parameters, local variables, return values, and exported functions.
 
 ## ⏱️ Estimated Time
-30 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Practitioner Labs 7 and 8 (conditionals, loops)
-- Basic bash scripting
+- Practitioner Labs 7 (Conditionals) and 8 (Loops)
 
 ## 🔬 Lab Instructions
 
 ### Step 1: Define and Call a Function
+
 ```bash
-# Function definition
+# Two equivalent syntaxes
 greet() {
-  echo "Hello from the function!"
+    echo "Hello, World!"
 }
 
-# Call it
+function say_hi {
+    echo "Hi there!"
+}
+
 greet
-# Output: Hello from the function!
-
-# Alternative syntax
-function farewell {
-  echo "Goodbye!"
-}
-farewell
+say_hi
 ```
 
-### Step 2: Functions with Arguments
+**Expected output:**
+```
+Hello, World!
+Hi there!
+```
+
+### Step 2: Function Parameters
+
 ```bash
-# Arguments accessed as $1, $2, etc.
+# $1, $2, ... are positional parameters
 greet_user() {
-  echo "Hello, $1!"
-  echo "Your role is: $2"
+    echo "Hello, $1!"
+    echo "You are $2 years old."
 }
 
-greet_user "Alice" "admin"
-# Output:
-# Hello, Alice!
-# Your role is: admin
+greet_user "Alice" 30
+greet_user "Bob" 25
 ```
 
-### Step 3: Special Variables in Functions
+**Expected output:**
+```
+Hello, Alice!
+You are 30 years old.
+Hello, Bob!
+You are 25 years old.
+```
+
 ```bash
+# $@ = all arguments, $# = argument count
 show_args() {
-  echo "Function name: ${FUNCNAME[0]}"
-  echo "Number of args: $#"
-  echo "All args: $@"
-  echo "First: $1"
-  echo "Second: $2"
+    echo "Count: $#"
+    echo "All: $@"
+    for arg in "$@"; do
+        echo "  Arg: $arg"
+    done
 }
 
-show_args alpha beta gamma
+show_args "apple" "banana" "cherry"
 ```
 
-### Step 4: Local Variables
+### Step 3: Local Variables
+
 ```bash
-# Without local: variable leaks to global scope
-bad_function() {
-  x=10  # Global!
-}
-bad_function
-echo $x  # Output: 10  (leaked!)
+# Variables without 'local' are global!
+GLOBAL_VAR="global"
 
-# With local: contained to function scope
-good_function() {
-  local x=10
-  echo "Inside: $x"
+test_scope() {
+    local LOCAL_VAR="local"
+    GLOBAL_VAR="modified"
+    echo "Inside: LOCAL=$LOCAL_VAR, GLOBAL=$GLOBAL_VAR"
 }
-good_function
-echo "Outside: $x"  # Output: 10 (from bad_function, not good_function)
 
-# Best practice: always use local for function variables
-calculate() {
-  local num1=$1
-  local num2=$2
-  local result=$((num1 + num2))
-  echo "Result: $result"
-}
-calculate 10 20
+test_scope
+echo "Outside: GLOBAL=$GLOBAL_VAR"
+echo "Outside: LOCAL=${LOCAL_VAR:-not accessible}"
 ```
 
-### Step 5: Return Values (Exit Codes)
+**Expected output:**
+```
+Inside: LOCAL=local, GLOBAL=modified
+Outside: GLOBAL=modified
+Outside: LOCAL=not accessible
+```
+
+### Step 4: Return Values
+
 ```bash
-# return sets the exit code (0-255)
+# return sets exit code (0=success, 1-255=error)
 is_even() {
-  local num=$1
-  if (( num % 2 == 0 )); then
-    return 0  # true/success
-  else
-    return 1  # false/failure
-  fi
+    local num=$1
+    if (( num % 2 == 0 )); then
+        return 0  # success = even
+    else
+        return 1  # failure = odd
+    fi
 }
 
-is_even 4
-echo "Exit code: $?"  # Output: 0
-
-is_even 7
-echo "Exit code: $?"  # Output: 1
-
-# Use in conditionals
-if is_even 8; then
-  echo "8 is even"
-fi
+is_even 4 && echo "4 is even" || echo "4 is odd"
+is_even 7 && echo "7 is even" || echo "7 is odd"
 ```
 
-### Step 6: Returning Data (echo + Command Substitution)
+**Expected output:**
+```
+4 is even
+7 is odd
+```
+
 ```bash
-# Functions can't return strings via return
-# Instead, echo the result and capture with $()
+# To return a string, use echo and command substitution
 get_greeting() {
-  local name=$1
-  echo "Hello, ${name}!"
+    local name=$1
+    echo "Hello, ${name}!"
 }
 
-message=$(get_greeting "World")
-echo $message
-# Output: Hello, World!
-
-# More complex example
-get_disk_usage() {
-  local path=${1:-/}
-  df -h "$path" | awk 'NR==2 {print $5}'
-}
-usage=$(get_disk_usage /)
-echo "Root disk usage: $usage"
+MSG=$(get_greeting "Linux")
+echo "Got: $MSG"
 ```
 
-### Step 7: Default Parameter Values
-```bash
-create_backup() {
-  local source=${1:-/etc}
-  local dest=${2:-/tmp/backup}
-  local timestamp=$(date +%Y%m%d_%H%M%S)
+### Step 5: Functions with Default Values
 
-  mkdir -p "$dest"
-  echo "Backing up $source to ${dest}/backup_${timestamp}.tar.gz"
-  # tar -czf "${dest}/backup_${timestamp}.tar.gz" "$source"
+```bash
+connect() {
+    local host="${1:-localhost}"
+    local port="${2:-8080}"
+    echo "Connecting to $host:$port"
 }
 
-create_backup              # Uses defaults
-create_backup /home /tmp/myhome_backup
+connect                    # uses defaults
+connect "db.server.com"    # custom host, default port
+connect "api.server.com" 443  # both custom
 ```
 
-### Step 8: Validate Function Arguments
-```bash
-require_args() {
-  local func_name=$1
-  local required=$2
-  local actual=$3
-  if [ "$actual" -lt "$required" ]; then
-    echo "ERROR: $func_name requires $required arguments, got $actual" >&2
-    return 1
-  fi
-}
-
-divide() {
-  require_args "divide" 2 $# || return 1
-  local a=$1
-  local b=$2
-  if [ "$b" -eq 0 ]; then
-    echo "ERROR: Cannot divide by zero" >&2
-    return 1
-  fi
-  echo $((a / b))
-}
-
-divide 10 2   # Output: 5
-divide 10 0   # Output: ERROR
-divide 5      # Output: ERROR (missing arg)
+**Expected output:**
+```
+Connecting to localhost:8080
+Connecting to db.server.com:8080
+Connecting to api.server.com:443
 ```
 
-### Step 9: Recursive Functions
+### Step 6: Recursive Functions
+
 ```bash
-# Factorial using recursion
 factorial() {
-  local n=$1
-  if [ $n -le 1 ]; then
-    echo 1
-  else
-    local prev=$(factorial $((n - 1)))
-    echo $((n * prev))
-  fi
+    local n=$1
+    if [[ $n -le 1 ]]; then
+        echo 1
+    else
+        local prev=$(factorial $((n-1)))
+        echo $((n * prev))
+    fi
 }
 
-factorial 5
-# Output: 120
+echo "5! = $(factorial 5)"
+echo "6! = $(factorial 6)"
 ```
 
-### Step 10: Function Libraries
+**Expected output:**
+```
+5! = 120
+6! = 720
+```
+
+### Step 7: Export Functions to Subshells
+
 ```bash
-# Create a library file
-cat > /tmp/lib_utils.sh << 'EOF'
+my_function() {
+    echo "I'm an exported function!"
+}
+
+export -f my_function
+bash -c 'my_function'
+```
+
+**Expected output:**
+```
+I'm an exported function!
+```
+
+### Step 8: Practical Function Library Script
+
+```bash
+cat > /tmp/lib-functions.sh << 'EOF'
 #!/bin/bash
-# Utility function library
 
-log_info() { echo "[INFO]  $(date '+%H:%M:%S') $*"; }
-log_warn() { echo "[WARN]  $(date '+%H:%M:%S') $*"; }
-log_error() { echo "[ERROR] $(date '+%H:%M:%S') $*" >&2; }
+# Log with timestamp
+log() {
+    local level="${1:-INFO}"
+    local msg="$2"
+    echo "[$(date +%H:%M:%S)] [$level] $msg"
+}
 
-is_root() { [ "$(id -u)" -eq 0 ]; }
+# Check if a command exists
+has_command() {
+    command -v "$1" > /dev/null 2>&1
+}
 
-file_exists() { [ -f "$1" ]; }
-dir_exists() { [ -d "$1" ]; }
+# Get file size in bytes
+file_size() {
+    stat -c %s "$1" 2>/dev/null || echo 0
+}
+
+log "INFO" "Script started"
+log "WARN" "This is a warning"
+
+has_command bash && log "INFO" "bash found at $(which bash)"
+has_command nonexistent || log "WARN" "nonexistent command not found"
+
+log "INFO" "Size of /etc/passwd: $(file_size /etc/passwd) bytes"
 EOF
 
-# Source the library in another script
-source /tmp/lib_utils.sh
-
-log_info "System check started"
-log_warn "This is a warning"
-is_root && echo "Running as root" || echo "Not root"
-```
-
-### Step 11: Functions with Arrays
-```bash
-# Pass array by reference (using nameref — bash 4.3+)
-process_array() {
-  local -n arr=$1  # nameref
-  echo "Array size: ${#arr[@]}"
-  for item in "${arr[@]}"; do
-    echo "  - $item"
-  done
-}
-
-fruits=("apple" "banana" "cherry")
-process_array fruits
-```
-
-### Step 12: Cleanup Functions with trap
-```bash
-TMPDIR=$(mktemp -d)
-
-cleanup() {
-  echo "Cleaning up $TMPDIR"
-  rm -rf "$TMPDIR"
-}
-
-# Register cleanup to run on exit
-trap cleanup EXIT
-
-echo "Working in $TMPDIR"
-touch "$TMPDIR/workfile.txt"
-echo "Work done"
-# cleanup() runs automatically when script exits
-
-rm -f /tmp/lib_utils.sh
+bash /tmp/lib-functions.sh
 ```
 
 ## ✅ Verification
+
 ```bash
-# Define and test a function
-add() {
-  local a=$1 b=$2
-  echo $((a + b))
-}
+double() { echo $(( $1 * 2 )); }
+is_positive() { [[ $1 -gt 0 ]] && return 0 || return 1; }
 
-result=$(add 15 27)
-echo "15 + 27 = $result"
-# Output: 15 + 27 = 42
+echo "double 7 = $(double 7)"
+is_positive 5 && echo "5 is positive"
+is_positive -3 || echo "-3 is not positive"
 
-# Test local scope
-test_scope() {
-  local inner="local value"
-  echo "Inside: $inner"
-}
-test_scope
-echo "Outside: '${inner}'"  # Should be empty
+rm /tmp/lib-functions.sh 2>/dev/null
+echo "Practitioner Lab 9 complete"
 ```
 
 ## 📝 Summary
-- Functions are defined with `name() { ... }` or `function name { ... }`
-- Arguments are accessed as `$1`, `$2`, ... `$@` (all args), `$#` (count)
-- Always use `local` for function variables to prevent scope leakage
-- `return N` sets exit code; to return data, `echo` it and capture with `$()`
-- Source function libraries with `. file` or `source file` to share functions across scripts
-- `trap cleanup EXIT` ensures cleanup code runs even if the script exits unexpectedly
-
+- Functions are defined with `funcname() { }` or `function funcname { }`
+- Parameters: `$1`, `$2`, ...; `$@` = all; `$#` = count
+- `local` restricts variable scope to the function; always use it
+- `return N` sets the exit code; `echo` + command substitution returns strings
+- `${1:-default}` provides default values for parameters
+- `export -f funcname` makes a function available to subshells

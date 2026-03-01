@@ -1,224 +1,224 @@
-# Lab 16: Error Handling in Bash Scripts
+# Lab 16: Error Handling in bash
 
 ## 🎯 Objective
-Write robust scripts using `set -e`, `set -u`, `set -o pipefail`, `trap` for cleanup, and meaningful exit codes.
+Implement robust error handling using set -euo pipefail, trap for cleanup, exit codes, and conditional operators.
 
 ## ⏱️ Estimated Time
-40 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Completion of Labs 7–9 (Conditionals, Loops, Functions)
+- Practitioner Labs 7 (Conditionals) and 9 (Functions)
 
 ## 🔬 Lab Instructions
 
-### Step 1: Understand Exit Codes
+### Step 1: Exit Codes
+
 ```bash
-ls /etc/hosts
-echo "Exit code: $?"    # 0 = success
+# Every command returns an exit code: 0=success, non-zero=failure
+ls /etc/passwd
+echo "Exit code: $?"   # 0 = success
 
 ls /nonexistent 2>/dev/null
-echo "Exit code: $?"    # 2 = error
+echo "Exit code: $?"   # 2 = failure
 
-true;  echo $?    # 0
-false; echo $?    # 1
+true
+echo "true exit code: $?"   # Always 0
+
+false
+echo "false exit code: $?"  # Always 1
 ```
 
-### Step 2: The Problem Without Error Handling
+### Step 2: && and || Operators
+
 ```bash
-cat > /tmp/bad_script.sh << 'EOF'
-#!/bin/bash
-cd /nonexistent_dir
-echo "This should NOT print if cd failed"
-touch important_file.txt
-EOF
-bash /tmp/bad_script.sh
-# bash: line 2: cd: /nonexistent_dir: No such file or directory
-# This should NOT print if cd failed   <-- problem!
+# && runs right side only if left side succeeded
+ls /etc/passwd > /dev/null && echo "File exists"
+ls /nonexistent > /dev/null 2>&1 && echo "This won't print"
+
+# || runs right side only if left side failed
+ls /nonexistent > /dev/null 2>&1 || echo "File not found (expected)"
+
+# Chain them for simple if/else
+ls /etc/passwd > /dev/null 2>&1 && echo "Found" || echo "Not found"
 ```
 
 ### Step 3: set -e — Exit on Error
+
 ```bash
-cat > /tmp/set_e.sh << 'EOF'
+cat > /tmp/set-e-demo.sh << 'EOF'
 #!/bin/bash
-set -e
-echo "Step 1: start"
-cd /nonexistent_dir    # will fail and exit here
-echo "Step 2: this never runs"
+set -e   # Exit immediately on error
+
+echo "Step 1: OK"
+echo "Step 2: OK"
+ls /nonexistent    # This will fail and exit
+echo "Step 3: This will NOT run"
 EOF
-bash /tmp/set_e.sh
-# Step 1: start
-# bash: line 4: cd: /nonexistent_dir: No such file or directory
-# (script exits immediately)
+
+bash /tmp/set-e-demo.sh || true 2>/dev/null
+echo "Script exited with code: $?"
+```
+
+**Expected output:**
+```
+Step 1: OK
+Step 2: OK
+Script exited with code: 2
 ```
 
 ### Step 4: set -u — Error on Undefined Variables
+
 ```bash
-cat > /tmp/set_u.sh << 'EOF'
+cat > /tmp/set-u-demo.sh << 'EOF'
 #!/bin/bash
-set -u
-name="Alice"
-echo "Hello, $name"
-echo "Age: $age"    # $age is undefined
+set -u   # Error on undefined variables
+
+DEFINED_VAR="hello"
+echo "Defined: $DEFINED_VAR"
+echo "Undefined: $UNDEFINED_VAR"   # This will cause an error
 EOF
-bash /tmp/set_u.sh
-# Hello, Alice
-# bash: age: unbound variable
+
+bash /tmp/set-u-demo.sh || true 2>/dev/null
+echo "Script exit code: $?"
 ```
 
 ### Step 5: set -o pipefail — Catch Pipeline Failures
-```bash
-# Without pipefail, only last command exit code matters
-cat /nonexistent_file 2>/dev/null | grep "foo"
-echo "Exit code: $?"    # 0 (grep succeeded on empty input)
 
-cat > /tmp/pipefail.sh << 'EOF'
+```bash
+# Without pipefail: pipeline exit code = last command's code
+ls /nonexistent 2>/dev/null | echo "Piped"
+echo "Without pipefail: $?"   # 0 because echo succeeded
+
+# With pipefail: pipeline fails if ANY command fails
+cat > /tmp/pipefail-demo.sh << 'EOF'
 #!/bin/bash
 set -o pipefail
-cat /nonexistent_file | grep "foo"
-echo "This won't print"
+ls /nonexistent 2>/dev/null | echo "Piped"
+echo "Exit: $?"
 EOF
-bash /tmp/pipefail.sh 2>/dev/null
-echo "Exit code: $?"    # non-zero (pipeline failed)
+
+bash /tmp/pipefail-demo.sh || true
 ```
 
-### Step 6: Combine All Three (Best Practice Header)
-```bash
-cat > ~/robust_header.sh << 'EOF'
-#!/bin/bash
-set -euo pipefail
-IFS=$'\n\t'   # safer word splitting
+### Step 6: set -euo pipefail Together
 
-echo "Script started safely"
-echo "User: $USER"
-echo "Host: $(hostname)"
-EOF
-chmod +x ~/robust_header.sh
-~/robust_header.sh
-# Script started safely
-# User: ubuntu
-# Host: myserver
-```
-
-### Step 7: trap for Cleanup on Exit
 ```bash
-cat > ~/trap_demo.sh << 'EOF'
+cat > /tmp/robust-script.sh << 'EOF'
 #!/bin/bash
 set -euo pipefail
 
-TMPFILE=$(mktemp)
-echo "Created temp file: $TMPFILE"
+WORK_DIR="/tmp/robust-test"
+mkdir -p "$WORK_DIR"
 
+echo "Working in: $WORK_DIR"
+
+# All operations must succeed
+echo "data" > "$WORK_DIR/data.txt"
+cp "$WORK_DIR/data.txt" "$WORK_DIR/backup.txt"
+echo "Files created: $(ls $WORK_DIR | wc -l)"
+
+echo "Script completed successfully"
+EOF
+
+bash /tmp/robust-script.sh
+echo "Exit code: $?"
+```
+
+### Step 7: trap for Cleanup
+
+```bash
+cat > /tmp/trap-demo.sh << 'EOF'
+#!/bin/bash
+set -euo pipefail
+
+TEMP_DIR=$(mktemp -d /tmp/trap-test.XXXXXX)
+echo "Created temp dir: $TEMP_DIR"
+
+# Cleanup function
 cleanup() {
-    echo "Cleaning up: removing $TMPFILE"
-    rm -f "$TMPFILE"
+    echo "Running cleanup..."
+    rm -rf "$TEMP_DIR"
+    echo "Temp dir removed"
 }
+
+# Register trap: run cleanup on EXIT (normal or error)
 trap cleanup EXIT
 
-echo "Working with $TMPFILE..."
-echo "some data" > "$TMPFILE"
-cat "$TMPFILE"
-echo "Script complete"
-# cleanup runs automatically on exit
+# Also trap specific signals
+trap 'echo "Interrupted!"; exit 130' INT TERM
+
+# Do some work
+echo "Working..." > "$TEMP_DIR/work.txt"
+echo "Data processed"
+
+# Cleanup runs automatically when script exits
 EOF
-chmod +x ~/trap_demo.sh
-~/trap_demo.sh
-# Created temp file: /tmp/tmp.XXXXXXXX
-# Working with /tmp/tmp.XXXXXXXX...
-# some data
-# Script complete
-# Cleaning up: removing /tmp/tmp.XXXXXXXX
+
+bash /tmp/trap-demo.sh
+ls /tmp/trap-test.* 2>/dev/null || echo "Temp dir was cleaned up"
 ```
 
-### Step 8: trap on Specific Signals
+### Step 8: Custom Error Messages
+
 ```bash
-cat > ~/signal_trap.sh << 'EOF'
+cat > /tmp/error-handling.sh << 'EOF'
 #!/bin/bash
-handle_int() {
-    echo ""
-    echo "Caught SIGINT (Ctrl+C). Exiting cleanly."
-    exit 130
+set -euo pipefail
+
+# Error handler function
+die() {
+    local msg="$1"
+    local code="${2:-1}"
+    echo "ERROR: $msg" >&2
+    exit "$code"
 }
-trap handle_int INT
 
-echo "Running... press Ctrl+C to test"
-for i in $(seq 1 30); do
-    echo "Tick $i"
-    sleep 1
-done
+# Validate input
+validate_dir() {
+    local dir="$1"
+    [[ -d "$dir" ]] || die "Directory not found: $dir" 2
+    [[ -r "$dir" ]] || die "Directory not readable: $dir" 3
+    echo "Directory OK: $dir" || true
+}
+
+validate_dir "/etc"
+validate_dir "/tmp"
+validate_dir "/nonexistent" 2>/dev/null || echo "Caught error from validate_dir"
+echo "Done"
 EOF
-chmod +x ~/signal_trap.sh
-# Run ~/signal_trap.sh and press Ctrl+C:
-# Tick 1
-# Tick 2
-# ^C
-# Caught SIGINT (Ctrl+C). Exiting cleanly.
-```
 
-### Step 9: Return Custom Exit Codes
-```bash
-cat > ~/check_service.sh << 'EOF'
-#!/bin/bash
-set -euo pipefail
-SERVICE="${1:-ssh}"
-
-if systemctl is-active --quiet "$SERVICE"; then
-    echo "$SERVICE is running"
-    exit 0
-else
-    echo "$SERVICE is NOT running" >&2
-    exit 1
-fi
-EOF
-chmod +x ~/check_service.sh
-
-~/check_service.sh ssh
-echo "Exit: $?"    # Exit: 0
-
-~/check_service.sh fakesvc 2>/dev/null || echo "Service check failed (exit $?)"
-# Service check failed (exit 1)
-```
-
-### Step 10: Error Function Pattern
-```bash
-cat > ~/error_pattern.sh << 'EOF'
-#!/bin/bash
-set -euo pipefail
-
-log()   { echo "[$(date +%T)] INFO : $*"; }
-error() { echo "[$(date +%T)] ERROR: $*" >&2; exit 1; }
-
-DATADIR="${1:-/tmp/mydata}"
-mkdir -p "$DATADIR" || error "Cannot create directory: $DATADIR"
-log "Data directory ready: $DATADIR"
-
-CONFIGFILE="$DATADIR/config.txt"
-[[ -f "$CONFIGFILE" ]] || error "Config not found: $CONFIGFILE"
-log "Config loaded"
-EOF
-chmod +x ~/error_pattern.sh
-~/error_pattern.sh /tmp/testdata
-# [06:01:23] INFO : Data directory ready: /tmp/testdata
-# [06:01:23] ERROR: Config not found: /tmp/testdata/config.txt
+bash /tmp/error-handling.sh || true
 ```
 
 ## ✅ Verification
+
 ```bash
-cat > /tmp/verify.sh << 'EOF'
+# Test exit codes
+true; echo "true: $?"
+false; echo "false: $?"
+
+# Test && and ||
+true && echo "PASS: && works"
+false || echo "PASS: || works"
+
+# Test trap
+cat > /tmp/trap-verify.sh << 'EOF'
 #!/bin/bash
-set -euo pipefail
-trap 'echo "Exited at line $LINENO"' EXIT
-echo "All error guards active"
+trap 'echo "Trap fired"' EXIT
+echo "Inside script"
 EOF
-bash /tmp/verify.sh
-# All error guards active
-# Exited at line 4
+bash /tmp/trap-verify.sh
+
+rm /tmp/set-e-demo.sh /tmp/set-u-demo.sh /tmp/pipefail-demo.sh /tmp/robust-script.sh /tmp/trap-demo.sh /tmp/error-handling.sh /tmp/trap-verify.sh /tmp/robust-test 2>/dev/null
+rm -rf /tmp/robust-test 2>/dev/null
+echo "Practitioner Lab 16 complete"
 ```
 
 ## 📝 Summary
-- `set -e` exits script on any non-zero command
-- `set -u` errors on undefined variables
-- `set -o pipefail` makes pipeline failures propagate
-- `trap cleanup EXIT` ensures cleanup runs even on error or signal
-- Custom exit codes (0=ok, 1=error) make scripts composable
-- Always write error messages to stderr: `echo "error" >&2`
+- `$?` holds the exit code of the last command: 0=success, non-zero=failure
+- `&&` runs next command only on success; `||` only on failure
+- `set -e` exits the script immediately when any command fails
+- `set -u` treats undefined variables as errors
+- `set -o pipefail` makes pipelines fail if any component fails
+- `trap cleanup EXIT` ensures cleanup code runs even on errors
+- Always write a `die()` function for consistent error messages

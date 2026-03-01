@@ -1,217 +1,251 @@
 # Lab 19: Advanced Regular Expressions
 
 ## 🎯 Objective
-Master POSIX character classes, grouping, alternation, quantifiers, and backreferences in `grep`, `sed`, and `awk`.
+Master extended regular expressions (ERE) in grep -E, use POSIX character classes, groups, alternation, and anchors.
 
 ## ⏱️ Estimated Time
-40 minutes
+30 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Completion of Labs 1–3 (grep, awk, sed basics)
+- Practitioner Lab 1: Advanced grep
 
 ## 🔬 Lab Instructions
 
-### Step 1: POSIX Character Classes
+### Step 1: Set Up Test Data
+
 ```bash
-echo "abc 123 ABC !@#" | grep -oE '[[:alpha:]]+'
-# abc
-# ABC
-
-echo "abc 123 ABC !@#" | grep -oE '[[:digit:]]+'
-# 123
-
-echo "abc 123 ABC !@#" | grep -oE '[[:alnum:]]+'
-# abc
-# 123
-# ABC
-
-# Available POSIX classes:
-# [:alpha:]   letters (a-z, A-Z)
-# [:digit:]   digits 0-9
-# [:alnum:]   letters and digits
-# [:space:]   whitespace (space, tab, newline)
-# [:upper:]   uppercase letters
-# [:lower:]   lowercase letters
-# [:punct:]   punctuation characters
-```
-
-### Step 2: Anchors and Word Boundaries
-```bash
-printf "cat\ncats\nconcat\nthe cat sat\n" | grep '\bcat\b'
-# cat
-# the cat sat
-
-printf "start\nrestart\nstarting\n" | grep '^start'
-# start
-# starting
-
-printf "log\nblog\ncatalog\n" | grep 'log$'
-# log
-# blog
-# catalog
-```
-
-### Step 3: Grouping and Alternation
-```bash
-printf "color\ncolour\ncolr\n" | grep -E 'colou?r'
-# color
-# colour
-
-printf "cat\ndog\nbird\nfish\n" | grep -E '^(cat|dog)$'
-# cat
-# dog
-
-# Alternation in sed
-echo "Hello World" | sed -E 's/(Hello|Hi)/Greetings/'
-# Greetings World
-```
-
-### Step 4: Quantifiers
-```bash
-# ? = 0 or 1    + = 1 or more    * = 0 or more    {n,m} = range
-printf "color\ncolour\ncolouur\n" | grep -E '^colou{0,2}r$'
-# color
-# colour
-# colouur
-
-echo "192.168.1.100" | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$'
-# 192.168.1.100
-
-echo "aababab" | grep -oE 'a{1,2}b'
-# ab
-# ab
-# ab
-```
-
-### Step 5: Capturing Groups in sed
-```bash
-# Rearrange date format YYYY-MM-DD to DD/MM/YYYY
-echo "2026-03-01" | sed -E 's/([0-9]{4})-([0-9]{2})-([0-9]{2})/\3\/\2\/\1/'
-# 01/03/2026
-
-# Wrap words in double quotes
-echo "apple banana cherry" | sed -E 's/([a-z]+)/"\1"/g'
-# "apple" "banana" "cherry"
-
-# Extract domain from email
-echo "user@example.com" | sed -E 's/.*@([a-zA-Z0-9.]+)/\1/'
-# example.com
-```
-
-### Step 6: Groups in awk with match()
-```bash
-echo "Error: connection refused at line 42" | awk '{
-    if (match($0, /line ([0-9]+)/, arr)) {
-        print "Line number:", arr[1]
-    }
-}'
-# Line number: 42
-
-echo "2026-03-01 ERROR server crashed" | awk '{
-    if (match($0, /([0-9]{4})-([0-9]{2})-([0-9]{2})/, d)) {
-        print "Year:", d[1], "Month:", d[2], "Day:", d[3]
-    }
-}'
-# Year: 2026 Month: 03 Day: 01
-```
-
-### Step 7: Lookahead and Lookbehind (grep -P)
-```bash
-# grep -P enables Perl-compatible regex
-
-# Positive lookahead: match "foo" followed by "bar"
-printf "foobar\nfooBAZ\nfoo\n" | grep -P 'foo(?=bar)'
-# foobar
-
-# Negative lookahead: "foo" NOT followed by "bar"
-printf "foobar\nfooBAZ\nfoo\n" | grep -P 'foo(?!bar)'
-# fooBAZ
-# foo
-
-# Lookbehind: IP preceded by "from "
-echo "Connection from 192.168.1.1 refused" | grep -oP '(?<=from )[0-9.]+'
-# 192.168.1.1
-```
-
-### Step 8: Validate Common Patterns
-```bash
-# Validate email (simplified)
-for e in "user@example.com" "invalid@.com" "@bad.com" "good+tag@domain.org"; do
-    if echo "$e" | grep -qE '^[a-zA-Z0-9._%++-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
-        echo "VALID  : $e"
-    else
-        echo "INVALID: $e"
-    fi
-done
-# VALID  : user@example.com
-# INVALID: invalid@.com
-# INVALID: @bad.com
-# VALID  : good+tag@domain.org
-
-# Validate IPv4
-for ip in "192.168.1.1" "256.0.0.1" "10.0.0" "172.16.254.254"; do
-    if echo "$ip" | grep -qE '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'; then
-        echo "VALID IP  : $ip"
-    else
-        echo "INVALID IP: $ip"
-    fi
-done
-```
-
-### Step 9: Non-Greedy Matching (grep -P)
-```bash
-echo '<a>link1</a> <a>link2</a>' | grep -oP '<a>.*?</a>'
-# <a>link1</a>
-# <a>link2</a>
-
-# Without ? (greedy), would match from first <a> to last </a>
-echo '<a>link1</a> <a>link2</a>' | grep -oP '<a>.*</a>'
-# <a>link1</a> <a>link2</a>
-```
-
-### Step 10: Practical Script — Log Analyzer with Regex
-```bash
-cat > ~/regex_log_check.sh << 'EOF'
-#!/bin/bash
-set -euo pipefail
-LOG="${1:-/tmp/app.log}"
-[[ -f "$LOG" ]] || { echo "File not found: $LOG" >&2; exit 1; }
-
-echo "=== Regex Log Analyzer: $LOG ==="
-
-echo ""
-echo "Timestamps found:"
-grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}' "$LOG" \
-  | sort -u | awk '{print "  " $0}'
-
-echo ""
-echo "IPs found:"
-grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' "$LOG" \
-  | sort -u | awk '{print "  " $0}'
-
-echo ""
-echo "HTTP status codes:"
-grep -oE '\b[1-5][0-9]{2}\b' "$LOG" \
-  | sort | uniq -c | sort -rn \
-  | awk '{printf "  %s: %s occurrences\n", $2, $1}'
+cat > /tmp/regex-test.txt << 'EOF'
+alice@example.com
+bob.smith@company.org
+invalid-email
+192.168.1.100
+10.0.0.1
+999.999.999.999
+2026-03-01
+2026-13-45
+phone: +1-555-0100
+phone: 555.0101
+phone: (555) 0102
+Price: $29.99
+Price: $1,299.00
+ERROR: file not found
+WARNING: low memory
+INFO: server started
+line with   multiple   spaces
+UPPERCASE ONLY LINE
+lowercase only line
+MiXeD CaSe LiNe
 EOF
-chmod +x ~/regex_log_check.sh
-~/regex_log_check.sh /tmp/app.log
+```
+
+### Step 2: POSIX Character Classes
+
+```bash
+# [[:alpha:]] = any letter (a-z, A-Z)
+grep -E "^[[:alpha:]]+$" /tmp/regex-test.txt
+```
+
+**Expected output:**
+```
+(none - all lines have non-alpha chars)
+```
+
+```bash
+# [[:lower:]] = lowercase letters
+grep -E "^[[:lower:] ]+$" /tmp/regex-test.txt
+```
+
+**Expected output:**
+```
+lowercase only line
+```
+
+```bash
+# [[:upper:]] = uppercase letters
+grep -E "^[[:upper:] ]+$" /tmp/regex-test.txt
+```
+
+**Expected output:**
+```
+UPPERCASE ONLY LINE
+```
+
+```bash
+# [[:digit:]] = digits 0-9
+grep -E "[[:digit:]]" /tmp/regex-test.txt | head -10
+```
+
+```bash
+# [[:alnum:]] = letters and digits
+grep -E "^[[:alnum:]]+$" /tmp/regex-test.txt
+```
+
+```bash
+# [[:space:]] = whitespace
+grep -E "[[:space:]]{2,}" /tmp/regex-test.txt
+```
+
+### Step 3: Quantifiers
+
+```bash
+# + = one or more
+grep -E "[0-9]+" /tmp/regex-test.txt | head -5
+
+# * = zero or more
+grep -E "^[[:alpha:]]*$" /tmp/regex-test.txt | head -3
+
+# ? = zero or one (optional)
+grep -E "colou?r" <<< "color and colour are the same"
+
+# {n} = exactly n
+grep -E "[0-9]{3}" /tmp/regex-test.txt | head -5
+
+# {n,m} = between n and m
+grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" /tmp/regex-test.txt
+```
+
+**Expected output (IPs):**
+```
+192.168.1.100
+10.0.0.1
+999.999.999.999
+```
+
+### Step 4: Anchors
+
+```bash
+# ^ = start of line
+grep -E "^[[:upper:]]" /tmp/regex-test.txt
+
+# $ = end of line
+grep -E "com$" /tmp/regex-test.txt
+
+# \b = word boundary (in ERE)
+echo "cat catalog category" | grep -Eo "\bcat\b"
+```
+
+**Expected output:**
+```
+cat
+```
+
+```bash
+# Match complete lines
+grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$" /tmp/regex-test.txt
+```
+
+**Expected output:**
+```
+192.168.1.100
+10.0.0.1
+999.999.999.999
+```
+
+### Step 5: Groups and Alternation
+
+```bash
+# | = alternation (OR)
+grep -E "ERROR|WARNING" /tmp/regex-test.txt
+```
+
+**Expected output:**
+```
+ERROR: file not found
+WARNING: low memory
+```
+
+```bash
+# () = grouping
+grep -E "(ERROR|WARNING|INFO):" /tmp/regex-test.txt
+```
+
+```bash
+# Groups with quantifiers
+echo "abcabcabc" | grep -E "(abc){3}"
+echo "abcabc" | grep -E "(abc){3}" || echo "no match for (abc){3}"
+```
+
+```bash
+# Alternation for log levels
+journalctl -n 20 --no-pager 2>/dev/null | grep -E "(error|warn|fail)" -i | head -5 || echo "no matching journal entries"
+```
+
+### Step 6: Email Pattern
+
+```bash
+# Basic email regex
+grep -E "^[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}$" /tmp/regex-test.txt
+```
+
+**Expected output:**
+```
+alice@example.com
+bob.smith@company.org
+```
+
+### Step 7: IP Address Pattern
+
+```bash
+# Simplified IP address pattern (1-3 digits in each octet)
+grep -E "^([0-9]{1,3}\.){3}[0-9]{1,3}$" /tmp/regex-test.txt
+```
+
+```bash
+# Stricter: only valid octet ranges (0-255)
+grep -E "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" /tmp/regex-test.txt
+```
+
+**Expected output:**
+```
+192.168.1.100
+10.0.0.1
+```
+
+Note: 999.999.999.999 is excluded as invalid.
+
+### Step 8: Extract with -o
+
+```bash
+# Extract email addresses
+grep -Eo "[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}" /tmp/regex-test.txt
+```
+
+```bash
+# Extract IP addresses
+grep -Eo "([0-9]{1,3}\.){3}[0-9]{1,3}" /tmp/regex-test.txt
+```
+
+```bash
+# Extract dates (YYYY-MM-DD format)
+grep -Eo "[0-9]{4}-[0-9]{2}-[0-9]{2}" /tmp/regex-test.txt
+```
+
+**Expected output:**
+```
+2026-03-01
+2026-13-45
+```
+
+```bash
+# Extract prices
+grep -Eo "\$[0-9,]+\.[0-9]{2}" /tmp/regex-test.txt
 ```
 
 ## ✅ Verification
-```bash
-echo "Phone: 555-123-4567" | grep -oP '\d{3}-\d{3}-\d{4}'
-# 555-123-4567
 
-echo "2026-03-01" | sed -E 's/([0-9]{4})-([0-9]{2})-([0-9]{2})/\3-\2-\1/'
-# 01-03-2026
+```bash
+echo "=== Email extraction ===" && grep -Eo "[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}" /tmp/regex-test.txt
+echo "=== IP extraction ===" && grep -Eo "([0-9]{1,3}\.){3}[0-9]{1,3}" /tmp/regex-test.txt | head -5
+echo "=== LOG levels ===" && grep -E "^(ERROR|WARNING|INFO):" /tmp/regex-test.txt
+echo "=== POSIX lower ===" && grep -E "^[[:lower:] ]+$" /tmp/regex-test.txt
+rm /tmp/regex-test.txt
+echo "Practitioner Lab 19 complete"
 ```
 
 ## 📝 Summary
-- POSIX classes `[:alpha:]`, `[:digit:]`, `[:alnum:]` work in grep, sed, and awk
-- `grep -E` enables extended regex; `grep -P` enables Perl regex (lookahead, etc.)
-- Grouping `()` in `sed -E` allows backreferences `\1`, `\2` for reordering
-- `awk match($0, /re/, arr)` captures groups into array for extraction
-- Non-greedy matching `.*?` requires `grep -P` or Perl-compatible tools
+- POSIX classes: `[[:alpha:]]`, `[[:digit:]]`, `[[:alnum:]]`, `[[:space:]]`, `[[:upper:]]`, `[[:lower:]]`
+- Quantifiers: `+` (1+), `*` (0+), `?` (0 or 1), `{n,m}` (range)
+- Anchors: `^` start of line, `$` end of line, `\b` word boundary
+- Alternation: `(ERROR|WARN|INFO)` matches any of the options
+- Groups `()` allow applying quantifiers: `([0-9]{1,3}\.){3}`
+- `grep -Eo` extracts only the matched portion — great for data extraction

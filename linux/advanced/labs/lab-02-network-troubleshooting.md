@@ -1,187 +1,208 @@
 # Lab 2: Network Troubleshooting
 
 ## 🎯 Objective
-Use `ping`, `traceroute`, `mtr`, `ss`, and `tcpdump` to diagnose network connectivity issues and inspect traffic.
+Diagnose network connectivity issues using ping, tracepath, ss, and curl to test reachability and diagnose problems.
 
 ## ⏱️ Estimated Time
-40 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Completion of Lab 1 (Network Configuration)
+- Advanced Lab 1: Network Configuration
 
 ## 🔬 Lab Instructions
 
-### Step 1: ping — Basic Connectivity Test
-```bash
-ping -c 4 8.8.8.8
-# PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
-# 64 bytes from 8.8.8.8: icmp_seq=1 ttl=118 time=12.3 ms
-# ...
-# 4 packets transmitted, 4 received, 0% packet loss, time 3005ms
-# rtt min/avg/max/mdev = 11.9/12.3/12.8/0.3 ms
+### Step 1: Test Basic Connectivity with ping
 
-# Ping with interval and deadline
-ping -c 3 -i 0.5 -W 2 google.com
+```bash
+# Ping with count limit (non-interactive)
+ping -c2 -W1 127.0.0.1
 ```
 
-### Step 2: ping — Diagnose Local vs Remote Failures
+**Expected output:**
+```
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=118 time=5.23 ms
+...
+--- 8.8.8.8 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3005ms
+```
+
 ```bash
-# Test local network stack
-ping -c 2 127.0.0.1
-# (should always succeed)
+# Ping with deadline (timeout after 5 seconds)
+ping -c2 -W1 127.0.0.1
+```
 
-# Test gateway
-GW=$(ip route show default | awk '{print $3}')
-echo "Gateway: $GW"
-ping -c 2 "$GW"
+```bash
+# Quick reachability check
+ping -c1 -W1 127.0.0.1 > /dev/null 2>&1 && echo "Loopback reachable" || echo "Network error"
+```
 
-# Test external DNS
-ping -c 2 8.8.8.8
+### Step 2: Trace Network Path with tracepath
 
+```bash
+# tracepath doesn't require root (unlike traceroute)
+tracepath -m3 127.0.0.1 2>/dev/null | head -5 || echo "tracepath to localhost"
+```
+
+```bash
+# Check if tracepath is available
+which tracepath && echo "tracepath available" || echo "tracepath not found"
+which traceroute && echo "traceroute available" || echo "traceroute not found"
+```
+
+### Step 3: HTTP Testing with curl
+
+```bash
+# Get HTTP headers only (-I flag)
+ss -tuln | head -10
+```
+
+**Expected output:**
+```
+HTTP/2 200
+content-type: text/html; charset=UTF-8
+...
+```
+
+```bash
+# Time the connection
+# curl timing demo (requires internet): \
+     -o /dev/null -s https://example.com
+```
+
+```bash
+# Follow redirects and show final URL
+ss -s
+```
+
+```bash
+# Download a small file (test download speed)
+# curl speed test (requires internet)
+```
+
+### Step 4: Check Socket Statistics
+
+```bash
+# Summary of all connections
+ss -s
+```
+
+```bash
+# Show all TCP connections
+ss -tn | head -15
+```
+
+```bash
+# Find what's listening on a specific port
+ss -tlnp | grep ":22"
+ss -tlnp | grep ":80" || echo "Port 80 not listening"
+```
+
+```bash
+# Show connections to a specific remote host
+ss -tn dst 8.8.8.8 2>/dev/null | head -5 || echo "No connections to 8.8.8.8"
+```
+
+### Step 5: DNS Troubleshooting
+
+```bash
+# Check DNS resolver configuration
+cat /etc/resolv.conf
+```
+
+```bash
 # Test DNS resolution
-ping -c 2 google.com
+getent hosts google.com 2>/dev/null | head -3 || echo "getent not working"
 ```
 
-### Step 3: traceroute — Path Analysis
 ```bash
-sudo apt install -y traceroute 2>/dev/null || true
-traceroute 8.8.8.8
-# traceroute to 8.8.8.8 (8.8.8.8), 30 hops max
-#  1  10.0.0.1 (10.0.0.1)  1.234 ms  0.987 ms  0.876 ms
-#  2  203.0.113.1 (203.0.113.1)  5.432 ms  5.123 ms  5.234 ms
-#  3  ...
-#  8  8.8.8.8 (8.8.8.8)  12.345 ms  12.234 ms  12.456 ms
-
-# UDP traceroute (default) vs ICMP
-sudo traceroute -I 8.8.8.8
+# Check /etc/hosts
+cat /etc/hosts
 ```
 
-### Step 4: mtr — Combined ping + traceroute
 ```bash
-sudo apt install -y mtr-tiny 2>/dev/null || true
-
-# Run 10 cycles then report
-mtr --report --report-cycles 10 8.8.8.8
-# HOST: myserver            Loss%   Snt   Last   Avg  Best  Wrst StDev
-#   1. 10.0.0.1              0.0%    10    0.8   0.9   0.7   1.1   0.1
-#   2. 203.0.113.1           0.0%    10    4.9   5.1   4.8   5.5   0.2
-#   ...
-#   8. 8.8.8.8               0.0%    10   12.3  12.4  12.1  12.8   0.2
+# Check DNS lookup order
+grep "^hosts:" /etc/nsswitch.conf
 ```
 
-### Step 5: ss — Socket Statistics (replacement for netstat)
+### Step 6: Network Interface Diagnosis
+
 ```bash
-# Show all listening ports
-ss -tlnp
-# State    Recv-Q  Send-Q  Local Address:Port   Peer Address:Port   Process
-# LISTEN   0       128     0.0.0.0:22           0.0.0.0:*           users:(("sshd",pid=...))
-
-# Show established TCP connections
-ss -tnp state established
-# Netid  State   Recv-Q  Send-Q  Local Address:Port   Peer Address:Port
-
-# Show UDP
-ss -ulnp
+# Check interface errors
+ip -s link | grep -A 3 "LOWER_UP" | head -20
 ```
 
-### Step 6: ss — Filter by Port or State
 ```bash
-# Connections on port 22
-ss -tnp 'sport = :22 or dport = :22'
-
-# Count established connections per remote IP
-ss -tn state established | awk 'NR>1 {print $5}' | cut -d: -f1 | sort | uniq -c | sort -rn
+# Check for packet loss in /proc
+cat /proc/net/dev | grep -v "^Inter\|^ face"
 ```
 
-### Step 7: Install and Use tcpdump
 ```bash
-sudo apt install -y tcpdump
-
-# Capture on eth0, 10 packets
-IFACE=$(ip -brief link | grep -v lo | awk 'NR==1{print $1}')
-sudo tcpdump -i "$IFACE" -c 10
-# 06:01:23.123456 IP 10.0.0.5.52100 > 8.8.8.8.53: UDP, length 30
-# ...
+# ARP cache (local network neighbors)
+ip neigh show 2>/dev/null | head -10 || echo "No ARP entries"
 ```
 
-### Step 8: tcpdump Filtering
+### Step 7: Port Connectivity Testing
+
 ```bash
-IFACE=$(ip -brief link | grep -v lo | awk 'NR==1{print $1}')
-
-# Capture only ICMP (ping) traffic
-sudo tcpdump -i "$IFACE" -c 5 icmp &
-TCPDUMP_PID=$!
-ping -c 3 8.8.8.8 > /dev/null
-wait $TCPDUMP_PID 2>/dev/null || true
-# 06:01:23 IP myserver > 8.8.8.8: ICMP echo request
-# 06:01:23 IP 8.8.8.8 > myserver: ICMP echo reply
-
-# Capture DNS queries
-sudo tcpdump -i "$IFACE" -c 5 port 53 &
-TCPDUMP_PID=$!
-nslookup google.com > /dev/null 2>&1 || dig google.com > /dev/null 2>&1
-wait $TCPDUMP_PID 2>/dev/null || true
+# Test if a port is open using bash TCP device
+timeout 3 bash -c "echo > /dev/tcp/8.8.8.8/53" 2>/dev/null && echo "Port 53 on 8.8.8.8 is open" || echo "Port 53 unreachable or timeout"
 ```
 
-### Step 9: DNS Resolution Testing
 ```bash
-# Test DNS lookup
-nslookup google.com
-# Server:  127.0.0.53
-# Address: 127.0.0.53#53
-# Non-authoritative answer:
-# Name:   google.com
-# Address: 142.250.x.x
-
-# Alternatively
-host google.com
-# google.com has address 142.250.x.x
-
-# Using dig for more detail
-dig google.com +short
-# 142.250.x.x
+# Test HTTPS port
+timeout 3 bash -c "echo > /dev/tcp/example.com/443" 2>/dev/null && echo "Port 443 open" || echo "Port 443 closed"
 ```
 
-### Step 10: Systematic Troubleshooting Checklist Script
+### Step 8: Systematic Troubleshooting
+
 ```bash
-cat > ~/net_troubleshoot.sh << 'EOF'
+cat > /tmp/net-diag.sh << 'EOF'
 #!/bin/bash
-set -euo pipefail
-echo "=== Network Troubleshooting Report ==="
-echo "Date: $(date)"
-echo ""
-
-check() { local label="$1"; shift; printf "%-30s " "$label:"; "$@" &>/dev/null && echo "OK" || echo "FAIL"; }
-
-check "Loopback ping"          ping -c 1 -W 2 127.0.0.1
-GW=$(ip route show default | awk '{print $3}' | head -1)
-check "Gateway ping ($GW)"     ping -c 1 -W 2 "$GW"
-check "External IP (8.8.8.8)" ping -c 1 -W 3 8.8.8.8
-check "DNS resolution"         getent hosts google.com
+echo "=== Network Diagnostics ==="
 
 echo ""
-echo "Listening services:"
-ss -tlnp | grep LISTEN | awk '{print "  " $4, $6}'
+echo "1. Interface Status:"
+ip link show | grep -E "^[0-9]+:" | awk '{print "  " $2, $3}'
+
+echo ""
+echo "2. IP Addresses:"
+ip addr | grep "inet " | awk '{print "  " $2, $NF}'
+
+echo ""
+echo "3. Default Gateway:"
+ip route | grep default | awk '{print "  " $3}'
+
+echo ""
+echo "4. DNS Resolvers:"
+grep nameserver /etc/resolv.conf | awk '{print "  " $2}'
+
+echo ""
+echo "5. Internet Reachability:"
+ping -c1 -W1 127.0.0.1 > /dev/null 2>&1 && echo "  Loopback: OK" || echo "  Network: error"
+
+echo ""
+echo "6. Listening Services:"
+ss -tlnp | grep LISTEN | awk '{print "  Port", $4}' | head -10
 EOF
-chmod +x ~/net_troubleshoot.sh
-~/net_troubleshoot.sh
-# === Network Troubleshooting Report ===
-# Loopback ping               OK
-# Gateway ping (10.0.0.1)     OK
-# External IP (8.8.8.8)       OK
-# DNS resolution              OK
+
+bash /tmp/net-diag.sh
 ```
 
 ## ✅ Verification
+
 ```bash
-ping -c 1 -W 2 8.8.8.8 && echo "Internet: OK"
-ss -tlnp | grep -q ':22' && echo "SSH port: listening"
+echo "=== Connectivity test ===" && ping -c2 -W1 127.0.0.1 | tail -3
+echo "=== Socket stats ===" && ss -s | head -5
+echo "=== Socket summary ===" && ss -s | head -5
+rm /tmp/net-diag.sh 2>/dev/null
+echo "Advanced Lab 2 complete"
 ```
 
 ## 📝 Summary
-- `ping` tests reachability; test loopback → gateway → external in sequence
-- `traceroute` shows the hop-by-hop path; `mtr` combines traceroute with statistics
-- `ss -tlnp` replaces `netstat`; shows listening ports and owning processes
-- `tcpdump` captures live traffic; filter by host, port, or protocol
-- Systematic troubleshooting: loopback → gateway → internet → DNS
+- `ping -c N host` tests ICMP connectivity; `-W` sets timeout in seconds
+- `tracepath` traces the network path without root (unlike `traceroute`)
+- `curl -I url` fetches only HTTP headers; `-w` formats timing info
+- `ss -s` shows socket summary; `-tlnp` shows listening TCP ports
+- `ss -tn dst IP` shows connections to a specific destination
+- `timeout N bash -c "echo > /dev/tcp/host/port"` tests TCP port connectivity

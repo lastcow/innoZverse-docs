@@ -1,228 +1,263 @@
 # Lab 6: SSH Tunneling
 
 ## 🎯 Objective
-Create local port forwards, remote port forwards, and dynamic SOCKS proxies using SSH tunneling for secure access to restricted services.
+Understand SSH local, remote, and dynamic port forwarding to securely access services through encrypted tunnels.
 
 ## ⏱️ Estimated Time
-35 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- SSH key-based authentication configured (Lab 3)
-- Basic understanding of TCP ports
+- Advanced Lab 3: SSH Key Generation
+- Advanced Lab 4: SSH Configuration
 
 ## 🔬 Lab Instructions
 
 ### Step 1: Understand SSH Tunneling Concepts
-```bash
-# Three types of SSH tunnels:
-#
-# LOCAL (-L): Forward local port → remote service
-#   ssh -L local_port:target_host:target_port user@ssh_host
-#   Use case: Access a remote database from your local machine
-#
-# REMOTE (-R): Forward remote port → local service
-#   ssh -R remote_port:local_host:local_port user@ssh_host
-#   Use case: Expose your local dev server through a public host
-#
-# DYNAMIC (-D): SOCKS proxy for all traffic
-#   ssh -D local_port user@ssh_host
-#   Use case: Route browser traffic through a remote host
 
-echo "Tunneling concepts reviewed"
+SSH tunneling forwards network traffic through an encrypted SSH connection. Three types:
+
+```bash
+cat > /tmp/tunnel-types.txt << 'EOF'
+SSH TUNNEL TYPES:
+
+1. LOCAL PORT FORWARDING (-L)
+   Access a remote service as if it's local
+   
+   ssh -L local_port:target_host:target_port user@ssh_server
+   
+   Example: Access a remote database
+   ssh -L 5433:db.internal:5432 user@bastion.example.com
+   
+   Then connect to: localhost:5433
+   (traffic goes: you -> bastion -> db.internal:5432)
+
+2. REMOTE PORT FORWARDING (-R)
+   Expose a local service to a remote server
+   
+   ssh -R remote_port:localhost:local_port user@ssh_server
+   
+   Example: Let remote server access your local webserver
+   ssh -R 8080:localhost:3000 user@server.example.com
+   
+   Then access: server.example.com:8080
+   (traffic goes: server:8080 -> you -> localhost:3000)
+
+3. DYNAMIC PORT FORWARDING (-D)
+   Create a SOCKS proxy through SSH
+   
+   ssh -D local_port user@ssh_server
+   
+   Example: Browse through a remote server
+   ssh -D 1080 user@server.example.com
+   
+   Configure browser SOCKS proxy: localhost:1080
+   (all traffic goes through server.example.com)
+EOF
+
+cat /tmp/tunnel-types.txt
 ```
 
-### Step 2: Local Port Forward — Access Remote Service Locally
+### Step 2: Local Port Forwarding Examples
+
 ```bash
-# Scenario: Remote database on port 5432, not exposed externally
-# Forward localhost:15432 -> remote_host:5432 through ssh_host
+cat > /tmp/local-forward-examples.txt << 'EOF'
+LOCAL FORWARDING USE CASES:
 
-# Command format:
-# ssh -L 15432:db-internal:5432 ubuntu@ssh-gateway
+# 1. Database access through bastion
+ssh -L 5433:db.internal:5432 -N -f user@bastion
+# Connect: psql -h localhost -p 5433 -U dbuser mydb
 
-# General example (no live remote needed for concept):
-echo "Local forward example:"
-echo "  ssh -L 8080:localhost:80 user@remote"
-echo "  Then: curl http://localhost:8080"
-echo "  Routes: your_machine:8080 -> remote:80"
+# 2. Web interface on internal server
+ssh -L 8080:internal-web:80 -N -f user@jump-host
+# Open: http://localhost:8080
 
-# Test with local service
-# Start a simple server
-python3 -m http.server 9090 &
-HTTP_PID=$!
-sleep 1
+# 3. Redis access
+ssh -L 6380:cache.internal:6379 -N -f user@bastion
+# Connect: redis-cli -p 6380
 
-# Connect via tunnel to localhost (self-referential demo)
-curl -s http://localhost:9090 | head -5 || true
-kill $HTTP_PID 2>/dev/null || true
+FLAGS:
+  -N  Don't execute remote command (forwarding only)
+  -f  Go to background after authentication
+  -L  Local port forwarding
+  -g  Allow others on local network to use the tunnel
+
+PERSISTENT TUNNEL in ~/.ssh/config:
+  Host db-tunnel
+      HostName bastion.example.com
+      User zchen
+      LocalForward 5433 db.internal:5432
+      ServerAliveInterval 60
+      ExitOnForwardFailure yes
+EOF
+
+cat /tmp/local-forward-examples.txt
 ```
 
-### Step 3: Create a Local Tunnel (Self-Test)
+### Step 3: Remote Port Forwarding Examples
+
 ```bash
-# If SSH server is running locally, create a real tunnel
-if systemctl is-active --quiet ssh 2>/dev/null || systemctl is-active --quiet sshd 2>/dev/null; then
-    # Start a simple HTTP server on port 8181
-    python3 -m http.server 8181 &
-    HTTP_PID=$!
-    sleep 1
+cat > /tmp/remote-forward-examples.txt << 'EOF'
+REMOTE FORWARDING USE CASES:
 
-    # Tunnel: local 8282 -> localhost:8181 through SSH
-    ssh -f -N -L 8282:localhost:8181 \
-        -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
-        localhost
-    sleep 1
+# 1. Expose local development server
+ssh -R 8080:localhost:3000 user@server.example.com
+# External users can access: server.example.com:8080
 
-    echo "Tunnel established. Testing..."
-    curl -s http://localhost:8282 | head -3 || true
+# 2. Reverse SSH (let server connect back to you)
+# On your machine:
+ssh -R 2222:localhost:22 user@server
+# From server: ssh -p 2222 localhost
 
-    # Cleanup
-    kill $HTTP_PID 2>/dev/null || true
-    pkill -f "ssh.*8282" 2>/dev/null || true
-else
-    echo "SSH server not running locally — test with a real remote host"
-fi
+# 3. Share local file server
+ssh -R 8000:localhost:8000 user@server
+# Others can download from server:8000
+
+SECURITY NOTE:
+  On the remote server, GatewayPorts must be set
+  in /etc/ssh/sshd_config to allow external access:
+    GatewayPorts yes
+  
+  Without this, remote port is only accessible on
+  the server's localhost (127.0.0.1)
+EOF
+
+cat /tmp/remote-forward-examples.txt
 ```
 
-### Step 4: Running Tunnels in Background
+### Step 4: Dynamic Forwarding (SOCKS Proxy)
+
 ```bash
-# -f: fork to background after authentication
-# -N: don't execute remote command (tunnel only)
-# -C: compress data through tunnel
+cat > /tmp/dynamic-forward-examples.txt << 'EOF'
+DYNAMIC FORWARDING (SOCKS PROXY):
 
-# Background tunnel:
-# ssh -fN -L 15432:db.internal:5432 ubuntu@bastion.example.com
+Create a SOCKS5 proxy tunnel:
+  ssh -D 1080 -N -f user@server.example.com
 
-# Kill background tunnels later:
-# pkill -f "ssh.*15432"
-# or find the PID:
-# pgrep -a ssh | grep 15432
+Configure applications to use SOCKS5 proxy:
+  Host: localhost
+  Port: 1080
+  Type: SOCKS5
 
-echo "Background tunnel flags: -f (fork) -N (no command) -C (compress)"
+Use with curl:
+  curl --socks5 localhost:1080 https://internal-site.com
+
+Use with applications that support SOCKS:
+  - Firefox: Settings > Network > Manual proxy > SOCKS5
+  - Chrome: --proxy-server="socks5://localhost:1080"
+  - Git: git config --global http.proxy socks5://localhost:1080
+
+Use in ~/.ssh/config:
+  Host socks-proxy
+      HostName server.example.com
+      User zchen
+      DynamicForward 1080
+      ServerAliveInterval 30
+EOF
+
+cat /tmp/dynamic-forward-examples.txt
 ```
 
-### Step 5: Remote Port Forward — Expose Local to Remote
+### Step 5: Test Local Tunnel to Localhost
+
 ```bash
-# Scenario: You have a local web server on port 3000
-# You want people to access it via public_server:8080
-
-# Command:
-# ssh -R 8080:localhost:3000 ubuntu@public-server.example.com
-
-# Then on public-server, port 8080 forwards back to your local :3000
-# (requires GatewayPorts yes in sshd_config for external access)
-
-echo "Remote forward example:"
-echo "  ssh -R 8080:localhost:3000 user@public-host"
-echo "  Anyone on public-host can: curl http://localhost:8080"
-echo "  Which proxies to: your_machine:3000"
+# We can demonstrate tunneling concepts by connecting to local services
+# Check what's listening locally
+ss -tlnp | grep "127.0.0.1\|0.0.0.0" | head -10
 ```
 
-### Step 6: Dynamic SOCKS Proxy
 ```bash
-# Creates a SOCKS5 proxy on local port 1080
-# All traffic through it routes via the remote SSH host
-
-# Command:
-# ssh -D 1080 -fN ubuntu@remote.example.com
-
-# Use with:
-# curl --socks5 localhost:1080 http://whatismyip.com
-# Configure browser SOCKS proxy: localhost:1080
-
-echo "Dynamic SOCKS example:"
-echo "  ssh -D 1080 -fN user@remote"
-echo "  curl --socks5 localhost:1080 http://ifconfig.me"
-echo "  Shows remote host's IP address"
+# Show the SSH client configuration for a tunnel
+ssh -G -L 8080:localhost:80 localhost 2>/dev/null | grep -E "^(localforward|hostname)" | head -5 || echo "SSH config shown above"
 ```
 
-### Step 7: Persistent Tunnel with AutoSSH
+### Step 6: SSH Config for Tunnels
+
 ```bash
-sudo apt install -y autossh 2>/dev/null || true
+cat > /tmp/tunnel-ssh-config.txt << 'EOF'
+# ~/.ssh/config entries for common tunnels
 
-# autossh monitors and restarts tunnels that die
-# autossh -M 0 -f -N -L 15432:db:5432 ubuntu@bastion
-# -M 0: disable monitoring port (use ServerAlive instead)
-
-# Add to ~/.ssh/config:
-cat >> ~/.ssh/config << 'EOF'
-
-Host db-tunnel
+# Database tunnel through bastion
+Host db-prod-tunnel
     HostName bastion.example.com
-    User ubuntu
-    LocalForward 15432 db.internal:5432
+    User zchen
+    LocalForward 15432 postgres.internal:5432
+    LocalForward 16379 redis.internal:6379
     ServerAliveInterval 30
     ServerAliveCountMax 3
     ExitOnForwardFailure yes
+    
+# Usage:
+# ssh -N db-prod-tunnel &
+# psql -h localhost -p 15432 mydb
+# redis-cli -p 16379
+
+# Kubernetes dashboard tunnel
+Host k8s-tunnel
+    HostName k8s-master.internal
+    User k8sadmin
+    LocalForward 8001 127.0.0.1:8001
+    ProxyJump bastion
 EOF
 
-# Then: autossh -M 0 -f -N db-tunnel
-echo "autossh config added to ~/.ssh/config"
+cat /tmp/tunnel-ssh-config.txt
 ```
 
-### Step 8: Tunnel Security Considerations
+### Step 7: Persistent Tunnels with autossh
+
 ```bash
-cat << 'EOF'
-=== SSH Tunnel Security Notes ===
+cat > /tmp/autossh-reference.txt << 'EOF'
+AUTOSSH - Persistent Tunnels:
 
-1. Authentication: Tunnels inherit SSH auth — use key-based auth
-2. Firewall: Local tunnel binds to 127.0.0.1 by default (safe)
-3. Remote forward binding: Use GatewayPorts carefully
-4. Known hosts: Always verify SSH host keys
-5. Audit: Check for unauthorized tunnels with:
-   ss -tlnp | grep ssh
-   ps aux | grep "ssh.*-[LRD]"
+autossh automatically restarts SSH tunnels if they die.
 
-6. Restrict tunnels server-side in sshd_config:
-   AllowTcpForwarding local   # only local forwards
-   PermitTunnel no            # disable tun/tap tunnels
+Install: apt install autossh (requires sudo)
+
+Usage:
+  autossh -M 0 -N -L 5433:db.internal:5432 user@bastion
+
+Or as a systemd user service:
+  ~/.config/systemd/user/db-tunnel.service:
+
+  [Unit]
+  Description=Database SSH Tunnel
+  
+  [Service]
+  ExecStart=/usr/bin/autossh -M 0 -N \
+            -L 5433:db.internal:5432 \
+            -o ServerAliveInterval=30 \
+            user@bastion
+  Restart=always
+  
+  [Install]
+  WantedBy=default.target
+
+  Enable: systemctl --user enable db-tunnel
+  Start:  systemctl --user start db-tunnel
 EOF
-```
 
-### Step 9: X11 Forwarding (GUI Apps over SSH)
-```bash
-# Run graphical applications on remote, display locally
-# Requires X11 server on client (XQuartz on macOS, Xming on Windows)
-
-# Connect with X11 forward:
-# ssh -X ubuntu@remote "xeyes"   # or -Y for trusted forwarding
-
-# Check if X11 forwarding is enabled on server:
-grep -i x11 /etc/ssh/sshd_config || echo "Check /etc/ssh/sshd_config for X11Forwarding"
-# X11Forwarding yes   (should be present)
-```
-
-### Step 10: List Active SSH Tunnels
-```bash
-cat > ~/list_tunnels.sh << 'EOF'
-#!/bin/bash
-echo "=== Active SSH Tunnels ==="
-echo ""
-echo "SSH processes with tunnel flags (-L -R -D):"
-ps aux | grep -E 'ssh.*([ ]-[LRD])' | grep -v grep \
-  | awk '{for(i=11;i<=NF;i++) printf $i " "; print ""}' \
-  | sed 's/^ //' || echo "  None found"
-
-echo ""
-echo "Locally bound ports (non-system):"
-ss -tlnp | awk 'NR>1 && $4 ~ /^127/ {print "  " $4}'
-EOF
-chmod +x ~/list_tunnels.sh
-~/list_tunnels.sh
+cat /tmp/autossh-reference.txt
 ```
 
 ## ✅ Verification
-```bash
-# Verify SSH config has tunnel entry
-grep -A5 'db-tunnel' ~/.ssh/config 2>/dev/null || echo "Config entry not found"
 
-# Check no unwanted tunnels
-ss -tlnp | grep -v ':22 ' | grep ssh || echo "No other SSH listening ports"
+```bash
+echo "=== Tunnel concept verification ==="
+echo "Local forward syntax: ssh -L local_port:remote_host:remote_port user@ssh_server"
+echo "Remote forward syntax: ssh -R remote_port:local_host:local_port user@ssh_server"
+echo "Dynamic forward syntax: ssh -D local_port user@ssh_server"
+
+echo ""
+echo "=== Current listening ports (potential tunnel targets) ==="
+ss -tlnp | head -10
+
+rm /tmp/tunnel-types.txt /tmp/local-forward-examples.txt /tmp/remote-forward-examples.txt /tmp/dynamic-forward-examples.txt /tmp/tunnel-ssh-config.txt /tmp/autossh-reference.txt 2>/dev/null
+echo "Advanced Lab 6 complete"
 ```
 
 ## 📝 Summary
-- `-L local:host:remote` forwards a local port to a remote service through SSH
-- `-R remote:host:local` exposes a local service through a remote host's port
-- `-D port` creates a SOCKS5 proxy routing all traffic through the remote host
-- `-fN` runs the tunnel in background without executing a command
-- `autossh` monitors and restarts failed tunnels automatically
+- Local forwarding (`-L`): access a remote service as if it were local
+- Remote forwarding (`-R`): expose a local service to a remote server
+- Dynamic forwarding (`-D`): create a SOCKS proxy for all traffic
+- `-N` prevents command execution (forwarding only); `-f` backgrounds the tunnel
+- Define tunnels in `~/.ssh/config` with `LocalForward` and `RemoteForward`
+- `autossh` or systemd user services keep tunnels alive automatically

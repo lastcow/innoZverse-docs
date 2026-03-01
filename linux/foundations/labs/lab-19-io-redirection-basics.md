@@ -1,213 +1,173 @@
 # Lab 19: I/O Redirection Basics
 
 ## 🎯 Objective
-Understand standard input, output, and error streams, and redirect them using `>`, `>>`, `<`, `2>`, and `/dev/null`.
+Master input/output redirection using >, >>, <, 2>, 2>&1, /dev/null, and tee.
 
 ## ⏱️ Estimated Time
 25 minutes
 
 ## 📋 Prerequisites
-- Completed Labs 1–4
-- Basic terminal usage
+- Completed Lab 18: Environment Variables
 
 ## 🔬 Lab Instructions
 
-### Step 1: Understand Standard Streams
-Every process has three default file descriptors:
-```
-0 = stdin  (standard input)  — keyboard by default
-1 = stdout (standard output) — terminal by default
-2 = stderr (standard error)  — terminal by default
+### Step 1: Standard Streams
+
+```text
+stdin  (0) — Standard Input  (keyboard by default)
+stdout (1) — Standard Output (screen by default)
+stderr (2) — Standard Error  (screen by default)
 ```
 
-```bash
-# Commands read from stdin and write to stdout/stderr
-cat         # reads from keyboard (stdin), writes to terminal (stdout)
-# Type something, press Enter, Ctrl+D to stop
-```
+### Step 2: Redirect stdout with >
 
-### Step 2: Redirect stdout with `>`
 ```bash
-# Send output to a file instead of the terminal
-echo "Hello, world!" > /tmp/output.txt
+echo "First line" > /tmp/output.txt
 cat /tmp/output.txt
-# Output: Hello, world!
+```
 
-# IMPORTANT: > OVERWRITES the file
+**Expected output:**
+```
+First line
+```
+
+```bash
 echo "Second line" > /tmp/output.txt
 cat /tmp/output.txt
-# Output: Second line  (first line is GONE!)
 ```
 
-### Step 3: Append stdout with `>>`
+**Expected output:**
+```
+Second line
+```
+
 ```bash
-echo "Line one" > /tmp/append.txt
-echo "Line two" >> /tmp/append.txt
-echo "Line three" >> /tmp/append.txt
+ls /etc > /tmp/etc-list.txt
+wc -l /tmp/etc-list.txt
+head -5 /tmp/etc-list.txt
+```
+
+### Step 3: Append stdout with >>
+
+```bash
+echo "Line 1" > /tmp/append.txt
+echo "Line 2" >> /tmp/append.txt
+echo "Line 3" >> /tmp/append.txt
 cat /tmp/append.txt
-# Output:
-# Line one
-# Line two
-# Line three
 ```
 
-### Step 4: Redirect a Command's Output to a File
-```bash
-# Save ls output to a file
-ls -la /etc > /tmp/etc_listing.txt
-wc -l /tmp/etc_listing.txt
-cat /tmp/etc_listing.txt | head -5
-
-# Save ps output
-ps aux > /tmp/processes.txt
-grep "bash" /tmp/processes.txt
+**Expected output:**
+```
+Line 1
+Line 2
+Line 3
 ```
 
-### Step 5: Redirect stdin with `<`
 ```bash
-# Provide file as input instead of keyboard
-cat < /etc/hostname
-# Output: ubuntu  (same as cat /etc/hostname, but using redirection)
-
-# Sort the contents of a file
-sort < /tmp/etc_listing.txt | head -5
-
-# Count lines from a file via stdin
-wc -l < /etc/passwd
-# Output: 42  (just the number, no filename)
+echo "$(date): Job started" >> /tmp/my-job.log
+echo "$(date): Processing..." >> /tmp/my-job.log
+echo "$(date): Job complete" >> /tmp/my-job.log
+cat /tmp/my-job.log
 ```
 
-### Step 6: Redirect stderr with `2>`
+### Step 4: Redirect stdin with <
+
 ```bash
-# Generate an error
-ls /nonexistent
-# Output: ls: cannot access '/nonexistent': No such file or directory
-# This goes to stderr
-
-# Redirect stderr to a file
-ls /nonexistent 2> /tmp/errors.txt
-cat /tmp/errors.txt
-# Output: ls: cannot access '/nonexistent': No such file or directory
-
-# stdout goes to terminal as normal, stderr goes to file
-ls / 2> /tmp/errors.txt
-# Lists / normally (stdout to terminal), no error output visible
-```
-
-### Step 7: Separate stdout and stderr
-```bash
-# Send stdout and stderr to different files
-ls / /nonexistent > /tmp/stdout.txt 2> /tmp/stderr.txt
-
-cat /tmp/stdout.txt
-# Output: contents of /
-
-cat /tmp/stderr.txt
-# Output: error for /nonexistent
-```
-
-### Step 8: Redirect Both stdout and stderr to One File
-```bash
-# Method 1: redirect stderr to stdout, then redirect stdout
-ls / /nonexistent > /tmp/all_output.txt 2>&1
-# 2>&1 means "send stderr to the same place as stdout"
-cat /tmp/all_output.txt
-# Output: both directory listing and error
-
-# Method 2: shorthand (bash 4+)
-ls / /nonexistent &> /tmp/all_output2.txt
-cat /tmp/all_output2.txt
-```
-
-### Step 9: Discard Output with `/dev/null`
-```bash
-# /dev/null is a black hole — anything written to it is discarded
-
-# Suppress stdout
-ls / > /dev/null
-# No output
-
-# Suppress stderr (hide error messages)
-ls /nonexistent 2> /dev/null
-# No output, no error message
-
-# Suppress EVERYTHING
-ls / /nonexistent &> /dev/null
-# Total silence
-```
-
-### Step 10: Here Document (heredoc)
-```bash
-# Provide multiple lines of input directly in the script
-cat > /tmp/myconfig.txt << EOF
-[settings]
-debug=false
-port=8080
-host=localhost
+cat > /tmp/names.txt << 'EOF'
+alice
+bob
+charlie
+diana
 EOF
 
-cat /tmp/myconfig.txt
-# Output:
-# [settings]
-# debug=false
-# port=8080
-# host=localhost
+wc -l < /tmp/names.txt
+sort < /tmp/names.txt
 ```
 
-### Step 11: Pipe vs Redirect
+### Step 5: Redirect stderr with 2>
+
 ```bash
-# PIPE: connects stdout of one command to stdin of another
-cat /etc/passwd | grep "bash" | cut -d: -f1
-# (file → cat → grep → cut → terminal)
-
-# REDIRECT: connects to a file
-cat /etc/passwd > /tmp/passwd_copy.txt
-# (file → cat → file)
-
-# You can combine both!
-cat /etc/passwd | grep "bash" > /tmp/bash_users.txt
-cat /tmp/bash_users.txt
+ls /nonexistent/path 2>/tmp/errors.txt
+echo "Exit code: $?"
+cat /tmp/errors.txt
 ```
 
-### Step 12: Practical Examples
+**Expected output:**
+```
+Exit code: 2
+ls: cannot access '/nonexistent/path': No such file or directory
+```
+
 ```bash
-# Log command output with timestamp
-echo "=== $(date) ===" >> /tmp/mylog.txt
-df -h >> /tmp/mylog.txt
-echo "" >> /tmp/mylog.txt
+ls /etc/passwd /nonexistent 1>/tmp/out.txt 2>/tmp/err.txt
+echo "=== stdout ===" && cat /tmp/out.txt
+echo "=== stderr ===" && cat /tmp/err.txt
+```
 
-cat /tmp/mylog.txt
+### Step 6: Merge stderr into stdout with 2>&1
 
-# Run a command silently (ignore all output)
-apt list --installed 2>/dev/null | wc -l
+```bash
+ls /etc/passwd /nonexistent > /tmp/combined.txt 2>&1
+cat /tmp/combined.txt
+```
 
-# Clean up
-rm -f /tmp/output.txt /tmp/append.txt /tmp/etc_listing.txt
-rm -f /tmp/processes.txt /tmp/errors.txt /tmp/stdout.txt /tmp/stderr.txt
-rm -f /tmp/all_output.txt /tmp/all_output2.txt /tmp/myconfig.txt
-rm -f /tmp/bash_users.txt /tmp/passwd_copy.txt /tmp/mylog.txt
+```bash
+ls /etc/passwd /nonexistent &> /tmp/combined2.txt
+cat /tmp/combined2.txt
+```
+
+### Step 7: Discard Output with /dev/null
+
+```bash
+ls /etc > /dev/null
+echo "Exit code: $?"
+
+ls /nonexistent 2>/dev/null
+echo "No error shown"
+
+ls /etc /nonexistent > /dev/null 2>&1
+echo "All output suppressed"
+```
+
+### Step 8: Use tee to Split Output
+
+```bash
+echo "hello world" | tee /tmp/tee-test.txt
+cat /tmp/tee-test.txt
+```
+
+```bash
+ls /etc | tee /tmp/etc-files.txt | wc -l
+echo "File has $(wc -l < /tmp/etc-files.txt) lines"
+```
+
+```bash
+echo "first" | tee -a /tmp/tee-append.txt
+echo "second" | tee -a /tmp/tee-append.txt
+cat /tmp/tee-append.txt
 ```
 
 ## ✅ Verification
+
 ```bash
-# Test all redirection types
-echo "stdout" > /tmp/rtest_out.txt
-echo "stderr" 2> /tmp/rtest_err.txt
-ls /missing 2> /tmp/rtest_err2.txt
+echo "Test output" > /tmp/lab19-verify.txt
+echo "Appended" >> /tmp/lab19-verify.txt
+wc -l < /tmp/lab19-verify.txt
 
-cat /tmp/rtest_out.txt
-# Output: stdout
+ls /nonexistent 2>/dev/null && echo "found" || echo "not found (error suppressed)"
 
-cat /tmp/rtest_err2.txt
-# Output: ls: cannot access...
+echo "verify" | tee /tmp/lab19-tee.txt > /dev/null
+cat /tmp/lab19-tee.txt
 
-rm /tmp/rtest_*.txt
+rm /tmp/lab19*.txt /tmp/output.txt /tmp/append.txt /tmp/names.txt /tmp/errors.txt /tmp/out.txt /tmp/err.txt /tmp/combined*.txt /tmp/tee*.txt /tmp/etc-files.txt /tmp/my-job.log 2>/dev/null
+echo "Lab 19 complete"
 ```
 
 ## 📝 Summary
-- Three standard streams: stdin (0), stdout (1), stderr (2)
 - `>` redirects stdout to a file (overwrites); `>>` appends
-- `<` redirects a file to stdin
-- `2>` redirects stderr to a file; `2>&1` redirects stderr to stdout's destination
-- `&>` or `> file 2>&1` captures both stdout and stderr in one file
-- `/dev/null` discards everything written to it — use to silence noisy commands
+- `<` reads stdin from a file instead of the keyboard
+- `2>` redirects stderr; `2>&1` merges stderr into stdout
+- `/dev/null` is a discard sink — output sent there is lost
+- `tee` writes output to both a file and stdout simultaneously
+- `&>` is bash shorthand for `>file 2>&1`
+- Exit code `$?` is 0 for success, non-zero for failure

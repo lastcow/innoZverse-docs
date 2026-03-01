@@ -1,180 +1,112 @@
 # Lab 15: Disk Usage
 
 ## 🎯 Objective
-Monitor filesystem usage with `df -h`, analyze directory sizes with `du -sh`, understand disk space consumption, and learn about the `ncdu` interactive tool.
+Monitor disk space usage with df and du, understand filesystem layout, and use lsblk to view block device structure.
 
 ## ⏱️ Estimated Time
 20 minutes
 
 ## 📋 Prerequisites
-- Completed Labs 1–4
-- Basic terminal skills
+- Completed Lab 14: grep Basics
 
 ## 🔬 Lab Instructions
 
-### Step 1: Check Filesystem Disk Space with `df`
-```bash
-df
-# Output: filesystem sizes in 1K blocks (hard to read)
+### Step 1: Check Filesystem Space with df
 
+```bash
 df -h
-# Output: human-readable (KB, MB, GB, TB)
-# Filesystem      Size  Used Avail Use% Mounted on
-# /dev/sda1        50G   12G   36G  25% /
-# tmpfs           2.0G     0  2.0G   0% /dev/shm
 ```
 
-### Step 2: Understand `df -h` Output
+**Expected output:**
 ```
-Filesystem:  device or partition name
-Size:        total size of the filesystem
-Used:        how much is currently used
-Avail:       how much is available
-Use%:        percentage used — alert at 80-85%+
-Mounted on:  where it's accessible in the directory tree
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        98G   15G   79G  16% /
+tmpfs            13G  1.3M   13G   1% /run
+...
 ```
 
-### Step 3: Show Specific Filesystem
 ```bash
-# Check the filesystem where /home is
-df -h /home
-# Output: just the filesystem containing /home
-
-df -h /
-# Check root filesystem
-
-df -h /tmp
-# Check /tmp (may be tmpfs in memory)
-```
-
-### Step 4: Check Inode Usage
-```bash
-# Inodes track file metadata (name, permissions, etc.)
-# You can run out of inodes even if space is available!
+df -h -x tmpfs -x devtmpfs
+df -k /
 df -i
-# Output: same format but showing inodes
-# IFree = available inodes
-
-df -ih
-# Human-readable inode counts
 ```
 
-### Step 5: Check Directory Size with `du`
+### Step 2: Check Directory Size with du
+
 ```bash
-du /home
-# Output: size of every file in 1K blocks (verbose)
-
-du -h /home
-# Human-readable
-
-du -sh /home
-# -s = summary (total only, no subdirectory breakdown)
-# Output: 1.2G    /home
+du -sh ~
+du -sh /tmp
+du -sh /usr/* 2>/dev/null | sort -rh | head -10
 ```
 
-### Step 6: Find the Largest Directories
-```bash
-# Show top-level dirs in /var sorted by size
-du -sh /var/* 2>/dev/null | sort -rh | head -10
-# -r = reverse sort (largest first)
-# -h = understand human-readable sizes (10G > 1G)
+### Step 3: Find Large Files and Directories
 
-# Find largest dirs in /home
-du -sh ~/.[!.]* ~/* 2>/dev/null | sort -rh | head -10
+```bash
+du -sh /tmp/* 2>/dev/null | head -10 2>/dev/null | sort -rh | head -10
+du -sh /usr/*/ 2>/dev/null | sort -rh | head -5
+du -h --max-depth=1 / 2>/dev/null | sort -rh | head -10
 ```
 
-### Step 7: Find Largest Files
-```bash
-# Find files larger than 100MB
-find / -type f -size +100M 2>/dev/null | head -10
+### Step 4: Create Test Files to Measure
 
-# Find the top 10 largest files
-find / -type f -printf '%s %p\n' 2>/dev/null | sort -rn | head -10
+```bash
+mkdir -p /tmp/du-lab
+dd if=/dev/zero of=/tmp/du-lab/file1mb.bin bs=1024 count=1024 2>/dev/null
+dd if=/dev/zero of=/tmp/du-lab/file512k.bin bs=512 count=1024 2>/dev/null
+
+du -sh /tmp/du-lab/*
+du -sh /tmp/du-lab/
 ```
 
-### Step 8: Analyze Log Disk Usage
+### Step 5: View Block Device Layout with lsblk
+
 ```bash
-# Logs can fill up quickly
-du -sh /var/log
-du -sh /var/log/* 2>/dev/null | sort -rh | head -10
+lsblk
 ```
 
-### Step 9: Install and Use ncdu (Interactive Disk Usage)
-```bash
-sudo apt install ncdu -y
-
-# Analyze home directory interactively
-ncdu ~
-# Navigation:
-# Up/Down: move through files/dirs
-# Enter:   go into directory
-# q:       quit
-# d:       delete selected item (be careful!)
-# ?:       help
+**Expected output:**
+```
+NAME                      MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+sda                         8:0    0   256G  0 disk
+├─sda1                      8:1    0     1G  0 part /boot/efi
+├─sda2                      8:2    0     2G  0 part /boot
+└─sda3                      8:3    0 252.9G  0 part
+  └─ubuntu--vg-ubuntu--lv 252:0    0   100G  0 lvm  /
 ```
 
-### Step 10: Monitor Real-Time Disk Activity
 ```bash
-# watch repeats a command every N seconds
-watch -n 2 df -h
-# Updates every 2 seconds
-# Press Ctrl+C to stop
+lsblk -f
+lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS
 ```
 
-### Step 11: Disk Usage as Part of System Health Check
+### Step 6: Combine df and du
+
 ```bash
-# Quick health check script
-echo "=== Disk Health Check ==="
-echo ""
-echo "Filesystem Usage:"
-df -h | grep -v tmpfs
-
-echo ""
-echo "Top 5 largest directories in /var:"
-du -sh /var/* 2>/dev/null | sort -rh | head -5
-
-echo ""
-echo "Top 5 largest directories in /home:"
-du -sh /home/*/ 2>/dev/null | sort -rh | head -5
+echo "=== Filesystem Usage ===" && df -h /
+echo "=== Top 5 in /var ===" && du -sh /var/* 2>/dev/null | sort -rh | head -5
 ```
 
-### Step 12: Free Up Disk Space Tips
 ```bash
-# Clean apt package cache
-sudo apt clean
-sudo apt autoremove -y
-
-# Check after cleaning
-df -h /
-
-# Find and remove old log files (preview first!)
-find /var/log -name "*.gz" -mtime +30 -type f | head -5
-# sudo find /var/log -name "*.gz" -mtime +30 -delete
-
-# Truncate a log file without deleting it (preserves file handle)
-# sudo truncate -s 0 /var/log/syslog
+df -h | awk 'NR>1 && $5+0 > 80 {print "WARNING: " $0}'
+df -h | awk 'NR>1 && $5+0 <= 80 {print "OK: " $0}' | head -5
 ```
 
 ## ✅ Verification
+
 ```bash
-# Run a complete disk check
-df -h
-# Should show all filesystems
+echo "=== Root filesystem ===" && df -h /
+echo "=== Home dir size ===" && du -sh ~
+echo "=== /tmp contents ===" && du -sh /tmp/* 2>/dev/null | head -10 2>/dev/null | sort -rh | head -5
+echo "=== Block devices ===" && lsblk | head -10
 
-du -sh /var/log
-# Should show a size
-
-# Create, measure, delete a test file
-dd if=/dev/zero of=/tmp/testfile bs=1M count=10 2>/dev/null
-du -sh /tmp/testfile
-# Output: 10M     /tmp/testfile
-
-rm /tmp/testfile
+rm -r /tmp/du-lab 2>/dev/null
+echo "Lab 15 complete"
 ```
 
 ## 📝 Summary
-- `df -h` shows filesystem-level disk usage — watch for Use% approaching 80%+
-- `du -sh directory` shows total size of a directory; omit `-s` for per-file detail
-- Sort `du` output with `sort -rh` to find the biggest consumers
-- Inode exhaustion (`df -i`) can fill a filesystem even when space remains
-- `ncdu` is an interactive, ncurses-based disk usage browser — great for visual exploration
+- `df -h` shows available and used space for all mounted filesystems
+- `df -i` shows inode usage (number of files)
+- `du -sh directory` shows total size in human-readable format
+- `du -sh /path/*` shows sizes of each item in a directory
+- `sort -rh` sorts human-readable sizes in reverse order (largest first)
+- `lsblk` shows the physical disk and partition layout

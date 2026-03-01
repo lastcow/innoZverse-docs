@@ -1,311 +1,231 @@
-# Lab 10: Script Arguments and getopts
+# Lab 10: Script Arguments
 
 ## 🎯 Objective
-Process command-line arguments in bash scripts using positional parameters (`$1`, `$@`), `shift`, and `getopts` for professional option parsing.
+Handle command-line arguments in scripts using $0, $1, $@, $#, shift, and getopts for option parsing.
 
 ## ⏱️ Estimated Time
-30 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Practitioner Labs 7–9
-- Basic bash scripting knowledge
+- Practitioner Lab 9: Functions
 
 ## 🔬 Lab Instructions
 
-### Step 1: Positional Parameters
+### Step 1: Special Variables for Arguments
+
 ```bash
-cat > /tmp/args_demo.sh << 'EOF'
+cat > /tmp/show-args.sh << 'EOF'
 #!/bin/bash
 echo "Script name: $0"
 echo "First arg:   $1"
 echo "Second arg:  $2"
-echo "Third arg:   $3"
 echo "All args:    $@"
 echo "Arg count:   $#"
+echo "Last exit:   $?"
+echo "Script PID:  $$"
 EOF
-chmod +x /tmp/args_demo.sh
 
-bash /tmp/args_demo.sh hello world linux
+bash /tmp/show-args.sh alpha beta gamma
 ```
 
-### Step 2: $@ vs $*
+**Expected output:**
+```
+Script name: /tmp/show-args.sh
+First arg:   alpha
+Second arg:  beta
+All args:    alpha beta gamma
+Arg count:   3
+Last exit:   0
+Script PID:  12345
+```
+
+### Step 2: Difference Between $@ and $*
+
 ```bash
-cat > /tmp/at_vs_star.sh << 'EOF'
+cat > /tmp/at-vs-star.sh << 'EOF'
 #!/bin/bash
-echo "Using \$@:"
+echo "=== Using \$@ (preserves args) ==="
 for arg in "$@"; do
-  echo "  [$arg]"
+    echo "  arg: [$arg]"
 done
 
-echo "Using \$*:"
+echo "=== Using \$* (merges args) ==="
 for arg in "$*"; do
-  echo "  [$arg]"
+    echo "  arg: [$arg]"
 done
 EOF
 
-bash /tmp/at_vs_star.sh "arg one" "arg two" "arg three"
-# $@: each arg is separate even with spaces
-# $*: all args joined into one string
+bash /tmp/at-vs-star.sh "hello world" "foo" "bar baz"
 ```
 
-### Step 3: Validate Argument Count
+**Expected output:**
+```
+=== Using $@ (preserves args) ===
+  arg: [hello world]
+  arg: [foo]
+  arg: [bar baz]
+=== Using $* (merges args) ===
+  arg: [hello world foo bar baz]
+```
+
+### Step 3: Using shift to Process Arguments
+
 ```bash
-cat > /tmp/require_args.sh << 'EOF'
+cat > /tmp/shift-demo.sh << 'EOF'
 #!/bin/bash
-if [ $# -ne 2 ]; then
-  echo "Usage: $0 <source> <destination>"
-  echo "Example: $0 /home/user /backup"
-  exit 1
+echo "Original args: $@"
+echo "Count: $#"
+
+shift       # Remove first argument
+echo "After first shift: $@"
+
+shift 2     # Remove next 2 arguments
+echo "After shift 2: $@"
+EOF
+
+bash /tmp/shift-demo.sh one two three four five
+```
+
+**Expected output:**
+```
+Original args: one two three four five
+Count: 5
+After first shift: two three four five
+After shift 2: four five
+```
+
+```bash
+# Practical: process all args with shift
+cat > /tmp/process-all.sh << 'EOF'
+#!/bin/bash
+while [[ $# -gt 0 ]]; do
+    echo "Processing: $1"
+    shift
+done
+EOF
+
+bash /tmp/process-all.sh apple banana cherry
+```
+
+### Step 4: Validate Arguments
+
+```bash
+cat > /tmp/validate-args.sh << 'EOF'
+#!/bin/bash
+if [[ $# -lt 2 ]]; then
+    echo "Usage: $0 <name> <age>"
+    echo "Error: Need at least 2 arguments, got $#"
+    exit 1
 fi
-echo "Copying from $1 to $2"
+
+NAME="$1"
+AGE="$2"
+
+if [[ ! "$AGE" =~ ^[0-9]+$ ]]; then
+    echo "Error: Age must be a number, got: $AGE"
+    exit 2
+fi
+
+echo "Name: $NAME, Age: $AGE"
 EOF
 
-bash /tmp/require_args.sh
-# Output: Usage error
-
-bash /tmp/require_args.sh /home /backup
-# Output: Copying...
+bash /tmp/validate-args.sh Alice 30
+bash /tmp/validate-args.sh Alice 2>/dev/null || echo "Exit code: $?"
 ```
 
-### Step 4: The shift Command
+### Step 5: getopts for Flag Parsing
+
 ```bash
-cat > /tmp/shift_demo.sh << 'EOF'
+cat > /tmp/getopts-demo.sh << 'EOF'
 #!/bin/bash
-echo "Before shift: $@"
-shift
-echo "After shift 1: $@"
-shift 2
-echo "After shift 3: $@"
-EOF
+VERBOSE=false
+OUTPUT_FILE=""
+NAME="default"
 
-bash /tmp/shift_demo.sh a b c d e
-```
-
-### Step 5: Parse Flags with shift
-```bash
-cat > /tmp/parse_flags.sh << 'EOF'
-#!/bin/bash
-verbose=false
-output=""
-
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -v|--verbose)
-      verbose=true
-      shift
-      ;;
-    -o|--output)
-      output="$2"
-      shift 2
-      ;;
-    -h|--help)
-      echo "Usage: $0 [-v] [-o output_file] [args...]"
-      exit 0
-      ;;
-    --)
-      shift
-      break
-      ;;
-    -*)
-      echo "Unknown option: $1" >&2
-      exit 1
-      ;;
-    *)
-      break
-      ;;
-  esac
+while getopts "vf:n:" opt; do
+    case $opt in
+        v)
+            VERBOSE=true
+            ;;
+        f)
+            OUTPUT_FILE="$OPTARG"
+            ;;
+        n)
+            NAME="$OPTARG"
+            ;;
+        ?)
+            echo "Usage: $0 [-v] [-f file] [-n name]"
+            exit 1
+            ;;
+    esac
 done
 
-echo "Verbose: $verbose"
-echo "Output: ${output:-stdout}"
+echo "Verbose: $VERBOSE"
+echo "Output:  ${OUTPUT_FILE:-none}"
+echo "Name:    $NAME"
+EOF
+
+bash /tmp/getopts-demo.sh -v -n "Alice" -f /tmp/output.txt
+```
+
+**Expected output:**
+```
+Verbose: true
+Output:  /tmp/output.txt
+Name:    Alice
+```
+
+```bash
+# Test with just -v
+bash /tmp/getopts-demo.sh -v
+```
+
+### Step 6: Handle Remaining Args After getopts
+
+```bash
+cat > /tmp/getopts-remaining.sh << 'EOF'
+#!/bin/bash
+VERBOSE=false
+
+while getopts "v" opt; do
+    case $opt in
+        v) VERBOSE=true ;;
+    esac
+done
+
+# Shift past the processed options
+shift $((OPTIND-1))
+
+echo "Verbose: $VERBOSE"
 echo "Remaining args: $@"
-EOF
-chmod +x /tmp/parse_flags.sh
-
-bash /tmp/parse_flags.sh -v -o result.txt file1 file2
-```
-
-### Step 6: getopts for Standard Option Parsing
-```bash
-cat > /tmp/getopts_demo.sh << 'EOF'
-#!/bin/bash
-# getopts handles short options (-x, -v, -o value)
-usage() {
-  echo "Usage: $0 [-h] [-v] [-n name] [-c count]"
-  exit 0
-}
-
-name="World"
-count=1
-verbose=false
-
-while getopts "hvn:c:" opt; do
-  case $opt in
-    h) usage ;;
-    v) verbose=true ;;
-    n) name="$OPTARG" ;;
-    c) count="$OPTARG" ;;
-    ?) echo "Invalid option: -$OPTARG"; exit 1 ;;
-  esac
+for item in "$@"; do
+    echo "  Processing: $item"
 done
-
-# Shift past the options
-shift $((OPTIND - 1))
-
-$verbose && echo "Verbose mode enabled"
-for ((i=1; i<=count; i++)); do
-  echo "Hello, $name! (iteration $i)"
-done
-echo "Remaining positional args: $@"
-EOF
-chmod +x /tmp/getopts_demo.sh
-
-bash /tmp/getopts_demo.sh -v -n Alice -c 3 extra_arg
-```
-
-### Step 7: getopts Syntax Explained
-```bash
-# getopts "hvn:c:" opt
-# h, v = flags (no argument)
-# n:   = option requires an argument (the colon)
-# c:   = option requires an argument
-# $OPTARG = the argument to the current option
-# $OPTIND = index of next argument to process
-```
-
-### Step 8: Handling Missing Required Arguments
-```bash
-cat > /tmp/validated.sh << 'EOF'
-#!/bin/bash
-source_dir=""
-dest_dir=""
-
-while getopts "s:d:h" opt; do
-  case $opt in
-    s) source_dir="$OPTARG" ;;
-    d) dest_dir="$OPTARG" ;;
-    h) echo "Usage: $0 -s <source> -d <dest>"; exit 0 ;;
-  esac
-done
-
-# Validate required arguments
-[ -z "$source_dir" ] && { echo "ERROR: -s source required"; exit 1; }
-[ -z "$dest_dir" ]   && { echo "ERROR: -d destination required"; exit 1; }
-[ ! -d "$source_dir" ] && { echo "ERROR: $source_dir not a directory"; exit 1; }
-
-echo "Syncing $source_dir to $dest_dir"
 EOF
 
-bash /tmp/validated.sh
-# Output: ERROR: -s source required
-
-bash /tmp/validated.sh -s /etc -d /tmp/backup_test
-# Output: Syncing /etc to /tmp/backup_test
-```
-
-### Step 9: Read from Pipe or File Argument
-```bash
-cat > /tmp/flexible_input.sh << 'EOF'
-#!/bin/bash
-# Accept input from file argument or stdin
-if [ $# -gt 0 ]; then
-  input_source="$1"
-  [ -f "$input_source" ] || { echo "File not found: $input_source"; exit 1; }
-else
-  input_source="/dev/stdin"
-fi
-
-while IFS= read -r line; do
-  echo "Processing: $line"
-done < "$input_source"
-EOF
-
-echo -e "line1\nline2\nline3" | bash /tmp/flexible_input.sh
-# Reads from stdin
-
-echo -e "a\nb\nc" > /tmp/test_input.txt
-bash /tmp/flexible_input.sh /tmp/test_input.txt
-# Reads from file
-```
-
-### Step 10: Environment Variable Defaults
-```bash
-cat > /tmp/env_defaults.sh << 'EOF'
-#!/bin/bash
-# Allow env vars to set defaults, overridden by CLI args
-LOG_LEVEL=${LOG_LEVEL:-INFO}
-CONFIG_FILE=${CONFIG_FILE:-/etc/myapp.conf}
-
-while getopts "l:c:" opt; do
-  case $opt in
-    l) LOG_LEVEL="$OPTARG" ;;
-    c) CONFIG_FILE="$OPTARG" ;;
-  esac
-done
-
-echo "Log level: $LOG_LEVEL"
-echo "Config: $CONFIG_FILE"
-EOF
-
-LOG_LEVEL=DEBUG bash /tmp/env_defaults.sh
-bash /tmp/env_defaults.sh -l WARN -c /tmp/myconf
-```
-
-### Step 11: Argument Validation Patterns
-```bash
-cat > /tmp/arg_validate.sh << 'EOF'
-#!/bin/bash
-validate_port() {
-  local port=$1
-  if ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-    echo "Invalid port: $port" >&2
-    return 1
-  fi
-}
-
-PORT=${1:-8080}
-validate_port "$PORT" || exit 1
-echo "Using port: $PORT"
-EOF
-
-bash /tmp/arg_validate.sh 8080  # Valid
-bash /tmp/arg_validate.sh 99999 # Invalid
-bash /tmp/arg_validate.sh abc   # Invalid
-```
-
-### Step 12: Clean Up
-```bash
-rm -f /tmp/args_demo.sh /tmp/at_vs_star.sh /tmp/require_args.sh
-rm -f /tmp/shift_demo.sh /tmp/parse_flags.sh /tmp/getopts_demo.sh
-rm -f /tmp/validated.sh /tmp/flexible_input.sh /tmp/env_defaults.sh
-rm -f /tmp/arg_validate.sh /tmp/test_input.txt
+bash /tmp/getopts-remaining.sh -v file1.txt file2.txt file3.txt
 ```
 
 ## ✅ Verification
+
 ```bash
-cat > /tmp/final_test.sh << 'EOF'
+cat > /tmp/lab10-verify.sh << 'EOF'
 #!/bin/bash
-while getopts "n:v" opt; do
-  case $opt in
-    n) NAME="$OPTARG" ;;
-    v) VERBOSE=true ;;
-  esac
-done
-echo "Name: ${NAME:-unknown}"
-${VERBOSE:-false} && echo "Verbose is ON"
+[[ $# -eq 3 ]] && echo "PASS: 3 args received" || echo "FAIL: expected 3 args"
+[[ "$1" == "hello" ]] && echo "PASS: first arg correct" || echo "FAIL: first arg wrong"
+[[ "$2" == "world" ]] && echo "PASS: second arg correct" || echo "FAIL"
+echo "All args: $@"
 EOF
 
-bash /tmp/final_test.sh -n Alice -v
-# Output: Name: Alice
-# Output: Verbose is ON
-rm /tmp/final_test.sh
+bash /tmp/lab10-verify.sh hello world 42
+rm /tmp/show-args.sh /tmp/at-vs-star.sh /tmp/shift-demo.sh /tmp/process-all.sh /tmp/validate-args.sh /tmp/getopts-demo.sh /tmp/getopts-remaining.sh /tmp/lab10-verify.sh 2>/dev/null
+echo "Practitioner Lab 10 complete"
 ```
 
 ## 📝 Summary
-- `$1`, `$2`... are positional parameters; `$@` is all args; `$#` is the count
-- `"$@"` preserves spacing in each argument; `"$*"` joins all args into one string
-- `shift N` discards the first N positional parameters
-- `getopts "n:v"` parses short options; `:` after letter means it takes an argument
-- `$OPTARG` holds the option's argument; `$OPTIND` tracks parsing position
-- Always validate required arguments and provide a `usage()` function with `-h`
-
+- `$0` = script name, `$1`/`$2` = positional params, `$@` = all args, `$#` = count
+- `"$@"` preserves each argument as separate word; `"$*"` merges into one string
+- `shift N` removes N arguments from the front of the list
+- `getopts "vf:n:" opt` parses flags; `:` after letter means it takes an argument
+- `$OPTARG` holds the value for options that take arguments
+- After getopts, `shift $((OPTIND-1))` removes processed flags leaving remaining args

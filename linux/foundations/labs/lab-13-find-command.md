@@ -1,204 +1,142 @@
 # Lab 13: The find Command
 
 ## 🎯 Objective
-Master the `find` command to search for files by name, type, size, modification time, and execute actions on the results.
+Master the find command to search for files by name, type, size, and modification time, and execute actions on results.
 
 ## ⏱️ Estimated Time
-30 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Completed Labs 1–6
-- Familiarity with file types and permissions
+- Completed Lab 12: vim Basics
 
 ## 🔬 Lab Instructions
 
-### Step 1: Basic find Syntax
-```bash
-# find [where] [what criteria] [what to do]
-find /tmp -name "*.txt"
+### Step 1: Set Up Test Files
 
-# Find everything in home directory
-find ~ -maxdepth 1
+```bash
+mkdir -p /tmp/find-lab/docs /tmp/find-lab/scripts /tmp/find-lab/logs
+
+echo "document 1" > /tmp/find-lab/docs/report.txt
+echo "document 2" > /tmp/find-lab/docs/notes.txt
+echo "document 3" > /tmp/find-lab/docs/readme.md
+echo "#!/bin/bash" > /tmp/find-lab/scripts/deploy.sh
+echo "#!/bin/bash" > /tmp/find-lab/scripts/backup.sh
+echo "2026-01-01 INFO started" > /tmp/find-lab/logs/app.log
+echo "2026-01-02 ERROR failed" > /tmp/find-lab/logs/error.log
+
+find /tmp/find-lab
 ```
 
 ### Step 2: Find by Name
+
 ```bash
-# Exact filename match
-find / -name "passwd" 2>/dev/null
-# Output: /etc/passwd
-
-# Case-insensitive search
-find /etc -iname "hosts"
-# Matches hosts, Hosts, HOSTS
-
-# Wildcard in name
-find /etc -name "*.conf" 2>/dev/null | head -10
-# Lists .conf files in /etc
+find /tmp/find-lab -name "report.txt"
 ```
 
-### Step 3: Find by File Type
-```bash
-# -type f = regular file
-# -type d = directory
-# -type l = symbolic link
-# -type b = block device
-# -type c = character device
-
-find /etc -type d | head -10
-# Lists only directories in /etc
-
-find /dev -type c | head -10
-# Lists character devices
+**Expected output:**
+```
+/tmp/find-lab/docs/report.txt
 ```
 
-### Step 4: Find by Size
 ```bash
-# Exact size: -size N (N = 512-byte blocks)
-# +N = greater than N, -N = less than N
-# c = bytes, k = kilobytes, M = megabytes, G = gigabytes
-
-# Find files larger than 10MB
-find /var -size +10M 2>/dev/null
-
-# Find files smaller than 1KB
-find /tmp -size -1k
-
-# Find files exactly 0 bytes (empty files)
-find /tmp -size 0
+find /tmp/find-lab -name "*.txt"
+find /tmp/find-lab -iname "*.LOG"
+find /tmp/find-lab -name "*.sh"
 ```
 
-### Step 5: Find by Modification Time
+### Step 3: Find by Type
+
 ```bash
-# -mtime N: modified N days ago
-# -mtime +N: more than N days ago
-# -mtime -N: less than N days ago
-# -mmin: same but in minutes
-
-# Files modified in the last 24 hours
-find /var/log -mtime -1 2>/dev/null | head -5
-
-# Files modified more than 7 days ago
-find /tmp -mtime +7
-
-# Files modified in the last 60 minutes
-find /var/log -mmin -60 2>/dev/null | head -5
+find /tmp/find-lab -type f
+find /tmp/find-lab -type d
 ```
 
-### Step 6: Find by Permissions
+### Step 4: Limit Search Depth
+
 ```bash
-# Find world-writable files (security risk!)
-find /tmp -perm -o+w -type f 2>/dev/null
-
-# Find setuid files (run as owner, often root)
-find /usr/bin -perm -4000 2>/dev/null
-# Shows programs like passwd, sudo
-
-# Find files with exact permissions 644
-find ~ -perm 644 -type f | head -5
+find /tmp/find-lab -maxdepth 1
+find /tmp/find-lab -mindepth 2 -maxdepth 2 -type f
 ```
 
-### Step 7: Find by Owner
+### Step 5: Find by Size
+
 ```bash
-# Find files owned by specific user
-find /home -user $USER -type f | head -5
+python3 -c "print('x' * 1000)" > /tmp/find-lab/small.txt
+python3 -c "print('x' * 100000)" > /tmp/find-lab/medium.txt
 
-# Find files owned by root
-find /etc -user root -type f | head -5
-
-# Find files with no owner (orphaned)
-find / -nouser 2>/dev/null | head -5
+find /tmp/find-lab -size +1k -type f
 ```
 
-### Step 8: Combining Criteria with AND, OR, NOT
-```bash
-# AND (default — both conditions must be true)
-find /etc -type f -name "*.conf" | head -5
-
-# OR: use -o
-find /tmp -name "*.txt" -o -name "*.log" | head -5
-
-# NOT: use !
-find /etc -type f ! -name "*.conf" | head -5
+**Expected output:**
+```
+/tmp/find-lab/medium.txt
 ```
 
-### Step 9: Execute Commands on Found Files with `-exec`
 ```bash
-# Create test files
-mkdir -p /tmp/findtest
-touch /tmp/findtest/file{1..5}.txt
-touch /tmp/findtest/data{1..3}.csv
-
-# Print details of found files
-find /tmp/findtest -name "*.txt" -exec ls -l {} \;
-# {} is replaced by each found file
-# \; ends the -exec command
-
-# Count lines in each file
-find /tmp/findtest -name "*.txt" -exec wc -l {} \;
+find /tmp/find-lab -size -10k -type f | head -10
+find /tmp/find-lab -size 0 -type f
 ```
 
-### Step 10: Use `-exec` with `+` for Efficiency
-```bash
-# {} \; runs the command once per file
-# {} + passes ALL files to the command at once (more efficient)
+### Step 6: Find by Modification Time
 
-find /tmp/findtest -name "*.txt" -exec ls -l {} +
-# ls is called once with all files as arguments
+```bash
+find /tmp/find-lab -mtime -1 -type f
+find /tmp/find-lab -mmin -60 -type f
 ```
 
-### Step 11: Delete Found Files with `-delete`
-```bash
-# Create some temp files
-touch /tmp/findtest/old_{1..3}.tmp
+### Step 7: Find in Home Directory
 
-# Find and delete all .tmp files
-find /tmp/findtest -name "*.tmp" -delete
-ls /tmp/findtest/
-# .tmp files are gone
+```bash
+find ~ -maxdepth 1 -name ".*" -type f | head -10
+find ~ -maxdepth 2 -mtime -7 -type f 2>/dev/null | head -10
 ```
 
-### Step 12: Practical Examples
+### Step 8: Execute Actions with -exec
+
 ```bash
-# Find large log files
-find /var/log -name "*.log" -size +1M 2>/dev/null
+find /tmp/find-lab -name "*.txt" -exec echo "Found: {}" \;
+```
 
-# Find recently modified config files
-find /etc -name "*.conf" -mtime -7 2>/dev/null
+**Expected output:**
+```
+Found: /tmp/find-lab/docs/report.txt
+Found: /tmp/find-lab/docs/notes.txt
+...
+```
 
-# Find and print recently created files
-find /tmp -mmin -10 -type f
+```bash
+find /tmp/find-lab -name "*.sh" -exec ls -l {} \;
+find /tmp/find-lab -name "*.txt" -exec wc -l {} +
+```
 
-# Find files and copy them to a directory
-mkdir /tmp/txtbackup
-find /tmp/findtest -name "*.txt" -exec cp {} /tmp/txtbackup/ \;
-ls /tmp/txtbackup/
+### Step 9: Combine Conditions
 
-# Clean up
-rm -rf /tmp/findtest /tmp/txtbackup
+```bash
+find /tmp/find-lab -name "*.log" -type f
+find /tmp/find-lab \( -name "*.txt" -o -name "*.md" \) -type f
+find /tmp/find-lab -type f ! -name "*.log"
 ```
 
 ## ✅ Verification
+
 ```bash
-# Create test structure and use find
-mkdir -p /tmp/findverify
-touch /tmp/findverify/test.txt
-touch /tmp/findverify/test.log
-mkdir /tmp/findverify/subdir
+echo "All files in find-lab:"
+find /tmp/find-lab -type f | wc -l
 
-# Find all files (not dirs)
-find /tmp/findverify -type f
-# Output: /tmp/findverify/test.txt  /tmp/findverify/test.log
+echo "Shell scripts:"
+find /tmp/find-lab -name "*.sh" | sort
 
-# Find dirs only
-find /tmp/findverify -type d
-# Output: /tmp/findverify  /tmp/findverify/subdir
+echo "Files modified today:"
+find /tmp/find-lab -mtime -1 -type f | wc -l
 
-rm -rf /tmp/findverify
+rm -r /tmp/find-lab
+echo "Lab 13 complete"
 ```
 
 ## 📝 Summary
-- `find [path] [criteria]` is a powerful file search tool that works recursively
-- Filter by name (`-name`), type (`-type`), size (`-size`), time (`-mtime/-mmin`), owner (`-user`)
-- `-exec cmd {} \;` runs a command for each file found; `{} +` is more efficient for bulk operations
-- `-delete` removes found files — use carefully, always test with `-print` first
-- Combine criteria with AND (default), OR (`-o`), NOT (`!`) for precise searches
+- `find /path -name "pattern"` searches by filename; use `*` wildcards
+- `-type f` for files, `-type d` for directories
+- `-size +1k` finds files larger than 1KB
+- `-mtime -1` finds files modified in the last 24 hours
+- `-exec command {} \;` runs a command on each result
+- `-maxdepth N` limits search depth; use `-o` for OR conditions

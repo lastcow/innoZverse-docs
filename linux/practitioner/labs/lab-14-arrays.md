@@ -1,181 +1,225 @@
-# Lab 14: Arrays in Bash
+# Lab 14: Arrays in bash
 
 ## 🎯 Objective
-Learn to declare, populate, iterate, and manipulate indexed and associative arrays in Bash.
+Create and manipulate indexed and associative arrays: add elements, iterate, slice, and use array operations.
 
 ## ⏱️ Estimated Time
-35 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Ubuntu 22.04 system access
-- Completion of Labs 7–8 (Conditionals and Loops)
+- Practitioner Lab 6: Shell Variables
 
 ## 🔬 Lab Instructions
 
-### Step 1: Declare an Indexed Array
+### Step 1: Create Indexed Arrays
+
 ```bash
-# Method 1: declare
-declare -a fruits=("apple" "banana" "cherry")
+# Method 1: Declare with ()
+FRUITS=("apple" "banana" "cherry" "date" "elderberry")
 
-# Method 2: direct assignment
-colors=("red" "green" "blue")
+# Method 2: Assign element by index
+COLORS[0]="red"
+COLORS[1]="green"
+COLORS[2]="blue"
 
-# Method 3: element by element
-servers[0]="web01"
-servers[1]="web02"
-servers[2]="db01"
+# Method 3: declare -a
+declare -a NUMBERS=(10 20 30 40 50)
 
-echo ${fruits[0]}    # apple
-echo ${colors[2]}    # blue
-echo ${servers[1]}   # web02
+echo "First fruit: ${FRUITS[0]}"
+echo "Second color: ${COLORS[1]}"
+echo "Third number: ${NUMBERS[2]}"
+```
+
+**Expected output:**
+```
+First fruit: apple
+Second color: green
+Third number: 30
 ```
 
 ### Step 2: Array Length and All Elements
+
 ```bash
-fruits=("apple" "banana" "cherry" "date" "elderberry")
+FRUITS=("apple" "banana" "cherry" "date" "elderberry")
 
-echo "Length: ${#fruits[@]}"      # Length: 5
-echo "All: ${fruits[@]}"          # All: apple banana cherry date elderberry
-echo "Indices: ${!fruits[@]}"     # Indices: 0 1 2 3 4
-```
+# Number of elements
+echo "Count: ${#FRUITS[@]}"
 
-### Step 3: Modify and Append Elements
-```bash
-fruits=("apple" "banana" "cherry")
-fruits[1]="blueberry"            # modify index 1
-fruits+=("dragonfruit")          # append one
-fruits+=("elderberry" "fig")     # append multiple
+# All elements
+echo "All: ${FRUITS[@]}"
 
-echo ${fruits[@]}
-# apple blueberry cherry dragonfruit elderberry fig
-echo "Length: ${#fruits[@]}"
-# Length: 6
-```
-
-### Step 4: Array Slicing
-```bash
-arr=("a" "b" "c" "d" "e" "f")
-echo ${arr[@]:1:3}    # b c d  (from index 1, take 3 elements)
-echo ${arr[@]:3}      # d e f  (from index 3 to end)
-echo ${arr[@]: -2}    # e f    (last 2 elements)
-```
-
-### Step 5: Iterate Over an Array
-```bash
-servers=("web01" "web02" "db01" "cache01")
-
-# Method 1: for-in
-for server in "${servers[@]}"; do
-    echo "Checking: $server"
+# All as quoted list
+for f in "${FRUITS[@]}"; do
+    echo "  - $f"
 done
-# Checking: web01
-# Checking: web02
-# Checking: db01
-# Checking: cache01
+```
 
-# Method 2: with index
-for i in "${!servers[@]}"; do
-    echo "[$i] ${servers[$i]}"
+**Expected output:**
+```
+Count: 5
+All: apple banana cherry date elderberry
+  - apple
+  - banana
+  - cherry
+  - date
+  - elderberry
+```
+
+### Step 3: Array Indices
+
+```bash
+FRUITS=("apple" "banana" "cherry" "date" "elderberry")
+
+# Get all indices
+echo "Indices: ${!FRUITS[@]}"
+
+# Iterate with index
+for i in "${!FRUITS[@]}"; do
+    echo "  $i: ${FRUITS[$i]}"
 done
-# [0] web01
-# [1] web02
 ```
 
-### Step 6: Remove Elements
-```bash
-arr=("one" "two" "three" "four" "five")
-unset arr[2]            # remove index 2 (three)
-echo ${arr[@]}          # one two four five
-echo ${!arr[@]}         # 0 1 3 4  (note gap at index 2)
-
-# Re-index after removal
-arr=("${arr[@]}")
-echo ${!arr[@]}         # 0 1 2 3
+**Expected output:**
+```
+Indices: 0 1 2 3 4
+  0: apple
+  1: banana
+  2: cherry
+  3: date
+  4: elderberry
 ```
 
-### Step 7: Associative Arrays (Dictionaries)
-```bash
-declare -A config
-config["host"]="localhost"
-config["port"]="5432"
-config["dbname"]="myapp"
-config["user"]="dbadmin"
+### Step 4: Modify Arrays
 
-echo "Host: ${config[host]}"    # Host: localhost
-echo "Port: ${config[port]}"    # Port: 5432
-echo "Keys: ${!config[@]}"      # Keys: host port dbname user
-echo "Vals: ${config[@]}"       # Values: localhost 5432 myapp dbadmin
+```bash
+FRUITS=("apple" "banana" "cherry")
+
+# Append with +=
+FRUITS+=("date")
+FRUITS+=("elderberry" "fig")
+echo "After append: ${FRUITS[@]}"
+
+# Modify element
+FRUITS[1]="blueberry"
+echo "After modify: ${FRUITS[@]}"
+
+# Delete element
+unset FRUITS[0]
+echo "After delete: ${FRUITS[@]}"
+echo "Indices now: ${!FRUITS[@]}"
 ```
 
-### Step 8: Iterate Associative Array
-```bash
-declare -A env_vars
-env_vars["APP_ENV"]="production"
-env_vars["LOG_LEVEL"]="warn"
-env_vars["MAX_CONN"]="100"
+### Step 5: Array Slicing
 
-for key in "${!env_vars[@]}"; do
-    echo "export $key=${env_vars[$key]}"
+```bash
+NUMS=(10 20 30 40 50 60 70 80 90 100)
+
+# Slice: ${array[@]:start:length}
+echo "First 3:  ${NUMS[@]:0:3}"
+echo "Middle 3: ${NUMS[@]:3:3}"
+echo "Last 3:   ${NUMS[@]: -3}"
+```
+
+**Expected output:**
+```
+First 3:  10 20 30
+Middle 3: 40 50 60
+Last 3:   80 90 100
+```
+
+### Step 6: Associative Arrays (Key-Value)
+
+```bash
+# declare -A is required for associative arrays
+declare -A USER_INFO
+USER_INFO["name"]="Alice"
+USER_INFO["age"]="30"
+USER_INFO["role"]="engineer"
+USER_INFO["city"]="London"
+
+# Access by key
+echo "Name: ${USER_INFO[name]}"
+echo "Role: ${USER_INFO[role]}"
+
+# All keys
+echo "Keys: ${!USER_INFO[@]}"
+
+# All values
+echo "Values: ${USER_INFO[@]}"
+```
+
+```bash
+# Iterate over associative array
+for key in "${!USER_INFO[@]}"; do
+    echo "  $key = ${USER_INFO[$key]}"
 done
-# export APP_ENV=production
-# export LOG_LEVEL=warn
-# export MAX_CONN=100
 ```
 
-### Step 9: Array from Command Output
-```bash
-# Capture command output into array
-mapfile -t conf_files < <(ls /etc/*.conf 2>/dev/null)
-echo "Found ${#conf_files[@]} .conf files"
-echo "First: ${conf_files[0]}"
+### Step 7: Practical Array Use Cases
 
-# Read file lines into array
-mapfile -t lines < /etc/hostname
-echo "Hostname: ${lines[0]}"
-# Hostname: myserver
+```bash
+# Collect command results into array
+readarray -t USERS < <(cut -d: -f1 /etc/passwd | head -5)
+echo "First 5 users: ${USERS[@]}"
+echo "Count: ${#USERS[@]}"
+for u in "${USERS[@]}"; do
+    echo "  User: $u"
+done
 ```
 
-### Step 10: Practical Script — Server Ping Check
 ```bash
-cat > ~/ping_check.sh << 'EOF'
-#!/bin/bash
-declare -a servers=("8.8.8.8" "1.1.1.1" "9.9.9.9")
-declare -A results
-
-for host in "${servers[@]}"; do
-    if ping -c 1 -W 2 "$host" &>/dev/null; then
-        results[$host]="UP"
-    else
-        results[$host]="DOWN"
-    fi
+# Word frequency counter
+declare -A FREQ
+WORDS="apple banana apple cherry banana apple"
+for word in $WORDS; do
+    FREQ[$word]=$(( ${FREQ[$word]:-0} + 1 ))
 done
+for word in "${!FREQ[@]}"; do
+    echo "$word: ${FREQ[$word]}"
+done | sort
+```
 
-echo "=== Ping Results ==="
-for host in "${!results[@]}"; do
-    printf "%-15s %s\n" "$host" "${results[$host]}"
-done
-EOF
-chmod +x ~/ping_check.sh
-~/ping_check.sh
-# === Ping Results ===
-# 8.8.8.8         UP
-# 1.1.1.1         UP
-# 9.9.9.9         UP
+**Expected output:**
+```
+apple: 3
+banana: 2
+cherry: 1
+```
+
+### Step 8: Array Operations Summary
+
+```bash
+# Build, populate, and report
+declare -a SERVERS=("web01" "web02" "db01" "cache01")
+
+echo "Total servers: ${#SERVERS[@]}"
+echo "Web servers: $(for s in "${SERVERS[@]}"; do [[ "$s" == web* ]] && echo $s; done | tr '\n' ' ')"
+echo "Last server: ${SERVERS[-1]}"
+echo "Servers 1-2: ${SERVERS[@]:0:2}"
 ```
 
 ## ✅ Verification
+
 ```bash
-arr=("x" "y" "z")
-echo ${#arr[@]}      # 3
-echo ${arr[@]}       # x y z
-echo ${arr[1]}       # y
-arr+=("w")
-echo ${arr[-1]}      # w
+# Test indexed array
+ARR=(a b c d e)
+echo "Length: ${#ARR[@]} (expect 5)"
+echo "Index 2: ${ARR[2]} (expect c)"
+echo "Slice: ${ARR[@]:1:3} (expect b c d)"
+
+# Test associative array
+declare -A MAP=([key1]="val1" [key2]="val2")
+echo "key1: ${MAP[key1]} (expect val1)"
+echo "Keys: ${!MAP[@]}"
+
+echo "Practitioner Lab 14 complete"
 ```
 
 ## 📝 Summary
-- `arr=(a b c)` declares indexed array; `declare -A` for associative
-- `${arr[@]}` all elements; `${#arr[@]}` length; `${!arr[@]}` indices/keys
-- `${arr[@]:n:len}` slices; `arr+=("x")` appends
-- `unset arr[i]` removes element (leaves gap); re-assign to re-index
-- `mapfile -t arr < file` reads file lines into array safely
+- `ARR=("a" "b" "c")` creates an indexed array; `ARR+=("d")` appends
+- `${ARR[@]}` expands all elements; `${#ARR[@]}` gives count
+- `${!ARR[@]}` returns all indices; `ARR[-1]` accesses the last element
+- `${ARR[@]:start:len}` slices an array
+- `declare -A HASH` creates an associative array (key-value pairs)
+- `${!HASH[@]}` returns all keys; `${HASH[@]}` returns all values
+- `readarray -t ARR < <(command)` fills array from command output

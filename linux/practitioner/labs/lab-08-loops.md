@@ -1,82 +1,123 @@
-# Lab 8: Bash Loops
+# Lab 8: Loops in bash
 
 ## 🎯 Objective
-Use `for`, `while`, and `until` loops in bash, control flow with `break` and `continue`, and apply loops in practical scripting scenarios.
+Master for, while, and until loops with break/continue, and iterate over lists, ranges, and file lines.
 
 ## ⏱️ Estimated Time
-30 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Practitioner Lab 7 (conditionals)
-- Basic bash scripting knowledge
+- Practitioner Lab 7: Conditionals
 
 ## 🔬 Lab Instructions
 
-### Step 1: Basic for Loop
+### Step 1: for Loop — Iterate Over a List
+
 ```bash
-# for item in list; do ... done
-for fruit in apple banana cherry; do
-  echo "Fruit: $fruit"
+for color in red green blue yellow; do
+    echo "Color: $color"
 done
-# Output: Fruit: apple, Fruit: banana, Fruit: cherry
 ```
 
-### Step 2: for Loop with Ranges
+**Expected output:**
+```
+Color: red
+Color: green
+Color: blue
+Color: yellow
+```
+
 ```bash
-# Brace expansion: {start..end}
+# Loop over files
+for file in /etc/hostname /etc/os-release /etc/passwd; do
+    echo "Lines in $file: $(wc -l < $file)"
+done
+```
+
+### Step 2: for Loop — C-style with Numeric Range
+
+```bash
+for ((i=0; i<5; i++)); do
+    echo "i = $i"
+done
+```
+
+**Expected output:**
+```
+i = 0
+i = 1
+i = 2
+i = 3
+i = 4
+```
+
+```bash
+# Count down
+for ((i=10; i>=1; i--)); do
+    echo -n "$i "
+done
+echo ""
+```
+
+```bash
+# Using brace expansion
 for i in {1..5}; do
-  echo "Number: $i"
+    echo "Item $i"
 done
+```
 
-# With step: {start..end..step}
+```bash
+# Step brace expansion
 for i in {0..10..2}; do
-  echo "$i"
+    echo -n "$i "
 done
-# Output: 0 2 4 6 8 10
-
-# C-style for loop
-for ((i=1; i<=5; i++)); do
-  echo "Count: $i"
-done
+echo ""
 ```
 
-### Step 3: for Loop Over Files
-```bash
-mkdir -p /tmp/looptest
-touch /tmp/looptest/file{1..5}.txt
-
-# Loop over files matching a glob
-for file in /tmp/looptest/*.txt; do
-  echo "Processing: $file"
-  wc -l "$file"
-done
+**Expected output:**
+```
+0 2 4 6 8 10
 ```
 
-### Step 4: for Loop Over Command Output
+### Step 3: for Loop — Iterate Over Command Output
+
 ```bash
-# Iterate over lines from a command
 for user in $(cut -d: -f1 /etc/passwd | head -5); do
-  echo "User: $user"
-done
-
-# Better approach for filenames with spaces:
-while IFS= read -r user; do
-  echo "User: $user"
-done < <(cut -d: -f1 /etc/passwd | head -5)
-```
-
-### Step 5: while Loop
-```bash
-# while condition; do ... done
-count=1
-while [ $count -le 5 ]; do
-  echo "Count: $count"
-  ((count++))
+    echo "User: $user"
 done
 ```
 
-### Step 6: while Loop Reading a File
 ```bash
+# Loop over find results
+for file in $(find /tmp -name "*.txt" -maxdepth 1 2>/dev/null | head -5); do
+    echo "Found: $file"
+done
+```
+
+### Step 4: while Loop
+
+```bash
+# Countdown with while
+COUNT=5
+while [[ $COUNT -gt 0 ]]; do
+    echo "Countdown: $COUNT"
+    ((COUNT--))
+done
+echo "Done!"
+```
+
+**Expected output:**
+```
+Countdown: 5
+Countdown: 4
+Countdown: 3
+Countdown: 2
+Countdown: 1
+Done!
+```
+
+```bash
+# Read file line by line with while
 cat > /tmp/names.txt << 'EOF'
 Alice
 Bob
@@ -85,121 +126,127 @@ Dave
 EOF
 
 while IFS= read -r line; do
-  echo "Hello, $line!"
+    echo "Name: $line"
 done < /tmp/names.txt
-# IFS= preserves leading whitespace
-# -r prevents backslash interpretation
 ```
 
-### Step 7: until Loop
-```bash
-# until runs WHILE condition is FALSE (opposite of while)
-count=1
-until [ $count -gt 5 ]; do
-  echo "Count: $count"
-  ((count++))
-done
-# Same result as while, opposite logic
+**Expected output:**
+```
+Name: Alice
+Name: Bob
+Name: Carol
+Name: Dave
 ```
 
-### Step 8: Infinite Loop with break
+### Step 5: until Loop
+
 ```bash
-# Infinite loop with break condition
-counter=0
-while true; do
-  ((counter++))
-  if [ $counter -ge 5 ]; then
-    echo "Reached $counter, breaking"
-    break
-  fi
-  echo "Counter: $counter"
+# until runs until condition becomes TRUE
+COUNTER=0
+until [[ $COUNTER -ge 3 ]]; do
+    echo "Counter: $COUNTER"
+    ((COUNTER++))
 done
 ```
 
-### Step 9: continue — Skip an Iteration
+**Expected output:**
+```
+Counter: 0
+Counter: 1
+Counter: 2
+```
+
+### Step 6: break and continue
+
 ```bash
-# Skip even numbers
+# break exits the loop immediately
 for i in {1..10}; do
-  if (( i % 2 == 0 )); then
-    continue  # Skip to next iteration
-  fi
-  echo "$i"
-done
-# Output: 1 3 5 7 9
-```
-
-### Step 10: Nested Loops
-```bash
-# Multiplication table
-for i in {1..3}; do
-  for j in {1..3}; do
-    printf "%4d" $((i * j))
-  done
-  echo ""
-done
-# Output:
-#    1   2   3
-#    2   4   6
-#    3   6   9
-```
-
-### Step 11: Loop with Array
-```bash
-servers=("web01" "web02" "db01" "cache01")
-
-for server in "${servers[@]}"; do
-  echo "Checking $server..."
-  # Simulate a check
-  ping -c 1 -W 1 localhost > /dev/null 2>&1 && \
-    echo "  $server: OK" || \
-    echo "  $server: UNREACHABLE"
+    if [[ $i -eq 5 ]]; then
+        echo "Breaking at $i"
+        break
+    fi
+    echo "Processing: $i"
 done
 ```
 
-### Step 12: Practical Loop — Batch File Processing
+**Expected output:**
+```
+Processing: 1
+Processing: 2
+Processing: 3
+Processing: 4
+Breaking at 5
+```
+
 ```bash
-# Create test files with different content
-mkdir -p /tmp/batch
-for i in {1..5}; do
-  echo "File $i content - $(date)" > "/tmp/batch/report_$i.txt"
+# continue skips the rest of the current iteration
+for i in {1..8}; do
+    if (( i % 2 == 0 )); then
+        continue
+    fi
+    echo "Odd: $i"
 done
+```
 
-# Process each file
-for file in /tmp/batch/report_*.txt; do
-  basename="${file##*/}"
-  lines=$(wc -l < "$file")
-  size=$(stat -c %s "$file")
-  echo "${basename}: ${lines} lines, ${size} bytes"
+**Expected output:**
+```
+Odd: 1
+Odd: 3
+Odd: 5
+Odd: 7
+```
+
+### Step 7: Nested Loops
+
+```bash
+for i in 1 2 3; do
+    for j in a b c; do
+        echo -n "$i$j "
+    done
 done
+echo ""
+```
 
-# Clean up
-rm -rf /tmp/looptest /tmp/batch /tmp/names.txt
+**Expected output:**
+```
+1a 1b 1c 2a 2b 2c 3a 3b 3c
+```
+
+### Step 8: Practical Loop Script
+
+```bash
+cat > /tmp/loop-report.sh << 'EOF'
+#!/bin/bash
+echo "=== File Type Report ==="
+for dir in /etc /tmp /usr/bin; do
+    file_count=$(find "$dir" -maxdepth 1 -type f 2>/dev/null | wc -l)
+    dir_count=$(find "$dir" -maxdepth 1 -type d 2>/dev/null | wc -l)
+    echo "$dir: $file_count files, $dir_count subdirs"
+done
+EOF
+
+bash /tmp/loop-report.sh
 ```
 
 ## ✅ Verification
-```bash
-# Sum 1 to 10
-total=0
-for i in {1..10}; do
-  ((total += i))
-done
-echo "Sum 1-10: $total"
-# Output: Sum 1-10: 55
 
-# Count lines in /etc/passwd using while
-count=0
-while IFS= read -r line; do
-  ((count++))
-done < /etc/passwd
-echo "Lines in /etc/passwd: $count"
-wc -l < /etc/passwd  # Verify match
+```bash
+# Test each loop type
+echo "=== for list ===" && for x in a b c; do echo -n "$x "; done && echo ""
+echo "=== for range ===" && for ((i=0;i<3;i++)); do echo -n "$i "; done && echo ""
+echo "=== while ===" && n=3; while [[ $n -gt 0 ]]; do echo -n "$n "; ((n--)); done && echo ""
+echo "=== break ===" && for i in 1 2 3 4 5; do [[ $i -eq 3 ]] && break; echo -n "$i "; done && echo ""
+echo "=== while read ===" && echo -e "x\ny\nz" | while IFS= read -r line; do echo -n "$line "; done && echo ""
+
+rm /tmp/names.txt /tmp/loop-report.sh 2>/dev/null
+echo "Practitioner Lab 8 complete"
 ```
 
 ## 📝 Summary
-- `for item in list` iterates over a list; `{1..10}` generates a sequence
-- C-style `for ((i=0; i<10; i++))` is useful for numeric iteration with complex logic
-- `while condition` loops while true; `until condition` loops while false
-- `break` exits the loop immediately; `continue` skips to the next iteration
-- Always quote `"$file"` when looping over filenames to handle spaces
-- `while IFS= read -r line; do ... done < file` is the safest way to process files line by line
-
+- `for item in list; do ... done` iterates over a space-separated list
+- `for ((i=0; i<N; i++)); do` is a C-style numeric loop
+- `for i in {1..10}; do` uses brace expansion for ranges
+- `while [[ condition ]]; do` runs while condition is true
+- `while IFS= read -r line; do ... done < file` reads file line by line
+- `until [[ condition ]]; do` runs until condition becomes true
+- `break` exits a loop; `continue` skips to the next iteration

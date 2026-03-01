@@ -1,180 +1,140 @@
-# Lab 9: chown and chgrp — Changing Ownership
+# Lab 9: Changing Ownership with chown and chgrp
 
 ## 🎯 Objective
-Learn to change file ownership with `chown` and group ownership with `chgrp`, and use the `id` command to understand user and group identities.
+Use chown and chgrp to change file ownership, understand user and group concepts, and use id and groups commands.
 
 ## ⏱️ Estimated Time
-25 minutes
+20 minutes
 
 ## 📋 Prerequisites
-- Completed Labs 7–8 (Permissions and chmod)
-- sudo access on the system
+- Completed Lab 8: chmod
 
 ## 🔬 Lab Instructions
 
-### Step 1: Understand Your Identity with `id`
+### Step 1: Check Your Identity
+
 ```bash
+whoami
 id
-# Output: uid=1000(student) gid=1000(student) groups=1000(student),4(adm),27(sudo)
-# uid = user ID
-# gid = primary group ID
-# groups = all groups you belong to
-
-id -u    # Just your UID
-id -g    # Just your primary GID
-id -un   # Just your username
-id -gn   # Just your primary group name
 ```
 
-### Step 2: Check Ownership of Files
-```bash
-ls -l /etc/passwd
-# Output: -rw-r--r-- 1 root root 2847 ... /etc/passwd
-#                      ^^^^ ^^^^
-#                      user group
-
-ls -l /var/log/syslog
-# Output: -rw-r----- 1 syslog adm ...
+**Expected output:**
+```
+uid=1000(zchen) gid=1000(zchen) groups=1000(zchen),4(adm),27(sudo),...
 ```
 
-### Step 3: Create Test Files and Check Ownership
 ```bash
-mkdir ~/lab09
-cd ~/lab09
-touch myfile.txt mydir
-ls -l
-# Owner and group should be your username
-```
-
-### Step 4: Change File Owner with `chown`
-```bash
-# Create a file as root to demonstrate chown
-sudo touch /tmp/rootfile.txt
-ls -l /tmp/rootfile.txt
-# Output: -rw-r--r-- 1 root root 0 ...
-
-# Change owner to current user
-sudo chown $USER /tmp/rootfile.txt
-ls -l /tmp/rootfile.txt
-# Output: -rw-r--r-- 1 student root 0 ...
-# Owner changed, group still root
-```
-
-### Step 5: Change Owner and Group Together
-```bash
-# chown user:group syntax
-sudo chown $USER:$USER /tmp/rootfile.txt
-ls -l /tmp/rootfile.txt
-# Output: -rw-r--r-- 1 student student 0 ...
-```
-
-### Step 6: Change Only the Group with `chown`
-```bash
-# Use :group syntax (no username before colon changes just the group)
-sudo chown :root /tmp/rootfile.txt
-ls -l /tmp/rootfile.txt
-# Output: -rw-r--r-- 1 student root 0 ...
-# Owner is still student, group changed to root
-```
-
-### Step 7: Use `chgrp` to Change Group
-```bash
-# chgrp is dedicated to changing group ownership
-sudo chgrp $USER /tmp/rootfile.txt
-ls -l /tmp/rootfile.txt
-# Output: -rw-r--r-- 1 student student 0 ...
-```
-
-### Step 8: Recursive Ownership Change with `-R`
-```bash
-mkdir -p ~/lab09/project/{src,docs}
-touch ~/lab09/project/src/main.py ~/lab09/project/docs/readme.md
-
-# Change ownership recursively
-sudo chown -R $USER:$USER ~/lab09/project/
-ls -lR ~/lab09/project/
-# All files should show your user:group
-```
-
-### Step 9: Change to a Different Group You Belong To
-```bash
-# View groups you're in
 groups
-# Output: student adm sudo
-
-# Create a file and change its group
-touch ~/lab09/shared.txt
-chgrp adm ~/lab09/shared.txt
-ls -l ~/lab09/shared.txt
-# Output: -rw-rw-r-- 1 student adm ...
-
-# Note: you can only chgrp to groups you're already a member of
-# (unless you're root)
 ```
 
-### Step 10: Understand Why Ownership Matters
+### Step 2: View Current Ownership
+
 ```bash
-# Create a file owned by root
-sudo bash -c 'echo "root content" > /tmp/rootowned.txt'
-sudo chmod 640 /tmp/rootowned.txt
-ls -l /tmp/rootowned.txt
-# Output: -rw-r----- 1 root root ...
-
-# Try to read as non-root (group has r, other has nothing)
-cat /tmp/rootowned.txt
-# Output: cat: /tmp/rootowned.txt: Permission denied
-# (if you're not in root's group)
-
-# Root always wins
-sudo cat /tmp/rootowned.txt
-# Output: root content
+mkdir -p /tmp/own-lab
+touch /tmp/own-lab/file1.txt /tmp/own-lab/file2.txt
+ls -l /tmp/own-lab
+stat /tmp/own-lab/file1.txt
 ```
 
-### Step 11: Use `stat` to View Ownership Details
-```bash
-stat ~/lab09/myfile.txt
-# Output includes:
-# File: /home/student/lab09/myfile.txt
-# Access: (0644/-rw-rw-r--)  Uid: (1000/student)   Gid: (1000/student)
-
-# Quick format
-stat --format="User: %U  Group: %G  Perms: %a" ~/lab09/myfile.txt
+**Expected output (stat includes):**
+```
+Uid: ( 1000/   zchen)   Gid: ( 1000/   zchen)
 ```
 
-### Step 12: Real-World Example — Web Server Files
+### Step 3: Change Group Ownership with chgrp
+
 ```bash
-# Web servers typically need specific ownership
-# Example: nginx files should be owned by www-data
+MY_GROUP=$(id -gn)
+echo "Your primary group is: $MY_GROUP"
+chgrp $MY_GROUP /tmp/own-lab/file1.txt
+ls -l /tmp/own-lab/file1.txt
+```
 
-# Check if www-data user exists
-id www-data 2>/dev/null || echo "www-data user not found"
+```bash
+MY_GID=$(id -g)
+chgrp $MY_GID /tmp/own-lab/file2.txt
+ls -l /tmp/own-lab/file2.txt
+```
 
-# In a real web server scenario:
-sudo mkdir -p /var/www/mysite
-sudo chown -R www-data:www-data /var/www/mysite
-sudo chmod -R 755 /var/www/mysite
-ls -ld /var/www/mysite
+### Step 4: Change Ownership with chown
 
-# Clean up
-sudo rm -rf /var/www/mysite
-rm -rf ~/lab09
-rm -f /tmp/rootfile.txt /tmp/rootowned.txt
+```bash
+MY_USER=$(whoami)
+chown $MY_USER /tmp/own-lab/file1.txt
+ls -l /tmp/own-lab/file1.txt
+```
+
+```bash
+MY_USER=$(whoami)
+MY_GROUP=$(id -gn)
+chown ${MY_USER}:${MY_GROUP} /tmp/own-lab/file2.txt
+ls -l /tmp/own-lab/file2.txt
+```
+
+```bash
+# Change only the group using chown :group syntax
+chown :$(id -gn) /tmp/own-lab/file1.txt
+ls -l /tmp/own-lab/file1.txt
+```
+
+### Step 5: Recursive Ownership Change
+
+```bash
+mkdir -p /tmp/own-lab/project/src
+touch /tmp/own-lab/project/src/app.py
+touch /tmp/own-lab/project/README.md
+
+MY_USER=$(whoami)
+MY_GROUP=$(id -gn)
+chown -R ${MY_USER}:${MY_GROUP} /tmp/own-lab/project
+ls -lR /tmp/own-lab/project
+```
+
+### Step 6: Understand /etc/passwd and /etc/group
+
+```bash
+# /etc/passwd: username:x:UID:GID:GECOS:home:shell
+grep "^$(whoami):" /etc/passwd
+```
+
+**Expected output:**
+```
+zchen:x:1000:1000::/home/zchen:/bin/bash
+```
+
+```bash
+grep "^$(id -gn):" /etc/group
+grep $(whoami) /etc/group
+```
+
+### Step 7: stat to Verify Ownership
+
+```bash
+stat -c "File: %n | Owner: %U (%u) | Group: %G (%g)" /tmp/own-lab/file1.txt
+```
+
+**Expected output:**
+```
+File: /tmp/own-lab/file1.txt | Owner: zchen (1000) | Group: zchen (1000)
 ```
 
 ## ✅ Verification
-```bash
-# Verify ownership change works
-sudo touch /tmp/ownertest.txt
-sudo chown $USER:$USER /tmp/ownertest.txt
-stat --format="User: %U  Group: %G" /tmp/ownertest.txt
-# Output: User: student  Group: student
 
-rm /tmp/ownertest.txt
+```bash
+echo "User: $(whoami), UID: $(id -u), GID: $(id -g)"
+echo "Groups: $(groups)"
+touch /tmp/own-verify.txt
+stat -c "Owner: %U | Group: %G" /tmp/own-verify.txt
+rm /tmp/own-verify.txt
+rm -rf /tmp/own-lab
+echo "Lab 9 complete"
 ```
 
 ## 📝 Summary
-- `id` shows your UID, GID, and group memberships — crucial for troubleshooting permissions
-- `chown user file` changes the owner; `chown user:group file` changes both at once
-- `chgrp group file` changes only the group
-- `-R` flag makes `chown` and `chgrp` work recursively on directories
-- Only root can give files to another user; regular users can only change groups to ones they belong to
+- `whoami` shows your username; `id` shows UID, GID, and all group memberships
+- `groups` lists all groups you belong to
+- `chgrp groupname file` changes the group owner
+- `chown username file` changes the user owner
+- `chown user:group file` changes both simultaneously
+- `chown -R` applies ownership changes recursively
+- `/etc/passwd` stores user accounts; `/etc/group` stores group memberships

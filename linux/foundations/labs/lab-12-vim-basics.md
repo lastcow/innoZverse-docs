@@ -1,216 +1,187 @@
-# Lab 12: vim Basics
+# Lab 12: vim Text Editor Basics
 
 ## 🎯 Objective
-Learn the fundamental concepts of the `vim` editor: understanding modes, navigating without arrow keys, inserting and editing text, and saving/quitting files.
+Understand vim's modal editing system, learn essential commands, and practice file operations using cat/echo as safe alternatives.
 
 ## ⏱️ Estimated Time
-35 minutes
+30 minutes
 
 ## 📋 Prerequisites
-- Completed Lab 11 (nano) or basic text editor experience
-- Patience — vim has a learning curve but is extremely powerful
+- Completed Lab 11: nano Editor
 
 ## 🔬 Lab Instructions
 
-### Step 1: Install vim
-```bash
-sudo apt install vim -y
-vim --version | head -1
-# Output: VIM - Vi IMproved 8.2 ...
+### Step 1: Understand vim's Modal Editing
+
+vim operates in distinct modes:
+
+```text
+NORMAL MODE (default):
+  - Navigate and run commands
+  - Press Esc to return here from any mode
+
+INSERT MODE (editing text):
+  - Press i to enter from Normal mode
+  - Type text normally
+  - Press Esc to return to Normal mode
+
+VISUAL MODE (selecting text):
+  - Press v to enter from Normal mode
+
+COMMAND MODE (save, quit, search):
+  - Press : from Normal mode
 ```
 
-### Step 2: Open a File in vim
-```bash
-vim ~/vimtest.txt
-# The screen clears and vim opens
-# You are in NORMAL mode (default)
-```
-
-### Step 3: Understand vim's Three Core Modes
-```
-NORMAL mode:   Default. Navigation and commands. (press Esc to return here)
-INSERT mode:   Typing text. (press i, a, o to enter)
-COMMAND mode:  Saving, quitting, searching. (press : to enter from normal)
-```
-
-The mode is shown at the bottom:
-- Nothing shown = NORMAL
-- `-- INSERT --` = INSERT
-- `:` = COMMAND
-
-### Step 4: Enter Insert Mode and Type Text
-```bash
-# In NORMAL mode, press: i
-# You'll see -- INSERT -- at the bottom
-
-# Now type:
-# This is line one.
-# This is line two.
-# This is line three.
-# vim is a powerful editor.
-# Learning it is worth the effort.
-
-# Press Esc to return to NORMAL mode
-```
-
-### Step 5: Navigate in NORMAL Mode
-```
-h:  move left
-l:  move right
-j:  move down
-k:  move up
-
-w:  jump forward one word
-b:  jump backward one word
-e:  jump to end of current word
-
-0:  go to beginning of line
-$:  go to end of line
-gg: go to first line of file
-G:  go to last line of file
-5G: go to line 5
-```
+### Step 2: Check vim Availability
 
 ```bash
-# Practice: press Esc (ensure NORMAL mode)
-# Use hjkl to navigate
-# Press G to go to last line
-# Press gg to go to first line
+which vim || which vi
+vim --version | head -3
 ```
 
-### Step 6: Different Ways to Enter Insert Mode
-```
-i:  insert before cursor
-a:  append after cursor
-I:  insert at beginning of line
-A:  append at end of line
-o:  open new line below and insert
-O:  open new line above and insert
-```
+### Step 3: Create Test Files Without Opening vim
 
 ```bash
-# Go to end of line 1 with $
-# Press a to append after the last character
-# Type: (edited)
-# Press Esc
+cat > /tmp/vim-practice.txt << 'EOF'
+The quick brown fox jumps over the lazy dog.
+Linux is an open-source operating system.
+vim is a powerful text editor used by developers.
+Learning vim takes time but increases productivity.
+The end of the file.
+EOF
+
+cat -n /tmp/vim-practice.txt
 ```
 
-### Step 7: Delete Text in NORMAL Mode
+### Step 4: vim Navigation Commands Reference
+
+```text
+CURSOR MOVEMENT:
+  h j k l     Left, Down, Up, Right
+  w           Move forward one word
+  b           Move backward one word
+  0           Go to beginning of line
+  $           Go to end of line
+  gg          Go to first line of file
+  G           Go to last line of file
+  :N          Go to line N (e.g., :5)
+  Ctrl+f      Page forward (down)
+  Ctrl+b      Page backward (up)
 ```
-x:   delete character under cursor
-dd:  delete (cut) entire line
-dw:  delete word
-d$:  delete from cursor to end of line
-d0:  delete from cursor to beginning of line
-3dd: delete 3 lines
+
+### Step 5: vim Insert Mode Commands
+
+```text
+ENTERING INSERT MODE:
+  i           Insert before cursor
+  a           Insert after cursor (Append)
+  I           Insert at beginning of line
+  A           Insert at end of line
+  o           Open new line below
+  O           Open new line above
+
+EXITING INSERT MODE:
+  Esc         Return to Normal mode
 ```
+
+### Step 6: vim Editing Commands (Normal mode)
+
+```text
+EDITING:
+  x           Delete character under cursor
+  dd          Delete (cut) current line
+  yy          Yank (copy) current line
+  p           Paste after cursor
+  u           Undo last change
+  Ctrl+r      Redo
+  .           Repeat last command
+
+SEARCH AND REPLACE:
+  /pattern    Search forward
+  n           Next search result
+  :%s/old/new/g   Replace all occurrences
+```
+
+### Step 7: vim Save and Quit Commands
+
+```text
+COMMAND MODE (press : first):
+  :w          Save the file
+  :q          Quit (fails if unsaved changes)
+  :wq         Save and quit
+  :q!         Quit WITHOUT saving (force)
+  ZZ          Save and quit (Normal mode shortcut)
+```
+
+### Step 8: Practice — Simulate vim Operations
 
 ```bash
-# Place cursor on a line you want to delete
-# Press dd to cut it
-```
-
-### Step 8: Undo and Redo
-```
-u:        undo last change
-Ctrl+r:   redo (undo the undo)
-```
-
-```bash
-# Delete a line with dd
-# Press u to undo it — the line comes back!
-# Press Ctrl+r to redo
-```
-
-### Step 9: Copy (Yank) and Paste
-```
-yy:   yank (copy) current line
-yw:   yank word
-y$:   yank to end of line
-p:    paste below current line
-P:    paste above current line
-3yy:  yank 3 lines
+# Simulate search and replace (like :%s/fox/cat/g in vim)
+sed 's/fox/cat/g' /tmp/vim-practice.txt
 ```
 
 ```bash
-# Go to line 1 (gg)
-# Press yy to copy line 1
-# Press G to go to last line
-# Press p to paste it below
-```
-
-### Step 10: Search in vim
-```bash
-# In NORMAL mode:
-# Press / to search forward
-/vim
-# Press Enter to search
-# Press n for next match
-# Press N for previous match
-
-# Press ? to search backward
-?line
-# Press Enter
-```
-
-### Step 11: Save and Quit (Command Mode)
-```bash
-# Press Esc first (ensure NORMAL mode)
-# Then press : to enter COMMAND mode
-
-:w          # Save (write)
-:q          # Quit (only works if no unsaved changes)
-:wq         # Save and quit
-:q!         # Quit WITHOUT saving (force)
-:wq!        # Force save and quit
-:x          # Save and quit (like :wq)
-
-# Save to a different file:
-:w ~/vimtest_copy.txt
-```
-
-### Step 12: Useful Quick Commands
-```
-:set number       # Show line numbers
-:set nonumber     # Hide line numbers
-:syntax on        # Enable syntax highlighting
-:%s/old/new/g     # Replace all 'old' with 'new' in file
-:10               # Go to line 10
+# Extract specific lines (like :3,5p in vim)
+sed -n '2,4p' /tmp/vim-practice.txt
 ```
 
 ```bash
-# In vim, try:
-:set number
-# Line numbers appear on the left
+# Show line numbers (like :set nu in vim)
+cat -n /tmp/vim-practice.txt
+```
 
-# Replace all instances of "line" with "LINE"
-:%s/line/LINE/g
-# Press Enter — all occurrences are replaced
+```bash
+# Count lines
+wc -l /tmp/vim-practice.txt
+```
 
-# Save and quit
-:wq
+### Step 9: Full vim Workflow Summary
+
+```text
+TYPICAL VIM WORKFLOW:
+  1. vim filename     Open file
+  2. i               Enter Insert mode
+  3. (type content)  Write text
+  4. Esc             Back to Normal mode
+  5. :wq             Save and quit
+
+TO QUIT WHEN STUCK:
+  Esc Esc            Ensure you are in Normal mode
+  :q!                Force quit without saving
+```
+
+### Step 10: Create a Script Using cat
+
+```bash
+cat > /tmp/system-info.sh << 'EOF'
+#!/bin/bash
+echo "=== System Information ==="
+echo "Hostname: $(hostname)"
+echo "User:     $(whoami)"
+echo "Date:     $(date)"
+echo "Uptime:   $(uptime -p)"
+echo "Kernel:   $(uname -r)"
+EOF
+
+chmod +x /tmp/system-info.sh
+bash /tmp/system-info.sh
 ```
 
 ## ✅ Verification
+
 ```bash
-# Create a file with vim, verify contents
-vim /tmp/vimcheck.txt
-# Press i
-# Type: vim is working correctly
-# Press Esc
-# Type: :wq
-# Press Enter
-
-cat /tmp/vimcheck.txt
-# Output: vim is working correctly
-
-rm /tmp/vimcheck.txt ~/vimtest.txt ~/vimtest_copy.txt 2>/dev/null
+echo "vim location: $(which vim)"
+echo "vim version: $(vim --version | head -1)"
+echo "Practice file lines: $(wc -l < /tmp/vim-practice.txt)"
+cat -n /tmp/vim-practice.txt
+rm /tmp/vim-practice.txt /tmp/system-info.sh 2>/dev/null
+echo "Lab 12 complete"
 ```
 
 ## 📝 Summary
-- vim has three modes: NORMAL (navigate), INSERT (type), COMMAND (`:` prefix for save/quit)
-- Always press `Esc` to return to NORMAL mode
-- `i/a/o` enter INSERT mode; `Esc` exits it
-- Navigate with `hjkl`; jump with `gg/G/w/b/$`
-- Save with `:w`; quit with `:q`; save-and-quit with `:wq`; force quit with `:q!`
-- `dd` cuts a line, `yy` copies, `p` pastes, `u` undoes — these are incredibly fast once learned
+- vim has three main modes: Normal (navigation), Insert (typing), Command (:)
+- Press `i` to enter Insert mode; press `Esc` to return to Normal mode
+- `:wq` saves and quits; `:q!` quits without saving
+- `dd` deletes a line; `yy` copies; `p` pastes
+- `:%s/old/new/g` replaces all occurrences in the file
+- If stuck in vim: press `Esc` twice, then type `:q!` and press Enter

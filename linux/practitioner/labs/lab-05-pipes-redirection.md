@@ -1,202 +1,167 @@
-# Lab 5: Pipes and Advanced Redirection
+# Lab 5: Pipes and Redirection
 
 ## 🎯 Objective
-Build complex command pipelines, use `tee` to split output, and leverage process substitution for advanced data flow patterns.
+Build multi-stage pipelines, combine commands with pipes, use tee to split streams, and master advanced redirection patterns.
 
 ## ⏱️ Estimated Time
-30 minutes
+25 minutes
 
 ## 📋 Prerequisites
-- Foundations Lab 19 (I/O redirection basics)
-- Basic knowledge of grep, sort, awk
+- Foundations Lab 19: I/O Redirection Basics
+- Foundations Lab 14: grep Basics
 
 ## 🔬 Lab Instructions
 
-### Step 1: Review the Pipe Operator
-```bash
-# | connects stdout of left command to stdin of right command
-cat /etc/passwd | grep bash | cut -d: -f1
-# cat → grep → cut → terminal
+### Step 1: Basic Pipe Concept
 
-# Equivalent (more efficient):
-grep bash /etc/passwd | cut -d: -f1
+```bash
+# | sends stdout of left command to stdin of right command
+ls /etc | head -5
 ```
 
-### Step 2: Build Multi-Stage Pipelines
 ```bash
-# Top 5 CPU-consuming processes
-ps aux | sort -k3 -rn | head -6 | tail -5
-
-# Count unique IPs in auth.log
-grep "Failed" /var/log/auth.log 2>/dev/null | \
-  grep -oP "\b\d+\.\d+\.\d+\.\d+\b" | \
-  sort | uniq -c | sort -rn | head -5
-
-# Find largest files in /var/log
-find /var/log -type f -printf "%s %p\n" 2>/dev/null | \
-  sort -rn | head -10
+# Chain multiple pipes
+ls /etc | grep "\.conf$" | sort | head -10
 ```
 
-### Step 3: The tee Command — Split Output
 ```bash
-# tee sends output to BOTH a file and stdout
-echo "important data" | tee /tmp/tee_output.txt
-# Prints to screen AND saves to file
-cat /tmp/tee_output.txt
-# Output: important data
-
-# Append mode with -a
-echo "more data" | tee -a /tmp/tee_output.txt
-
-# tee in the middle of a pipeline
-ls /etc | tee /tmp/etc_list.txt | wc -l
-# tee saves the list; wc -l counts the items
-cat /tmp/etc_list.txt | head -5
+# Count files in /etc
+ls /etc | wc -l
 ```
 
-### Step 4: tee to Multiple Files
+### Step 2: Process List Pipelines
+
 ```bash
-echo "data" | tee /tmp/file1.txt /tmp/file2.txt /tmp/file3.txt
-cat /tmp/file1.txt /tmp/file2.txt /tmp/file3.txt
-# All three files have "data"
+# ps aux | grep | awk | sort | head
+ps aux | grep -v "^USER" | awk '{ print $1, $3, $11 }' | sort -k2 -rn | head -10
 ```
 
-### Step 5: Process Substitution with <()
 ```bash
-# <(command) treats command output as a file
-# Compare two command outputs
-diff <(ls /etc | sort) <(ls /usr/share | sort) | head -10
+# Find top memory consumers
+ps aux | grep -v "^USER" | awk '$4 > 0 { print $4, $11 }' | sort -rn | head -5
+```
 
+```bash
+# Count processes by user
+ps aux | grep -v "^USER" | awk '{ print $1 }' | sort | uniq -c | sort -rn | head -10
+```
+
+### Step 3: File Analysis Pipelines
+
+```bash
+# Count users with each shell type
+cut -d: -f7 /etc/passwd | sort | uniq -c | sort -rn
+```
+
+```bash
+# Find the 3 highest UIDs
+cut -d: -f1,3 /etc/passwd | sort -t: -k2 -rn | head -3
+```
+
+```bash
+# List /etc files sorted by size
+find /etc -maxdepth 1 -type f -exec ls -la {} \; 2>/dev/null | sort -k5 -rn | head -10
+```
+
+### Step 4: Use tee to Branch Pipelines
+
+```bash
+# tee writes to file AND passes to next command
+ls /etc | tee /tmp/etc-list.txt | wc -l
+echo "File has $(wc -l < /tmp/etc-list.txt) lines"
+```
+
+```bash
+# Logging with tee: save and process simultaneously
+ps aux | tee /tmp/process-snapshot.txt | grep "$(whoami)" | wc -l
+echo "Total lines saved: $(wc -l < /tmp/process-snapshot.txt)"
+```
+
+### Step 5: Process Substitution
+
+```bash
+# <() creates a virtual file from command output
+diff <(cut -d: -f1 /etc/passwd | sort) <(cut -d: -f1 /etc/group | sort) | head -20
+```
+
+```bash
 # Paste two command outputs side by side
-paste <(echo -e "a\nb\nc") <(echo -e "1\n2\n3")
-# Output:
-# a    1
-# b    2
-# c    3
-
-# Sort and diff
-diff <(sort /etc/passwd) <(sort /etc/group) | head -5
+paste <(cut -d: -f1 /etc/passwd | head -5) <(cut -d: -f3 /etc/passwd | head -5)
 ```
 
-### Step 6: Process Substitution with >()
+### Step 6: Here-Documents and Here-Strings
+
 ```bash
-# >() redirects to a command's stdin
-# Duplicate pipeline to two commands
-ls /etc | tee >(grep conf > /tmp/conf_files.txt) >(grep log > /tmp/log_files.txt) > /dev/null
-cat /tmp/conf_files.txt | head -5
-cat /tmp/log_files.txt | head -5
+# Heredoc (multi-line stdin)
+cat << 'EOF'
+This is line 1
+This is line 2
+This is line 3
+EOF
 ```
 
-### Step 7: Named Pipes (FIFOs)
 ```bash
-# Create a named pipe
-mkfifo /tmp/mypipe
-
-# In one terminal: write to the pipe
-echo "data through pipe" > /tmp/mypipe &
-
-# Read from the pipe
-cat /tmp/mypipe
-# Output: data through pipe
-
-rm /tmp/mypipe
+# Here-string (single value to stdin)
+grep "bash" <<< "/usr/bin/bash is the shell"
 ```
 
-### Step 8: xargs — Build Commands from Input
 ```bash
-# xargs takes stdin and passes it as arguments
-echo "file1 file2 file3" | xargs touch
-ls file1 file2 file3
-rm file1 file2 file3
-
-# One argument per line with -I {}
-find /tmp -name "*.txt" -print0 | xargs -0 ls -la
-
-# Parallel execution with -P
-find /var/log -name "*.log" 2>/dev/null | xargs -P 4 -I {} wc -l {} 2>/dev/null | head -5
+# Heredoc into command pipeline
+cat << 'EOF' | sort | uniq -c
+apple
+banana
+apple
+cherry
+banana
+apple
+EOF
 ```
 
-### Step 9: Here String
-```bash
-# <<< passes a string as stdin to a command
-wc -w <<< "count these words please"
-# Output: 4
+### Step 7: Advanced Redirection Patterns
 
-# Useful for variable processing
-myvar="hello world"
-wc -c <<< "$myvar"
+```bash
+# Capture both stdout and stderr
+ls /etc/passwd /nonexistent 2>&1 | head -5
 ```
 
-### Step 10: Subshell and Command Grouping
 ```bash
-# () runs commands in a subshell
-(cd /tmp && ls && pwd)
-pwd  # Still in original directory
-
-# {} groups commands in current shell
-{ echo "line1"; echo "line2"; echo "line3"; } > /tmp/grouped.txt
-cat /tmp/grouped.txt
-
-# Redirect grouped output
-{ df -h; echo "---"; free -h; } | tee /tmp/system_report.txt
+# Run command, log errors, continue
+find /etc -name "*.conf" 2>/dev/null | head -10
 ```
 
-### Step 11: Combining Redirection and Pipes
 ```bash
-# Save stderr to file while passing stdout through pipe
-ls /etc /nonexistent 2>/tmp/errors.txt | wc -l
-cat /tmp/errors.txt
-
-# Swap stdout and stderr
-ls /nonexistent 3>&2 2>&1 1>&3
-
-# Count lines while also displaying them
-cat /etc/passwd | tee /dev/stderr | wc -l 2>&1 | tail -1
+# Write to multiple files simultaneously
+echo "test data" | tee /tmp/pipe-a.txt /tmp/pipe-b.txt > /dev/null
+diff /tmp/pipe-a.txt /tmp/pipe-b.txt && echo "Files are identical"
 ```
 
-### Step 12: Practical Pipeline — System Health Snapshot
+### Step 8: Real-World Pipeline
+
 ```bash
-{
-  echo "=== $(date) ==="
-  echo ""
-  echo "Top 5 CPU processes:"
-  ps aux --sort=-%cpu | awk 'NR<=6 && NR>1 {printf "  %-20s %.1f%%\n", $11, $3}'
-  echo ""
-  echo "Disk Usage:"
-  df -h | grep -v tmpfs | awk 'NR>1 {printf "  %-20s %s\n", $6, $5}'
-} | tee /tmp/health_snapshot.txt
+# System report pipeline
+echo "=== Top 5 CPU Processes ===" && \
+ps aux --sort=-%cpu | grep -v "^USER" | head -6 | awk '{ printf "%-20s %5s%%\n", $11, $3 }'
+```
 
-cat /tmp/health_snapshot.txt
-
-# Clean up
-rm -f /tmp/tee_output.txt /tmp/etc_list.txt /tmp/file*.txt
-rm -f /tmp/conf_files.txt /tmp/log_files.txt /tmp/grouped.txt
-rm -f /tmp/errors.txt /tmp/system_report.txt /tmp/health_snapshot.txt
+```bash
+echo "=== Filesystem Usage ===" && \
+df -h | grep -v tmpfs | awk 'NR>1 { printf "%-30s %5s used\n", $6, $5 }'
 ```
 
 ## ✅ Verification
+
 ```bash
-# Verify tee splits output correctly
-echo "test" | tee /tmp/tee_verify.txt | wc -c
-# Output: 5 (goes to stdout AND file)
-cat /tmp/tee_verify.txt
-# Output: test
-
-# Verify process substitution
-diff <(echo "same") <(echo "same")
-# Output: (nothing — files are identical)
-
-diff <(echo "left") <(echo "right")
-# Output: shows difference
-
-rm /tmp/tee_verify.txt
+echo "=== Pipeline test ===" && ps aux | grep -v "^USER" | wc -l
+echo "=== tee test ===" && echo "hello" | tee /tmp/lab5-verify.txt > /dev/null && cat /tmp/lab5-verify.txt
+echo "=== Process substitution ===" && wc -l <(cat /etc/passwd) | awk '{print "Lines:", $1}'
+rm /tmp/etc-list.txt /tmp/process-snapshot.txt /tmp/pipe-a.txt /tmp/pipe-b.txt /tmp/lab5-verify.txt 2>/dev/null
+echo "Practitioner Lab 5 complete"
 ```
 
 ## 📝 Summary
-- `|` connects stdout of one command to stdin of the next — chain as many as needed
-- `tee` splits output to both stdout and a file simultaneously; `-a` for append mode
-- `<(cmd)` process substitution treats command output as a file — perfect for `diff` and `paste`
-- `xargs` builds command lines from stdin — use `-P` for parallel execution
-- `{}` groups commands and redirects their combined output; `()` does the same in a subshell
-- Complex pipelines are Linux's superpower — combine simple tools into powerful workflows
-
+- `|` connects commands: stdout of left becomes stdin of right
+- Build pipelines: `ps aux | grep | awk | sort | head`
+- `tee` splits output to file and stdout simultaneously
+- Process substitution `<()` creates virtual file-like inputs
+- Heredoc `<< 'EOF'` provides multi-line stdin to commands
+- Here-string `<<<` sends a single string to stdin

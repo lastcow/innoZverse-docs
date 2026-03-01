@@ -1,180 +1,173 @@
 # Lab 4: File Creation and Viewing
 
 ## 🎯 Objective
-Learn to create files with `touch`, view them with `cat`, `less`, `more`, `head`, and `tail`, and understand when to use each tool.
+Learn to create files and view their contents using touch, cat, head, tail, wc, and the file command.
 
 ## ⏱️ Estimated Time
-25 minutes
+20 minutes
 
 ## 📋 Prerequisites
-- Completed Labs 1–3
-- Comfort with navigating the filesystem
+- Completed Lab 3: Directory Navigation
 
 ## 🔬 Lab Instructions
 
-### Step 1: Create an Empty File with `touch`
+### Step 1: Create Files with touch
+
 ```bash
-cd ~
-touch myfile.txt
-ls -la myfile.txt
-# Output: -rw-rw-r-- 1 student student 0 Mar  1 05:42 myfile.txt
-# Notice: size is 0 — file is empty
+touch /tmp/myfile.txt
+ls -la /tmp/myfile.txt
 ```
 
-### Step 2: Create Multiple Files at Once
-```bash
-touch file1.txt file2.txt file3.txt
-ls *.txt
-# Output: file1.txt  file2.txt  file3.txt  myfile.txt
-
-# Use brace expansion
-touch report_{jan,feb,mar}.txt
-ls report_*.txt
-# Output: report_feb.txt  report_jan.txt  report_mar.txt
+**Expected output:**
+```
+-rw-rw-r-- 1 zchen zchen 0 Mar  1 17:00 /tmp/myfile.txt
 ```
 
-### Step 3: Update File Timestamp with `touch`
 ```bash
-# touch on an existing file updates its modification timestamp
-touch myfile.txt
-ls -la myfile.txt
-# The timestamp is now updated to now
+touch /tmp/file1.txt /tmp/file2.txt /tmp/file3.txt
+ls /tmp/file*.txt
 ```
 
-### Step 4: Write Content to a File
+### Step 2: Write Content to Files
+
 ```bash
-# Use echo and redirection to write text
-echo "Hello, Linux World!" > myfile.txt
-echo "This is line 2." >> myfile.txt
-echo "And this is line 3." >> myfile.txt
+echo "Line 1: Hello World" > /tmp/sample.txt
+echo "Line 2: Linux is powerful" >> /tmp/sample.txt
+echo "Line 3: Practice makes perfect" >> /tmp/sample.txt
+echo "Line 4: Keep learning" >> /tmp/sample.txt
+echo "Line 5: End of file" >> /tmp/sample.txt
 ```
 
-### Step 5: View File Content with `cat`
-`cat` prints the entire file to the terminal — best for short files.
-
 ```bash
-cat myfile.txt
-# Output:
-# Hello, Linux World!
-# This is line 2.
-# And this is line 3.
-
-# Show line numbers
-cat -n myfile.txt
-# Output:
-#      1  Hello, Linux World!
-#      2  This is line 2.
-#      3  And this is line 3.
+cat > /tmp/config.txt << 'EOF'
+server=web01
+port=8080
+debug=false
+log_level=info
+max_connections=100
+EOF
 ```
 
-### Step 6: Create a Larger File for Paging Practice
+### Step 3: View Files with cat
+
 ```bash
-# Generate 100 lines
-seq 1 100 | awk '{print "Line " $1 ": The quick brown fox jumps over the lazy dog."}' > bigfile.txt
-wc -l bigfile.txt
-# Output: 100 bigfile.txt
+cat /tmp/sample.txt
 ```
 
-### Step 7: View with `less` (Best for Large Files)
-```bash
-less bigfile.txt
-# Navigation inside less:
-# Arrow keys: scroll line by line
-# Space / PgDn: next page
-# b / PgUp: previous page
-# /text: search forward
-# n: next search match
-# G: go to end
-# q: quit
+**Expected output:**
+```
+Line 1: Hello World
+Line 2: Linux is powerful
+Line 3: Practice makes perfect
+Line 4: Keep learning
+Line 5: End of file
 ```
 
-### Step 8: View with `more` (Simpler Pager)
 ```bash
-more bigfile.txt
-# Space: next page
-# Enter: next line
-# q: quit
-# less is generally preferred over more
+cat -n /tmp/sample.txt
 ```
 
-### Step 9: View the First Lines with `head`
+### Step 4: View Start of Files with head
+
 ```bash
-# Default: first 10 lines
-head bigfile.txt
-# Output: Line 1 through Line 10
-
-# Specify number of lines
-head -n 5 bigfile.txt
-# Output: Line 1 through Line 5
-
-# First 20 bytes
-head -c 20 bigfile.txt
+head -n 3 /tmp/sample.txt
 ```
 
-### Step 10: View the Last Lines with `tail`
-```bash
-# Default: last 10 lines
-tail bigfile.txt
-# Output: Line 91 through Line 100
-
-# Specify number of lines
-tail -n 5 bigfile.txt
-# Output: Line 96 through Line 100
-
-# Follow a file in real time (great for logs!)
-tail -f /var/log/syslog
-# Press Ctrl+C to stop following
+**Expected output:**
+```
+Line 1: Hello World
+Line 2: Linux is powerful
+Line 3: Practice makes perfect
 ```
 
-### Step 11: Concatenate Multiple Files with `cat`
 ```bash
-echo "Part 1" > part1.txt
-echo "Part 2" > part2.txt
-echo "Part 3" > part3.txt
-
-cat part1.txt part2.txt part3.txt
-# Output:
-# Part 1
-# Part 2
-# Part 3
-
-# Combine into one file
-cat part1.txt part2.txt part3.txt > combined.txt
-cat combined.txt
+head -n 5 /etc/passwd
 ```
 
-### Step 12: View File Metadata
-```bash
-# Count lines, words, characters
-wc myfile.txt
-# Output: 3  12  58 myfile.txt
-# (lines words bytes filename)
+### Step 5: View End of Files with tail
 
-wc -l bigfile.txt   # lines only
-wc -w myfile.txt    # words only
-wc -c myfile.txt    # bytes only
+```bash
+tail -n 2 /tmp/sample.txt
+```
+
+**Expected output:**
+```
+Line 4: Keep learning
+Line 5: End of file
+```
+
+```bash
+head -n 4 /tmp/sample.txt | tail -n 2
+```
+
+**Expected output:**
+```
+Line 3: Practice makes perfect
+Line 4: Keep learning
+```
+
+### Step 6: Count with wc
+
+```bash
+wc /tmp/sample.txt
+```
+
+**Expected output:**
+```
+ 5 15 89 /tmp/sample.txt
+```
+
+```bash
+wc -l /tmp/sample.txt
+wc -w /tmp/sample.txt
+wc -c /tmp/sample.txt
+wc -l /etc/passwd
+```
+
+### Step 7: Identify File Type with file
+
+```bash
+file /tmp/sample.txt
+```
+
+**Expected output:**
+```
+/tmp/sample.txt: ASCII text
+```
+
+```bash
+file /bin/ls
+```
+
+**Expected output:**
+```
+/bin/ls: ELF 64-bit LSB pie executable, x86-64, ...
+```
+
+```bash
+file /etc/passwd /bin/bash /tmp/sample.txt
 ```
 
 ## ✅ Verification
+
 ```bash
-# Create a file, write content, view it with different tools
-echo -e "Alpha\nBeta\nGamma\nDelta\nEpsilon" > /tmp/verify.txt
+echo "verification test" > /tmp/lab4-verify.txt
+echo "second line" >> /tmp/lab4-verify.txt
+echo "third line" >> /tmp/lab4-verify.txt
 
-head -n 3 /tmp/verify.txt
-# Output: Alpha, Beta, Gamma
+echo "Lines: $(wc -l < /tmp/lab4-verify.txt)"
+echo "First: $(head -n 1 /tmp/lab4-verify.txt)"
+echo "Last:  $(tail -n 1 /tmp/lab4-verify.txt)"
+echo "Type:  $(file /tmp/lab4-verify.txt)"
 
-tail -n 2 /tmp/verify.txt
-# Output: Delta, Epsilon
-
-wc -l /tmp/verify.txt
-# Output: 5 /tmp/verify.txt
-
-rm /tmp/verify.txt
+rm /tmp/lab4-verify.txt /tmp/sample.txt /tmp/config.txt /tmp/myfile.txt /tmp/file*.txt 2>/dev/null
+echo "Lab 4 complete"
 ```
 
 ## 📝 Summary
-- `touch` creates empty files or updates timestamps; supports brace expansion for bulk creation
-- `cat` displays entire files — use it for short files; `-n` adds line numbers
-- `less` is the preferred pager for large files — fully navigable and searchable
-- `head -n N` shows the first N lines; `tail -n N` shows the last N lines
-- `tail -f` follows a file live — essential for watching log files in real time
+- `touch` creates empty files or updates timestamps
+- `echo "text" > file` creates/overwrites; `echo "text" >> file` appends
+- `cat` displays entire file; `cat -n` adds line numbers
+- `head -n N` shows first N lines; `tail -n N` shows last N lines
+- `wc -l` counts lines; `wc -w` words; `wc -c` characters
+- `file` identifies the type of a file based on its content
