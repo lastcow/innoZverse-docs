@@ -1,22 +1,22 @@
 # Linux
 
-Linux is the backbone of modern computing — from servers and cloud infrastructure to Android and embedded systems. Mastering Linux is one of the highest-leverage skills you can develop.
+> *"The philosophy of Linux is 'Everything is a file.' The philosophy of this guide is 'Everything is accessible'."*
 
-## What You'll Learn
+Welcome to your central hub for mastering the Linux ecosystem. Whether you are here to learn basic navigation or to dive into systems administration, this section provides the structured path you need.
 
-- Navigate the Linux file system with confidence
-- Write powerful shell scripts to automate tasks
-- Manage users, processes, and system resources
-- Configure and secure Linux servers
+## Learning Path at a Glance
 
-## Prerequisites
+This section is broken into three distinct tiers of mastery — designed to take you from a GUI-dependent user to a command-line professional.
 
-- No prior Linux experience required
-- A computer or virtual machine running any Linux distribution (Ubuntu recommended)
+### 🗂️ Tier 1 — Navigation & File System Mastery
+Master file system management without a GUI. Learn to navigate, manage files, set permissions, and edit text — all from the terminal.
 
-## Learning Path
+### ⚙️ Tier 2 — Data Manipulation & Automation
+Master command chaining and task automation. Process text with grep/awk/sed, chain commands with pipes, write shell scripts, and schedule tasks with cron.
 
-1. [Command Line Basics](command-line-basics.md) — Start here
-2. [File System & Permissions](file-system-permissions.md)
-3. [Shell Scripting](shell-scripting.md)
-4. [System Administration](system-administration.md)
+### 🔒 Tier 3 — Networking, Security & Optimization
+Master remote system administration and security. Configure SSH, manage firewalls, monitor system performance, and harden your Linux environment.
+
+---
+
+**Start with:** [Introduction to the Terminal →](tier-1-navigation-filesystem/intro-to-terminal.md)
