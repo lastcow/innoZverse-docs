@@ -41,6 +41,7 @@
   * [Lab 15: Building a Node.js CLI Tool](javascript/foundations/labs/lab-15-cli-tool.md)
 
 ## ☕ Java
+* [Java Overview](java/README.md)
 * [Foundations](java/foundations/README.md)
   * [Lab 1: Hello World & Java Basics](java/foundations/labs/lab-01-hello-world.md)
   * [Lab 2: Variables & Primitives](java/foundations/labs/lab-02-variables-primitives.md)
