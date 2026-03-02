@@ -1,0 +1,96 @@
+<svg viewBox="0 0 1200 220" xmlns="http://www.w3.org/2000/svg" font-family="Inter, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4338ca"/><stop offset="100%" style="stop-color:#818cf8"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0e7490"/><stop offset="100%" style="stop-color:#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#065f46"/><stop offset="100%" style="stop-color:#34d399"/>
+    </linearGradient>
+    <linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#92400e"/><stop offset="100%" style="stop-color:#fbbf24"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="220" fill="#0c1445" rx="12"/>
+
+  <!-- Arrows -->
+  <g stroke="#312e81" stroke-width="2" fill="#312e81">
+    <line x1="278" y1="110" x2="298" y2="110"/>
+    <polygon points="296,104 308,110 296,116"/>
+    <line x1="578" y1="110" x2="598" y2="110"/>
+    <polygon points="596,104 608,110 596,116"/>
+    <line x1="878" y1="110" x2="898" y2="110"/>
+    <polygon points="896,104 908,110 896,116"/>
+  </g>
+
+  <!-- Card 1: Foundations -->
+  <g transform="translate(20,20)">
+    <rect width="258" height="180" rx="12" fill="#1e1b4b" stroke="#4338ca" stroke-width="1.5"/>
+    <rect width="258" height="6" rx="6" fill="url(#g1)"/>
+    <rect x="20" y="24" width="36" height="36" rx="8" fill="#4338ca" opacity="0.25"/>
+    <text x="38" y="48" font-size="20" text-anchor="middle">🌱</text>
+    <text x="68" y="36" fill="#818cf8" font-size="11" font-weight="600" letter-spacing="1">LEVEL 1</text>
+    <text x="68" y="54" fill="#e0e7ff" font-size="16" font-weight="700">Foundations</text>
+    <line x1="20" y1="72" x2="238" y2="72" stroke="#312e81" stroke-width="1"/>
+    <text x="20" y="94" fill="#a5b4fc" font-size="12">· Relational model &amp; SQL basics</text>
+    <text x="20" y="112" fill="#a5b4fc" font-size="12">· SELECT, JOIN, GROUP BY</text>
+    <text x="20" y="130" fill="#a5b4fc" font-size="12">· Database design &amp; ERD</text>
+    <text x="20" y="148" fill="#a5b4fc" font-size="12">· MySQL &amp; PostgreSQL setup</text>
+    <rect x="20" y="158" width="50" height="14" rx="7" fill="#4338ca" opacity="0.4"/>
+    <text x="45" y="169" fill="#818cf8" font-size="10" text-anchor="middle">20 Labs</text>
+  </g>
+
+  <!-- Card 2: Practitioner -->
+  <g transform="translate(320,20)">
+    <rect width="258" height="180" rx="12" fill="#1e1b4b" stroke="#0e7490" stroke-width="1.5"/>
+    <rect width="258" height="6" rx="6" fill="url(#g2)"/>
+    <rect x="20" y="24" width="36" height="36" rx="8" fill="#0e7490" opacity="0.25"/>
+    <text x="38" y="48" font-size="20" text-anchor="middle">⚙️</text>
+    <text x="68" y="36" fill="#22d3ee" font-size="11" font-weight="600" letter-spacing="1">LEVEL 2</text>
+    <text x="68" y="54" fill="#e0e7ff" font-size="16" font-weight="700">Practitioner</text>
+    <line x1="20" y1="72" x2="238" y2="72" stroke="#312e81" stroke-width="1"/>
+    <text x="20" y="94" fill="#67e8f9" font-size="12">· Advanced SQL &amp; subqueries</text>
+    <text x="20" y="112" fill="#67e8f9" font-size="12">· Indexing &amp; query optimisation</text>
+    <text x="20" y="130" fill="#67e8f9" font-size="12">· Transactions, ACID, locking</text>
+    <text x="20" y="148" fill="#67e8f9" font-size="12">· NoSQL: MongoDB &amp; Redis</text>
+    <rect x="20" y="158" width="50" height="14" rx="7" fill="#0e7490" opacity="0.4"/>
+    <text x="45" y="169" fill="#22d3ee" font-size="10" text-anchor="middle">20 Labs</text>
+  </g>
+
+  <!-- Card 3: Advanced -->
+  <g transform="translate(620,20)">
+    <rect width="258" height="180" rx="12" fill="#1e1b4b" stroke="#065f46" stroke-width="1.5"/>
+    <rect width="258" height="6" rx="6" fill="url(#g3)"/>
+    <rect x="20" y="24" width="36" height="36" rx="8" fill="#065f46" opacity="0.25"/>
+    <text x="38" y="48" font-size="20" text-anchor="middle">🔴</text>
+    <text x="68" y="36" fill="#34d399" font-size="11" font-weight="600" letter-spacing="1">LEVEL 3</text>
+    <text x="68" y="54" fill="#e0e7ff" font-size="16" font-weight="700">Advanced</text>
+    <line x1="20" y1="72" x2="238" y2="72" stroke="#312e81" stroke-width="1"/>
+    <text x="20" y="94" fill="#6ee7b7" font-size="12">· Replication &amp; sharding</text>
+    <text x="20" y="112" fill="#6ee7b7" font-size="12">· Performance tuning &amp; EXPLAIN</text>
+    <text x="20" y="130" fill="#6ee7b7" font-size="12">· Database security &amp; encryption</text>
+    <text x="20" y="148" fill="#6ee7b7" font-size="12">· Backup, recovery &amp; HA</text>
+    <rect x="20" y="158" width="50" height="14" rx="7" fill="#065f46" opacity="0.4"/>
+    <text x="45" y="169" fill="#34d399" font-size="10" text-anchor="middle">20 Labs</text>
+  </g>
+
+  <!-- Card 4: Architect -->
+  <g transform="translate(920,20)">
+    <rect width="258" height="180" rx="12" fill="#1e1b4b" stroke="#92400e" stroke-width="1.5"/>
+    <rect width="258" height="6" rx="6" fill="url(#g4)"/>
+    <rect x="20" y="24" width="36" height="36" rx="8" fill="#92400e" opacity="0.25"/>
+    <text x="38" y="48" font-size="20" text-anchor="middle">🏛️</text>
+    <text x="68" y="36" fill="#fbbf24" font-size="11" font-weight="600" letter-spacing="1">LEVEL 4</text>
+    <text x="68" y="54" fill="#e0e7ff" font-size="16" font-weight="700">Architect</text>
+    <line x1="20" y1="72" x2="238" y2="72" stroke="#312e81" stroke-width="1"/>
+    <text x="20" y="94" fill="#fde68a" font-size="12">· Distributed databases &amp; CAP</text>
+    <text x="20" y="112" fill="#fde68a" font-size="12">· Cloud: AWS RDS, DynamoDB, Atlas</text>
+    <text x="20" y="130" fill="#fde68a" font-size="12">· Data warehousing &amp; analytics</text>
+    <text x="20" y="148" fill="#fde68a" font-size="12">· Migration strategies at scale</text>
+    <rect x="20" y="158" width="50" height="14" rx="7" fill="#92400e" opacity="0.4"/>
+    <text x="45" y="169" fill="#fbbf24" font-size="10" text-anchor="middle">20 Labs</text>
+  </g>
+</svg>
