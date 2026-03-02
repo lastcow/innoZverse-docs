@@ -33,6 +33,12 @@
   * [Lab 7: Error Handling](javascript/foundations/labs/lab-07-error-handling.md)
   * [Lab 8: Modules (CommonJS & ESM)](javascript/foundations/labs/lab-08-modules.md)
   * [Lab 9: Node.js File System](javascript/foundations/labs/lab-09-filesystem.md)
+  * [Lab 10: HTTP Requests & Fetch API](javascript/foundations/labs/lab-10-http.md)
+  * [Lab 11: Regular Expressions](javascript/foundations/labs/lab-11-regex.md)
+  * [Lab 12: Iterators & Generators](javascript/foundations/labs/lab-12-generators.md)
+  * [Lab 13: Functional Programming](javascript/foundations/labs/lab-13-functional.md)
+  * [Lab 14: Testing with Node.js Test Runner](javascript/foundations/labs/lab-14-testing.md)
+  * [Lab 15: Building a Node.js CLI Tool](javascript/foundations/labs/lab-15-cli-tool.md)
 
 ## ☕ Java
 * [Foundations](java/foundations/README.md)
