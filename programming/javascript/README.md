@@ -1,54 +1,18 @@
-# JavaScript Learning Path
+# JavaScript
 
-Welcome to the innoZverse JavaScript curriculum — a complete, hands-on journey from absolute basics to production-grade Node.js engineering. Every code example is **Docker-verified** using the `innozverse-js:latest` image (Node.js v20 LTS).
+> **The language of the web — and increasingly the language of everything else.** Run in browsers, servers (Node.js), mobile (React Native), and desktop (Electron). One language, everywhere.
 
-## 🗺️ Learning Tracks
+## 📚 Learning Path
 
-| Track | Labs | Topics |
+| Level | Labs | Topics |
 |-------|------|--------|
-| [Foundations](./foundations/README.md) | 15 | Core JS syntax, data structures, functions, OOP basics |
-| [Practitioner](./practitioner/README.md) | 15 | Async patterns, Node.js APIs, Express, testing, debugging |
-| [Advanced](./advanced/README.md) | 15 | TypeScript, design patterns, performance, security, production ops |
+| [Foundations](foundations/) | 15 labs | Variables, functions, closures, classes, async/await, Node.js |
+| [Practitioner](practitioner/) | 15 labs | Express, REST APIs, Jest, TypeScript basics, streams |
+| [Advanced](advanced/) | 15 labs | GraphQL, WebSockets, microservices, performance, security |
 
-## 🐳 Setup
+**Runtime:** Node.js 20 LTS · **Docker:** `innozverse-js:latest`
 
-All labs use Docker for a consistent environment:
-
+## 🐳 Quick Start
 ```bash
-# Pull the image
-docker pull innozverse-js:latest
-
-# Verify
-docker run --rm innozverse-js:latest node --version
+docker run --rm innozverse-js:latest node -e "console.log('Hello, JavaScript!')"
 ```
-
-## 📋 Prerequisites
-
-- Docker installed and running
-- A text editor (VS Code recommended)
-- Basic command-line familiarity
-
-## 🚀 Quick Start
-
-```bash
-# Run any Node.js snippet
-docker run --rm innozverse-js:latest node -e "console.log('Hello, World!')"
-
-# Run a script file
-docker run --rm -v $(pwd):/workspace innozverse-js:latest node /workspace/app.js
-```
-
-## 📚 Track Descriptions
-
-### Foundations (Labs 1–15)
-Master the JavaScript language itself — syntax, types, control flow, functions, closures, classes, and asynchronous basics. No prior JS experience required.
-
-### Practitioner (Labs 1–15)
-Apply JavaScript in real Node.js contexts — Promises, async/await, file I/O, HTTP servers, REST APIs, testing, streams, and debugging. Requires Foundations.
-
-### Advanced (Labs 1–15)
-Production-grade engineering — TypeScript, design patterns, performance optimization, security hardening, WebSockets, microservices, Docker, CI/CD, and Node.js production best practices. Requires Practitioner.
-
----
-
-*All code verified with Node.js v20 on `innozverse-js:latest`*
