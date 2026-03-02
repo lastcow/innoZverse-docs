@@ -45,6 +45,18 @@
   * [Lab 1: Hello World & Java Basics](java/foundations/labs/lab-01-hello-world.md)
   * [Lab 2: Variables & Primitives](java/foundations/labs/lab-02-variables-primitives.md)
   * [Lab 3: Strings & StringBuilder](java/foundations/labs/lab-03-strings-stringbuilder.md)
+  * [Lab 4: Arrays & Multi-Dimensional Arrays](java/foundations/labs/lab-04-arrays.md)
+  * [Lab 5: Control Flow & Recursion](java/foundations/labs/lab-05-control-flow.md)
+  * [Lab 6: OOP — Classes & Encapsulation](java/foundations/labs/lab-06-oop-classes.md)
+  * [Lab 7: Inheritance & Polymorphism](java/foundations/labs/lab-07-inheritance.md)
+  * [Lab 8: Interfaces & Abstract Classes](java/foundations/labs/lab-08-interfaces.md)
+  * [Lab 9: Collections — List, Set, Map, Queue](java/foundations/labs/lab-09-collections.md)
+  * [Lab 10: Exception Handling](java/foundations/labs/lab-10-exceptions.md)
+  * [Lab 11: File I/O — NIO.2](java/foundations/labs/lab-11-file-io.md)
+  * [Lab 12: Generics](java/foundations/labs/lab-12-generics.md)
+  * [Lab 13: Streams & Lambdas](java/foundations/labs/lab-13-streams.md)
+  * [Lab 14: Concurrency Basics](java/foundations/labs/lab-14-concurrency.md)
+  * [Lab 15: Capstone — CLI Inventory System](java/foundations/labs/lab-15-capstone.md)
 
 ## 🐘 PHP
 * [Foundations](php/foundations/README.md)
