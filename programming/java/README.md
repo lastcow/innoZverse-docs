@@ -88,14 +88,101 @@ All labs use **Java 21 LTS** — the most feature-rich Java release ever. Key mo
 
 ## 🐳 Docker Quick Start
 
-```bash
-# Run a one-liner
-docker run --rm innozverse-java:latest \
-  java -e 'class H{public static void main(String[]a){System.out.println("Hello, Java 21!");}}'
+{% hint style="info" %}
+All labs run inside Docker — no local Java install needed. Install Docker first, then pull the lab image.
+{% endhint %}
 
-# Compile and run a file
+### 1. Install Docker
+
+{% tabs %}
+{% tab title="Ubuntu / Debian" %}
+```bash
+# Remove old versions
+sudo apt remove docker docker-engine docker.io containerd runc 2>/dev/null
+
+# Install via official script (quickest)
+curl -fsSL https://get.docker.com | sh
+
+# Add your user to the docker group (no sudo needed)
+sudo usermod -aG docker $USER
+
+# Log out and back in, then verify
+docker --version
+```
+{% endtab %}
+
+{% tab title="macOS" %}
+```bash
+# Option 1: Docker Desktop (GUI + CLI)
+# Download from https://www.docker.com/products/docker-desktop/
+# Or install via Homebrew:
+brew install --cask docker
+
+# Launch Docker Desktop from Applications, then verify
+docker --version
+```
+{% endtab %}
+
+{% tab title="Windows" %}
+```powershell
+# Option 1: Docker Desktop with WSL 2 backend (recommended)
+# Download from https://www.docker.com/products/docker-desktop/
+
+# Option 2: winget
+winget install Docker.DockerDesktop
+
+# Verify in PowerShell or Command Prompt
+docker --version
+```
+{% endtab %}
+
+{% tab title="RHEL / Fedora / CentOS" %}
+```bash
+# Fedora
+sudo dnf install docker-ce docker-ce-cli containerd.io
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+
+# Verify
+docker --version
+```
+{% endtab %}
+{% endtabs %}
+
+{% hint style="warning" %}
+After adding your user to the `docker` group on Linux, **log out and back in** (or run `newgrp docker`) for the change to take effect.
+{% endhint %}
+
+### 2. Pull the Java Lab Image
+
+```bash
+# Pull the pre-built Java 21 lab image
+docker pull innozverse-java:latest
+
+# Verify the image is ready
+docker run --rm innozverse-java:latest java --version
+```
+
+**Expected output:**
+```
+openjdk 21.0.2 2024-01-16
+OpenJDK Runtime Environment (build 21.0.2+13)
+OpenJDK 64-Bit Server VM (build 21.0.2+13, mixed mode, sharing)
+```
+
+### 3. Run Your First Java Program
+
+```bash
+# One-liner Hello World
+docker run --rm innozverse-java:latest \
+  sh -c 'echo "class H{public static void main(String[]a){System.out.println(\"Hello, Java 21!\");}}" > H.java && javac H.java && java H'
+
+# Compile and run a local file
 docker run --rm -v $(pwd):/app -w /app innozverse-java:latest \
   sh -c "javac Main.java && java Main"
+
+# Interactive REPL (JShell)
+docker run --rm -it innozverse-java:latest jshell
 ```
 
 ***
