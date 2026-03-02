@@ -147,3 +147,4 @@ Every lab uses a real database engine running locally or in Docker:
 {% hint style="warning" %}
 **Environment:** Labs use **MySQL 8** and **PostgreSQL 15** via Docker. MongoDB and Redis labs use Docker containers. All commands tested on Ubuntu 22.04.
 {% endhint %}
+
