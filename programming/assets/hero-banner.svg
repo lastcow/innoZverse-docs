@@ -1,0 +1,96 @@
+<svg viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg" font-family="Inter, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0f"/>
+      <stop offset="100%" style="stop-color:#111827"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#bg)" rx="16"/>
+  <!-- Grid -->
+  <g stroke="#1f2937" stroke-width="0.5" opacity="0.6">
+    <line x1="0" y1="80" x2="1200" y2="80"/><line x1="0" y1="160" x2="1200" y2="160"/>
+    <line x1="0" y1="240" x2="1200" y2="240"/><line x1="0" y1="320" x2="1200" y2="320"/>
+    <line x1="200" y1="0" x2="200" y2="400"/><line x1="400" y1="0" x2="400" y2="400"/>
+    <line x1="600" y1="0" x2="600" y2="400"/><line x1="800" y1="0" x2="800" y2="400"/>
+    <line x1="1000" y1="0" x2="1000" y2="400"/>
+  </g>
+
+  <!-- Language badges (right side) -->
+  <!-- Python -->
+  <rect x="780" y="30" width="90" height="34" rx="8" fill="#3b82f6" opacity="0.2" stroke="#3b82f6" stroke-width="1"/>
+  <text x="825" y="52" fill="#93c5fd" font-size="14" font-weight="700" text-anchor="middle">Python</text>
+  <!-- JavaScript -->
+  <rect x="880" y="30" width="110" height="34" rx="8" fill="#eab308" opacity="0.2" stroke="#eab308" stroke-width="1"/>
+  <text x="935" y="52" fill="#fde047" font-size="14" font-weight="700" text-anchor="middle">JavaScript</text>
+  <!-- Java -->
+  <rect x="1000" y="30" width="70" height="34" rx="8" fill="#f97316" opacity="0.2" stroke="#f97316" stroke-width="1"/>
+  <text x="1035" y="52" fill="#fb923c" font-size="14" font-weight="700" text-anchor="middle">Java</text>
+  <!-- PHP -->
+  <rect x="1080" y="30" width="60" height="34" rx="8" fill="#8b5cf6" opacity="0.2" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="1110" y="52" fill="#a78bfa" font-size="14" font-weight="700" text-anchor="middle">PHP</text>
+  <!-- TypeScript -->
+  <rect x="780" y="74" width="110" height="34" rx="8" fill="#06b6d4" opacity="0.2" stroke="#06b6d4" stroke-width="1"/>
+  <text x="835" y="96" fill="#67e8f9" font-size="14" font-weight="700" text-anchor="middle">TypeScript</text>
+  <!-- Go -->
+  <rect x="900" y="74" width="60" height="34" rx="8" fill="#22c55e" opacity="0.2" stroke="#22c55e" stroke-width="1"/>
+  <text x="930" y="96" fill="#86efac" font-size="14" font-weight="700" text-anchor="middle">Go</text>
+  <!-- HTML/CSS -->
+  <rect x="970" y="74" width="90" height="34" rx="8" fill="#ef4444" opacity="0.2" stroke="#ef4444" stroke-width="1"/>
+  <text x="1015" y="96" fill="#fca5a5" font-size="14" font-weight="700" text-anchor="middle">HTML/CSS</text>
+
+  <!-- Code editor window -->
+  <g transform="translate(760, 125)">
+    <rect width="400" height="230" rx="10" fill="#111827" stroke="#1f2937" stroke-width="1.5"/>
+    <rect width="400" height="30" rx="10" fill="#1f2937"/>
+    <rect y="22" width="400" height="8" fill="#1f2937"/>
+    <circle cx="16" cy="15" r="5" fill="#ef4444"/><circle cx="34" cy="15" r="5" fill="#eab308"/><circle cx="52" cy="15" r="5" fill="#22c55e"/>
+    <text x="200" y="20" fill="#6b7280" font-size="10" text-anchor="middle" font-family="monospace">main.py</text>
+    <!-- Python code -->
+    <text x="14" y="58" fill="#818cf8" font-size="11" font-family="monospace">def</text>
+    <text x="40" y="58" fill="#22c55e" font-size="11" font-family="monospace">fibonacci</text>
+    <text x="116" y="58" fill="#e2e8f0" font-size="11" font-family="monospace">(n: int) -&gt; list:</text>
+    <text x="14" y="76" fill="#6b7280" font-size="11" font-family="monospace">    """Generate Fibonacci sequence"""</text>
+    <text x="14" y="94" fill="#e2e8f0" font-size="11" font-family="monospace">    a, b = </text>
+    <text x="68" y="94" fill="#f59e0b" font-size="11" font-family="monospace">0</text>
+    <text x="76" y="94" fill="#e2e8f0" font-size="11" font-family="monospace">,</text>
+    <text x="84" y="94" fill="#f59e0b" font-size="11" font-family="monospace">1</text>
+    <text x="14" y="112" fill="#818cf8" font-size="11" font-family="monospace">    for</text>
+    <text x="40" y="112" fill="#e2e8f0" font-size="11" font-family="monospace">_ in range(n):</text>
+    <text x="14" y="130" fill="#e2e8f0" font-size="11" font-family="monospace">        a, b = b, a + b</text>
+    <text x="14" y="148" fill="#818cf8" font-size="11" font-family="monospace">        yield</text>
+    <text x="66" y="148" fill="#e2e8f0" font-size="11" font-family="monospace">a</text>
+    <text x="14" y="174" fill="#22c55e" font-size="11" font-family="monospace">print</text>
+    <text x="48" y="174" fill="#e2e8f0" font-size="11" font-family="monospace">(list(fibonacci(</text>
+    <text x="148" y="174" fill="#f59e0b" font-size="11" font-family="monospace">10</text>
+    <text x="160" y="174" fill="#e2e8f0" font-size="11" font-family="monospace">)))</text>
+    <text x="14" y="196" fill="#6b7280" font-size="11" font-family="monospace"># [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]</text>
+    <rect x="14" y="204" width="370" height="1" fill="#1f2937"/>
+    <text x="14" y="220" fill="#22c55e" font-size="11" font-family="monospace">✓ All tests passed (15ms)</text>
+  </g>
+
+  <!-- Main text -->
+  <text x="80" y="118" fill="#f9fafb" font-size="52" font-weight="700" letter-spacing="-2">Programming</text>
+  <text x="80" y="162" fill="#9ca3af" font-size="20">Master 7 languages from first line</text>
+  <text x="80" y="190" fill="#9ca3af" font-size="20">of code to production systems</text>
+
+  <!-- Stats -->
+  <g transform="translate(80, 240)">
+    <rect width="130" height="66" rx="10" fill="#111827" stroke="#1f2937" stroke-width="1"/>
+    <text x="65" y="28" fill="#f59e0b" font-size="26" font-weight="700" text-anchor="middle">7</text>
+    <text x="65" y="50" fill="#4b5563" font-size="12" text-anchor="middle">Languages</text>
+
+    <rect x="148" width="130" height="66" rx="10" fill="#111827" stroke="#1f2937" stroke-width="1"/>
+    <text x="213" y="28" fill="#22c55e" font-size="26" font-weight="700" text-anchor="middle">280+</text>
+    <text x="213" y="50" fill="#4b5563" font-size="12" text-anchor="middle">Labs Total</text>
+
+    <rect x="296" width="130" height="66" rx="10" fill="#111827" stroke="#1f2937" stroke-width="1"/>
+    <text x="361" y="28" fill="#3b82f6" font-size="26" font-weight="700" text-anchor="middle">4</text>
+    <text x="361" y="50" fill="#4b5563" font-size="12" text-anchor="middle">Levels Each</text>
+
+    <rect x="444" width="130" height="66" rx="10" fill="#111827" stroke="#1f2937" stroke-width="1"/>
+    <text x="509" y="28" fill="#8b5cf6" font-size="20" font-weight="700" text-anchor="middle">Docker</text>
+    <text x="509" y="50" fill="#4b5563" font-size="12" text-anchor="middle">Verified Labs</text>
+  </g>
+
+  <text x="80" y="388" fill="#1f2937" font-size="13">innozverse.com · docs.innozverse.com/programming</text>
+</svg>
