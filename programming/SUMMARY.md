@@ -145,6 +145,23 @@
   * [Lab 14: Type System & Attributes](php/foundations/labs/lab-14-type-system.md)
   * [Lab 15: Capstone — REST API](php/foundations/labs/lab-15-capstone.md)
 
+* [Practitioner](php/practitioner/README.md)
+  * [Lab 1: Traits, Abstract Classes & Interfaces](php/practitioner/labs/lab-01-traits-abstract-interfaces.md)
+  * [Lab 2: Namespaces & PSR-4 Autoloading](php/practitioner/labs/lab-02-namespaces-autoloading.md)
+  * [Lab 3: Advanced Error Handling](php/practitioner/labs/lab-03-advanced-error-handling.md)
+  * [Lab 4: PDO & Repository Pattern](php/practitioner/labs/lab-04-pdo-repository-pattern.md)
+  * [Lab 5: PHP 8.x Modern Features](php/practitioner/labs/lab-05-php8-features.md)
+  * [Lab 6: Functional PHP — Closures & Pipelines](php/practitioner/labs/lab-06-functional-php.md)
+  * [Lab 7: Design Patterns](php/practitioner/labs/lab-07-design-patterns.md)
+  * [Lab 8: Testing & TDD](php/practitioner/labs/lab-08-testing-tdd.md)
+  * [Lab 9: REST API Development](php/practitioner/labs/lab-09-rest-api.md)
+  * [Lab 10: Generators & Fibers](php/practitioner/labs/lab-10-generators-fibers.md)
+  * [Lab 11: Advanced Regular Expressions](php/practitioner/labs/lab-11-advanced-regex.md)
+  * [Lab 12: File I/O & Streams](php/practitioner/labs/lab-12-file-streams.md)
+  * [Lab 13: PHP Type System](php/practitioner/labs/lab-13-type-system.md)
+  * [Lab 14: JSON, XML & API Clients](php/practitioner/labs/lab-14-json-xml-api-clients.md)
+  * [Lab 15: Capstone — Mini MVC Framework](php/practitioner/labs/lab-15-capstone.md)
+
 ## 🌐 HTML/CSS
 * [HTML/CSS Overview](html-css/README.md)
 * [Foundations](html-css/foundations/README.md)
