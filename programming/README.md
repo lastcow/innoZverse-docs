@@ -36,7 +36,7 @@
     </tr>
     <tr>
       <td><strong>🌐 HTML/CSS</strong></td>
-      <td>The foundation of every website. 15 Foundations labs covering Flexbox, Grid, Responsive, Animations, Accessibility, and CSS Variables. Docker image: <code>zchencow/innozverse-htmlcss:latest</code></td>
+      <td>The foundation of every website. 15 Foundations labs covering Flexbox, Grid, Responsive, Animations, Accessibility, and CSS Variables. Docker image: <code>zchencow/zchencow/innozverse-htmlcss:latest</code></td>
       <td><a href="html-css/">html-css/</a></td>
     </tr>
     <tr>
@@ -65,7 +65,7 @@
 | Advanced | 15 | FastAPI, SQLAlchemy, pandas, asyncio, packaging |
 | Expert | 15 | Architecture, performance, microservices, ML pipeline |
 
-**Runtime:** Python 3.12 · **Docker:** `innozverse-python:latest`
+**Runtime:** Python 3.12 · **Docker:** `zchencow/innozverse-python:latest`
 {% endtab %}
 
 {% tab title="🟨 JavaScript" %}
@@ -76,7 +76,7 @@
 | Advanced | 15 | TypeScript, design patterns, WebSockets, GraphQL |
 | Expert | 15 | Microservices, performance, security, production ops |
 
-**Runtime:** Node.js 20 · **Docker:** `innozverse-js:latest`
+**Runtime:** Node.js 20 · **Docker:** `zchencow/innozverse-js:latest`
 {% endtab %}
 
 {% tab title="☕ Java" %}
@@ -87,14 +87,14 @@
 | Advanced | 10 | Spring Boot, REST API, JPA, microservices, Docker |
 | Expert | 10 | Reactive, security, performance, cloud-native Java |
 
-**Runtime:** Java 21 · **Docker:** `innozverse-java:latest`
+**Runtime:** Java 21 · **Docker:** `zchencow/innozverse-java:latest`
 {% endtab %}
 
 {% tab title="🐘 PHP + 🌐 HTML/CSS + 🔷 TS + 🐹 Go" %}
 | Language | Levels | Total Labs |
 |----------|--------|-----------|
 | PHP 8.3 | Foundations + Practitioner + Advanced | 40 labs |
-| HTML/CSS | Foundations (15 labs complete) | Flexbox, Grid, Responsive, Animations, Accessibility, CSS Variables · `zchencow/innozverse-htmlcss:latest` |
+| HTML/CSS | Foundations (15 labs complete) | Flexbox, Grid, Responsive, Animations, Accessibility, CSS Variables · `zchencow/zchencow/innozverse-htmlcss:latest` |
 | TypeScript | Foundations + Practitioner | 24 labs |
 | Go 1.22 | Foundations + Practitioner | 30 labs |
 

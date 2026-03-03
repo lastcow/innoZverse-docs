@@ -10,9 +10,9 @@
 | [Practitioner](practitioner/) | 15 labs | Express, REST APIs, Jest, TypeScript basics, streams |
 | [Advanced](advanced/) | 15 labs | GraphQL, WebSockets, microservices, performance, security |
 
-**Runtime:** Node.js 20 LTS · **Docker:** `innozverse-js:latest`
+**Runtime:** Node.js 20 LTS · **Docker:** `zchencow/innozverse-js:latest`
 
 ## 🐳 Quick Start
 ```bash
-docker run --rm innozverse-js:latest node -e "console.log('Hello, JavaScript!')"
+docker run --rm zchencow/innozverse-js:latest node -e "console.log('Hello, JavaScript!')"
 ```

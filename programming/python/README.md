@@ -41,14 +41,14 @@
 {% tab title="🐳 Docker (Recommended)" %}
 ```bash
 # Pull the verified image
-docker pull zchencow/innozverse-python:latest
+docker pull zchencow/zchencow/innozverse-python:latest
 
 # Run any Python snippet
-docker run --rm zchencow/innozverse-python:latest \
+docker run --rm zchencow/zchencow/innozverse-python:latest \
   python3 -c "print('Hello from Python 3.12!')"
 
 # Interactive REPL
-docker run --rm -it zchencow/innozverse-python:latest python3
+docker run --rm -it zchencow/zchencow/innozverse-python:latest python3
 ```
 
 **Included packages:** `fastapi 0.135` · `pydantic 2.12` · `pandas 3.0` · `numpy 2.4` · `pytest 9.0` · `requests 2.32` · `uvicorn 0.41` · `rich`
@@ -142,7 +142,7 @@ Real-world Python engineering with advanced patterns.
 | 15 | Capstone — DataPipeline | Async pipeline + SQLite + FastAPI + pandas + rich CLI + pytest |
 
 {% hint style="success" %}
-**All Practitioner labs verified** inside `zchencow/innozverse-python:latest` (Python 3.12.12). Every code block produces the exact output shown.
+**All Practitioner labs verified** inside `zchencow/zchencow/innozverse-python:latest` (Python 3.12.12). Every code block produces the exact output shown.
 {% endhint %}
 
 ---
@@ -151,7 +151,7 @@ Real-world Python engineering with advanced patterns.
 
 ```bash
 # Verify your environment
-docker run --rm zchencow/innozverse-python:latest python3 -c "
+docker run --rm zchencow/zchencow/innozverse-python:latest python3 -c "
 import sys, fastapi, pydantic, pandas, numpy, pytest
 print(f'Python:  {sys.version.split()[0]}')
 print(f'FastAPI: {fastapi.__version__}')

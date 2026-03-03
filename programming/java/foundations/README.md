@@ -20,9 +20,9 @@
 | 14 | [Concurrency Basics](labs/lab-14-concurrency.md) | threads, ExecutorService, CompletableFuture, virtual threads |
 | 15 | [Capstone — Inventory System](labs/lab-15-capstone.md) | all concepts combined, CLI app, CSV persistence |
 
-**Runtime:** Java 21 (Eclipse Temurin) · **Docker:** `innozverse-java:latest`
+**Runtime:** Java 21 (Eclipse Temurin) · **Docker:** `zchencow/innozverse-java:latest`
 
 ## 🐳 Quick Start
 ```bash
-docker run --rm innozverse-java:latest java -e 'class H{public static void main(String[]a){System.out.println("Hello, Java 21!");}}'
+docker run --rm zchencow/innozverse-java:latest java -e 'class H{public static void main(String[]a){System.out.println("Hello, Java 21!");}}'
 ```

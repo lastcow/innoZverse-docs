@@ -55,17 +55,17 @@ Go was built at Google to solve real problems: long compile times, complex depen
 {% tab title="🐳 Docker (Recommended)" %}
 ```bash
 # Pull the lab image — Go 1.22, Alpine
-docker pull zchencow/innozverse-go:latest
+docker pull zchencow/zchencow/innozverse-go:latest
 
 # Run a one-liner
-docker run --rm zchencow/innozverse-go:latest go run - << 'EOF'
+docker run --rm zchencow/zchencow/innozverse-go:latest go run - << 'EOF'
 package main
 import "fmt"
 func main() { fmt.Println("Hello, Go!") }
 EOF
 
 # Interactive shell
-docker run --rm -it zchencow/innozverse-go:latest sh
+docker run --rm -it zchencow/zchencow/innozverse-go:latest sh
 ```
 {% endtab %}
 {% tab title="Ubuntu/Debian" %}

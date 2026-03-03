@@ -57,13 +57,13 @@ TypeScript is the most popular typed language in web development — used by Ang
 {% tab title="🐳 Docker (Recommended)" %}
 ```bash
 # Pull the lab image — TypeScript 5.x, Node 20, ts-node included
-docker pull zchencow/innozverse-ts:latest
+docker pull zchencow/zchencow/innozverse-ts:latest
 
 # Run a one-liner
-docker run --rm zchencow/innozverse-ts:latest ts-node -e "console.log('TypeScript ready!')"
+docker run --rm zchencow/zchencow/innozverse-ts:latest ts-node -e "console.log('TypeScript ready!')"
 
 # Interactive shell
-docker run --rm -it zchencow/innozverse-ts:latest bash
+docker run --rm -it zchencow/zchencow/innozverse-ts:latest bash
 ```
 {% endtab %}
 {% tab title="Ubuntu/Debian" %}
