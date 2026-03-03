@@ -55,6 +55,23 @@
   * [Lab 14: Networking & Sockets](python/advanced/labs/lab-14-networking-sockets.md)
   * [Lab 15: Capstone — Production Data Service](python/advanced/labs/lab-15-capstone.md)
 
+* [AI Related](python/ai/README.md)
+  * [Lab 1: Linear Regression](python/ai/labs/lab-01-linear-regression.md)
+  * [Lab 2: Logistic Regression](python/ai/labs/lab-02-logistic-regression.md)
+  * [Lab 3: Neural Network from Scratch](python/ai/labs/lab-03-neural-network.md)
+  * [Lab 4: K-Means Clustering](python/ai/labs/lab-04-kmeans-clustering.md)
+  * [Lab 5: Decision Trees](python/ai/labs/lab-05-decision-trees.md)
+  * [Lab 6: K-Nearest Neighbours](python/ai/labs/lab-06-knn.md)
+  * [Lab 7: PCA](python/ai/labs/lab-07-pca.md)
+  * [Lab 8: NLP & TF-IDF](python/ai/labs/lab-08-nlp-tfidf.md)
+  * [Lab 9: Recommendation Systems](python/ai/labs/lab-09-recommendation-system.md)
+  * [Lab 10: Time Series Analysis](python/ai/labs/lab-10-time-series.md)
+  * [Lab 11: Gradient Descent Optimisers](python/ai/labs/lab-11-gradient-descent-optimisers.md)
+  * [Lab 12: Convolutional Operations](python/ai/labs/lab-12-convolutional-operations.md)
+  * [Lab 13: Data Preprocessing](python/ai/labs/lab-13-data-preprocessing.md)
+  * [Lab 14: Model Evaluation & CV](python/ai/labs/lab-14-model-evaluation.md)
+  * [Lab 15: Capstone — Full ML Pipeline](python/ai/labs/lab-15-capstone.md)
+
 ## 🟨 JavaScript
 * [JavaScript Overview](javascript/README.md)
 * [Foundations](javascript/foundations/README.md)
