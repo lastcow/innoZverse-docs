@@ -21,6 +21,23 @@
   * [Lab 14: Regular Expressions](python/foundations/labs/lab-14-regex.md)
   * [Lab 15: Virtual Environments & Packaging](python/foundations/labs/lab-15-virtual-envs-packaging.md)
 
+* [Practitioner](python/practitioner/README.md)
+  * [Lab 1: Advanced OOP](python/practitioner/labs/lab-01-advanced-oop.md)
+  * [Lab 2: Decorators](python/practitioner/labs/lab-02-decorators.md)
+  * [Lab 3: Generators & itertools](python/practitioner/labs/lab-03-generators-itertools.md)
+  * [Lab 4: Concurrency](python/practitioner/labs/lab-04-concurrency.md)
+  * [Lab 5: Async / Await](python/practitioner/labs/lab-05-async-await.md)
+  * [Lab 6: Testing with pytest](python/practitioner/labs/lab-06-testing-pytest.md)
+  * [Lab 7: Type Hints & Generics](python/practitioner/labs/lab-07-type-hints.md)
+  * [Lab 8: SQLite & Database](python/practitioner/labs/lab-08-sqlite-database.md)
+  * [Lab 9: REST APIs — FastAPI](python/practitioner/labs/lab-09-fastapi.md)
+  * [Lab 10: Data Processing — pandas & numpy](python/practitioner/labs/lab-10-data-processing.md)
+  * [Lab 11: CLI Tools — argparse & rich](python/practitioner/labs/lab-11-cli-tools.md)
+  * [Lab 12: Design Patterns](python/practitioner/labs/lab-12-design-patterns.md)
+  * [Lab 13: Packaging & Modules](python/practitioner/labs/lab-13-packaging-modules.md)
+  * [Lab 14: Context Managers & Protocols](python/practitioner/labs/lab-14-context-managers-protocols.md)
+  * [Lab 15: Capstone — DataPipeline CLI](python/practitioner/labs/lab-15-capstone.md)
+
 ## 🟨 JavaScript
 * [JavaScript Overview](javascript/README.md)
 * [Foundations](javascript/foundations/README.md)
