@@ -52,8 +52,8 @@
   * [Lab 11: Advanced Concurrency](python/advanced/labs/lab-11-concurrency-advanced.md)
   * [Lab 12: Plugin Architecture](python/advanced/labs/lab-12-plugin-architecture.md)
   * [Lab 13: Serialization & Protocols](python/advanced/labs/lab-13-serialization-protocols.md)
-  * [Lab 14: Advanced FastAPI](python/advanced/labs/lab-14-fastapi-advanced.md)
-  * [Lab 15: Capstone — Production Platform](python/advanced/labs/lab-15-capstone.md)
+  * [Lab 14: Networking & Sockets](python/advanced/labs/lab-14-networking-sockets.md)
+  * [Lab 15: Capstone — Production Data Service](python/advanced/labs/lab-15-capstone.md)
 
 ## 🟨 JavaScript
 * [JavaScript Overview](javascript/README.md)
@@ -108,6 +108,23 @@
   * [Lab 13: Interfaces Advanced](java/practitioner/labs/lab-13-interfaces-advanced.md)
   * [Lab 14: Advanced Enums](java/practitioner/labs/lab-14-enums-advanced.md)
   * [Lab 15: Capstone — Order Platform](java/practitioner/labs/lab-15-capstone.md)
+
+* [Advanced](java/advanced/README.md)
+  * [Lab 1: Dynamic Proxies & Reflection](java/advanced/labs/lab-01-dynamic-proxy-reflection.md)
+  * [Lab 2: Virtual Threads](java/advanced/labs/lab-02-virtual-threads.md)
+  * [Lab 3: Advanced Generics](java/advanced/labs/lab-03-advanced-generics.md)
+  * [Lab 4: Design Patterns Advanced](java/advanced/labs/lab-04-design-patterns-advanced.md)
+  * [Lab 5: Advanced JDBC — Window Functions & CTEs](java/advanced/labs/lab-05-advanced-jdbc.md)
+  * [Lab 6: Cryptography — JCA/JCE](java/advanced/labs/lab-06-cryptography.md)
+  * [Lab 7: NIO.2 Channels & ByteBuffer](java/advanced/labs/lab-07-nio-channels.md)
+  * [Lab 8: ForkJoinPool & Parallel Algorithms](java/advanced/labs/lab-08-forkjoin.md)
+  * [Lab 9: Serialization & Binary Protocols](java/advanced/labs/lab-09-serialization.md)
+  * [Lab 10: Performance Profiling & Benchmarking](java/advanced/labs/lab-10-performance.md)
+  * [Lab 11: Advanced Concurrency](java/advanced/labs/lab-11-advanced-concurrency.md)
+  * [Lab 12: Annotation-Driven Frameworks](java/advanced/labs/lab-12-annotation-driven-frameworks.md)
+  * [Lab 13: Records & Sealed Classes Deep Dive](java/advanced/labs/lab-13-records-sealed-deep-dive.md)
+  * [Lab 14: Text Blocks & String Processing](java/advanced/labs/lab-14-text-blocks-strings.md)
+  * [Lab 15: Capstone — Production Order Service](java/advanced/labs/lab-15-capstone.md)
 
 ## 🐘 PHP
 * [PHP Overview](php/README.md)

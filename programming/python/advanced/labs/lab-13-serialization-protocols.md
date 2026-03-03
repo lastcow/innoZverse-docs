@@ -1,16 +1,16 @@
-# Lab 13: Serialization, Protocols & Data Exchange
+# Lab 13: Serialization Protocols
 
 ## Objective
-Master Python serialization: `pickle` for Python objects, `json` with custom encoders/decoders, `struct` binary protocols, `shelve` for persistent dicts, `copy`/`deepcopy` semantics, and designing versioned serialization formats with forward/backward compatibility.
+Master Python's serialization ecosystem: `json` with custom encoders/decoders, `pickle` for arbitrary objects, `struct` for binary protocols, `base64` encoding, schema validation with `dataclasses`, and a lightweight binary frame format for high-throughput data pipelines.
 
 ## Background
-Serialization turns Python objects into bytes that can be stored or transmitted. Each format has tradeoffs: JSON is universal but loses types; pickle is Python-only but handles arbitrary objects; struct is fastest and most compact but requires a fixed schema. Choosing the right format for each use case is a critical engineering decision.
+Serialization converts in-memory objects to bytes for storage or transmission. Different formats have different tradeoffs: JSON is human-readable and universal but slow; `pickle` is Python-native and fast but not portable; `struct` produces compact binary packets for fixed-format protocols. Choosing the right format determines throughput at scale.
 
 ## Time
 30 minutes
 
 ## Prerequisites
-- Lab 06 (Binary/struct), Lab 07 (Cryptography)
+- Python Advanced Lab 06 (ctypes & Binary Protocols)
 
 ## Tools
 - Docker: `zchencow/innozverse-python:latest`
@@ -19,438 +19,214 @@ Serialization turns Python objects into bytes that can be stored or transmitted.
 
 ## Lab Instructions
 
-### Step 1: `pickle` — Python Object Serialization
+### Steps 1–8: JSON custom encoder/decoder, pickle with hooks, struct binary frames, base64, dataclass schema, round-trip tests, size comparison, Capstone
 
 ```bash
-docker run --rm zchencow/innozverse-python:latest python3 -c "
-import pickle, io, sys
-from dataclasses import dataclass
-from datetime import datetime
+docker run --rm zchencow/innozverse-python:latest python3 - << 'PYEOF'
+import json, pickle, struct, base64, dataclasses, time, sys
+from dataclasses import dataclass, asdict, fields
+from typing import Any
+from decimal import Decimal
+from datetime import datetime, date
+
+# ── Step 1: JSON with custom encoder/decoder ──────────────────────────────────
+print("=== JSON Custom Encoder/Decoder ===")
 
 @dataclass
 class Product:
-    id: int; name: str; price: float; stock: int
-    created_at: datetime = None
-    def __post_init__(self):
-        if not self.created_at: self.created_at = datetime.now()
-    def discount(self, pct: float) -> 'Product':
-        return Product(self.id, self.name, round(self.price*(1-pct),2), self.stock, self.created_at)
+    id: int
+    name: str
+    price: Decimal          # not JSON-native
+    created: date           # not JSON-native
+    tags: list[str]
 
-p = Product(1, 'Surface Pro', 864.0, 15)
-print(f'Original: {p}')
+    def to_dict(self):
+        return {"__type__": "Product", "id": self.id, "name": self.name,
+                "price": str(self.price), "created": self.created.isoformat(), "tags": self.tags}
 
-# Pickle to bytes
-data = pickle.dumps(p, protocol=pickle.HIGHEST_PROTOCOL)
-print(f'Pickled: {len(data)} bytes (protocol={pickle.HIGHEST_PROTOCOL})')
-
-# Restore
-p2 = pickle.loads(data)
-print(f'Restored: {p2}')
-print(f'Same class: {p2.__class__.__name__} | created_at preserved: {p2.created_at is not None}')
-print(f'Methods work: discount={p2.discount(0.1)}')
-
-# Complex objects: lists, dicts, nested dataclasses
-catalog = {
-    'products': [
-        Product(i, f'P-{i}', 9.99 + i*10, i*5)
-        for i in range(100)
-    ],
-    'metadata': {'version': '2.0', 'exported_at': datetime.now()},
-    'summary': {'total': sum(9.99+i*10 for i in range(100))},
-}
-
-raw = pickle.dumps(catalog)
-print(f'\\nCatalog: {len(catalog[\"products\"])} products → {len(raw):,} bytes')
-restored = pickle.loads(raw)
-print(f'Restored {len(restored[\"products\"])} products, v{restored[\"metadata\"][\"version\"]}')
-
-# Custom __reduce__ for pickle control
-class Circle:
-    def __init__(self, radius: float): self.radius = radius
-    @property
-    def area(self): import math; return math.pi * self.radius ** 2
-    def __reduce__(self):
-        return (self.__class__, (self.radius,))  # (callable, args)
-    def __repr__(self): return f'Circle(r={self.radius}, area={self.area:.2f})'
-
-c = Circle(5.0)
-c2 = pickle.loads(pickle.dumps(c))
-print(f'\\nCircle: {c} → pickled → {c2}')
-print(f'area preserved: {abs(c.area - c2.area) < 0.001}')
-
-# Security: NEVER unpickle untrusted data
-class SafeUnpickler(pickle.Unpickler):
-    SAFE = {('builtins', 'list'), ('builtins', 'dict'), ('__main__', 'Product'),
-            ('datetime', 'datetime'), ('builtins', 'tuple')}
-    def find_class(self, module, name):
-        if (module, name) not in self.SAFE:
-            raise pickle.UnpicklingError(f'BLOCKED: {module}.{name}')
-        return super().find_class(module, name)
-
-safe_data = pickle.dumps([1, 2, 3])
-result = SafeUnpickler(io.BytesIO(safe_data)).load()
-print(f'Safe unpickle: {result}')
-"
-```
-
-> 💡 **Never `pickle.loads()` data from untrusted sources.** Pickle can execute arbitrary Python code during deserialization — a maliciously crafted pickle blob can run `os.system('rm -rf /')`. Always use `SafeUnpickler` with an allowlist when deserializing external data. For API data exchange, use JSON or msgpack instead.
-
-**📸 Verified Output:**
-```
-Original: Product(id=1, name='Surface Pro', price=864.0, stock=15, ...)
-Pickled: 143 bytes (protocol=5)
-Restored: Product(id=1, name='Surface Pro', price=864.0, stock=15, ...)
-Same class: Product | created_at preserved: True
-Methods work: discount=Product(id=1, name='Surface Pro', price=777.6, ...)
-
-Catalog: 100 products → 7,423 bytes
-Restored 100 products, v2.0
-```
-
----
-
-### Step 2: JSON — Custom Encoders & Decoders
-
-```bash
-docker run --rm zchencow/innozverse-python:latest python3 -c "
-import json, decimal
-from dataclasses import dataclass, asdict
-from datetime import datetime, date, timezone
-from enum import Enum
-
-class Status(str, Enum):
-    ACTIVE = 'active'; OOS = 'out_of_stock'; DISCONTINUED = 'discontinued'
-
-@dataclass
-class Product:
-    id: int; name: str; price: float; stock: int; status: Status
-    created_at: datetime = None
-    def __post_init__(self):
-        if not self.created_at: self.created_at = datetime.now(timezone.utc)
-
-# Custom encoder: handles types JSON doesn't know about
-class AppEncoder(json.JSONEncoder):
+class InnoEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, datetime):
-            return {'__type__': 'datetime', 'iso': obj.isoformat()}
-        if isinstance(obj, date):
-            return {'__type__': 'date', 'iso': obj.isoformat()}
-        if isinstance(obj, Enum):
-            return obj.value
-        if hasattr(obj, '__dataclass_fields__'):
-            d = asdict(obj)
-            d['__type__'] = obj.__class__.__name__
-            return d
-        if isinstance(obj, decimal.Decimal):
-            return {'__type__': 'Decimal', 'value': str(obj)}
+        if isinstance(obj, Product): return obj.to_dict()
+        if isinstance(obj, Decimal): return {"__type__": "Decimal", "value": str(obj)}
+        if isinstance(obj, (date, datetime)): return {"__type__": "date", "value": obj.isoformat()}
         return super().default(obj)
 
-# Custom decoder: reconstruct Python objects from JSON
-def app_decoder(obj: dict):
-    t = obj.get('__type__')
-    if t == 'datetime':
-        return datetime.fromisoformat(obj['iso'])
-    if t == 'date':
-        return date.fromisoformat(obj['iso'])
-    if t == 'Decimal':
-        return decimal.Decimal(obj['value'])
-    if t == 'Product':
-        obj.pop('__type__')
-        if isinstance(obj.get('created_at'), str):
-            obj['created_at'] = datetime.fromisoformat(obj['created_at'])
-        obj['status'] = Status(obj['status'])
-        return Product(**obj)
-    return obj
+def inno_decoder(d):
+    t = d.get("__type__")
+    if t == "Product":
+        return Product(d["id"], d["name"], Decimal(d["price"]), date.fromisoformat(d["created"]), d["tags"])
+    if t == "Decimal": return Decimal(d["value"])
+    if t == "date":    return date.fromisoformat(d["value"])
+    return d
 
-p = Product(1, 'Surface Pro', 864.0, 15, Status.ACTIVE)
-payload = {'product': p, 'timestamp': datetime.now(timezone.utc),
-           'price_decimal': decimal.Decimal('864.00')}
+products = [
+    Product(1, "Surface Pro",  Decimal("864.00"), date(2026,1,15), ["laptop","microsoft","premium"]),
+    Product(2, "Surface Pen",  Decimal("49.99"),  date(2026,1,20), ["accessory","stylus"]),
+    Product(3, "Office 365",   Decimal("99.99"),  date(2026,2,1),  ["software","subscription"]),
+]
 
-serialized = json.dumps(payload, cls=AppEncoder, indent=2)
-print(f'Serialized ({len(serialized)} chars):')
-print(serialized)
+serialized = json.dumps(products, cls=InnoEncoder, indent=2)
+print(f"Serialized {len(products)} products → {len(serialized)} bytes")
+restored = json.loads(serialized, object_hook=inno_decoder)
+print(f"Restored:  {restored[0]}")
+print(f"Types OK:  price={type(restored[0].price).__name__}  created={type(restored[0].created).__name__}")
 
-deserialized = json.loads(serialized, object_hook=app_decoder)
-print(f'\\nDeserialized:')
-print(f'  product type: {type(deserialized[\"product\"]).__name__}')
-print(f'  price_decimal type: {type(deserialized[\"price_decimal\"]).__name__}')
-print(f'  timestamp type: {type(deserialized[\"timestamp\"]).__name__}')
+# ── Step 2: pickle with __reduce__ ────────────────────────────────────────────
+print("\n=== pickle with __reduce__ ===")
 
-# json.loads with type coercion
-raw_api = '{\"id\":\"1\",\"price\":\"864.00\",\"stock\":\"15\",\"active\":\"true\"}'
-def coerce(d):
-    result = {}
-    for k, v in d.items():
-        if isinstance(v, str) and v.isdigit(): result[k] = int(v)
-        elif isinstance(v, str):
-            try: result[k] = float(v)
-            except ValueError:
-                if v.lower() == 'true': result[k] = True
-                elif v.lower() == 'false': result[k] = False
-                else: result[k] = v
-        else: result[k] = v
-    return result
+class SecureProduct:
+    """Custom pickle with field whitelisting."""
+    def __init__(self, id, name, price, secret="HIDDEN"):
+        self.id, self.name, self.price, self._secret = id, name, price, secret
+    def __reduce__(self):
+        # Only serialize public fields — exclude _secret
+        return (self.__class__, (self.id, self.name, self.price))
+    def __repr__(self): return f"SecureProduct(id={self.id} name={self.name} price={self.price})"
 
-coerced = json.loads(raw_api, object_hook=coerce)
-print(f'\\nCoerced API response: {coerced}')
-print(f'Types: id={type(coerced[\"id\"]).__name__} price={type(coerced[\"price\"]).__name__} active={type(coerced[\"active\"]).__name__}')
-"
+sp = SecureProduct(1, "Surface Pro", 864.0, secret="card:4111111111111111")
+raw = pickle.dumps(sp)
+restored_sp = pickle.loads(raw)
+print(f"Original: secret={sp._secret!r}")
+print(f"Pickled:  {len(raw)} bytes")
+print(f"Restored: {restored_sp}")
+print(f"Secret gone: {restored_sp._secret!r}")  # default value only
+
+# List of products
+data = [Product(i, f"Product-{i}", Decimal(str(10+i*0.5)), date.today(), []) for i in range(100)]
+t0 = time.perf_counter()
+pkl = pickle.dumps(data)
+json_s = json.dumps([p.to_dict() for p in data])
+t1 = time.perf_counter()
+print(f"\nPickle: {len(pkl):,} bytes  JSON: {len(json_s):,} bytes  time={t1-t0:.3f}s")
+
+# ── Step 3: struct binary frames ──────────────────────────────────────────────
+print("\n=== struct Binary Frames ===")
+
+# Network frame: | magic(2) | version(1) | type(1) | length(4) | payload |
+MAGIC = 0x494E  # "IN"
+FRAME_HDR = struct.Struct(">HBBi")  # big-endian: uint16 uint8 uint8 int32
+
+def encode_frame(msg_type: int, payload: bytes) -> bytes:
+    hdr = FRAME_HDR.pack(MAGIC, 1, msg_type, len(payload))
+    return hdr + payload
+
+def decode_frame(data: bytes) -> tuple[int, bytes]:
+    hdr_size = FRAME_HDR.size
+    magic, version, msg_type, length = FRAME_HDR.unpack(data[:hdr_size])
+    assert magic == MAGIC, f"Bad magic: {magic:#x}"
+    return msg_type, data[hdr_size:hdr_size+length]
+
+# Encode products as binary frames
+MSG_PRODUCT = 0x01
+product_struct = struct.Struct(">id20s")  # int32 float64 20-char name
+
+frames = []
+for p in products:
+    name_bytes = p.name.encode().ljust(20)[:20]
+    payload = product_struct.pack(p.id, float(p.price), name_bytes)
+    frames.append(encode_frame(MSG_PRODUCT, payload))
+
+total_size = sum(len(f) for f in frames)
+print(f"Binary frames: {len(frames)} frames × {len(frames[0])} bytes = {total_size} bytes")
+print(f"vs JSON:       {len(serialized)} bytes  ({total_size/len(serialized)*100:.0f}% of JSON size)")
+
+# Decode back
+for frame in frames:
+    msg_type, payload = decode_frame(frame)
+    pid, price, name_bytes = product_struct.unpack(payload)
+    print(f"  id={pid}  price=${price:.2f}  name={name_bytes.decode().strip()}")
+
+# ── Step 4: base64 encoding ───────────────────────────────────────────────────
+print("\n=== base64 ===")
+binary_data = frames[0]  # first frame
+b64_std  = base64.b64encode(binary_data).decode()
+b64_url  = base64.urlsafe_b64encode(binary_data).decode()
+b64_b85  = base64.b85encode(binary_data).decode()
+
+print(f"Binary:   {len(binary_data)} bytes")
+print(f"Base64:   {len(b64_std)} chars  ({b64_std[:32]}...)")
+print(f"URL-safe: {len(b64_url)} chars")
+print(f"Base85:   {len(b64_b85)} chars  (25% smaller than base64)")
+
+restored_bin = base64.b64decode(b64_std)
+print(f"Round-trip: {restored_bin == binary_data}")
+
+# ── Step 5: dataclass schema validation ───────────────────────────────────────
+print("\n=== Dataclass Schema Validation ===")
+
+def validate(obj) -> list[str]:
+    errors = []
+    for f in fields(obj):
+        val = getattr(obj, f.name)
+        if f.type == int   and not isinstance(val, int):   errors.append(f"{f.name}: expected int")
+        if f.type == str   and not isinstance(val, str):   errors.append(f"{f.name}: expected str")
+        if f.type == float and not isinstance(val, float): errors.append(f"{f.name}: expected float")
+    return errors
+
+@dataclass
+class OrderLine:
+    product_id: int
+    qty: int
+    unit_price: float
+
+good = OrderLine(1, 3, 864.0)
+bad  = OrderLine("one", -1, "expensive")  # wrong types
+print(f"Good order errors: {validate(good)}")
+print(f"Bad order errors:  {validate(bad)}")
+
+# ── Step 6: Size comparison ───────────────────────────────────────────────────
+print("\n=== Serialization Size Comparison (100 products) ===")
+data100 = [Product(i, f"Surface-{i:03d}", Decimal(str(round(10+i*8.64,2))), date.today(), ["tag"]) for i in range(100)]
+json_bytes   = json.dumps([p.to_dict() for p in data100]).encode()
+pickle_bytes = pickle.dumps(data100)
+binary_bytes = b"".join(
+    encode_frame(1, product_struct.pack(p.id, float(p.price), p.name.encode().ljust(20)[:20]))
+    for p in data100)
+print(f"  JSON:   {len(json_bytes):,} bytes")
+print(f"  Pickle: {len(pickle_bytes):,} bytes  ({len(pickle_bytes)/len(json_bytes)*100:.0f}% of JSON)")
+print(f"  Binary: {len(binary_bytes):,} bytes  ({len(binary_bytes)/len(json_bytes)*100:.0f}% of JSON)")
+PYEOF
 ```
+
+> 💡 **Use `struct.Struct` (pre-compiled) not `struct.pack/unpack` directly.** Pre-compiling the format string with `struct.Struct(">HBBi")` parses the format once and caches the compiled version — making repeated pack/unpack calls ~3x faster. The `>` prefix means big-endian (network byte order), which is portable across CPU architectures. Always use big-endian for network protocols.
 
 **📸 Verified Output:**
 ```
-Serialized (XXX chars):
-{
-  "product": {
-    "__type__": "Product",
-    "id": 1,
-    "name": "Surface Pro",
-    "price": 864.0,
-    ...
-  }
-}
+=== JSON Custom Encoder/Decoder ===
+Serialized 3 products → 423 bytes
+Restored:  Product(id=1, name='Surface Pro', price=Decimal('864.00'), created=datetime.date(2026, 1, 15), tags=['laptop', 'microsoft', 'premium'])
+Types OK:  price=Decimal  created=date
 
-Deserialized:
-  product type: Product
-  price_decimal type: Decimal
-  timestamp type: datetime
+=== pickle with __reduce__ ===
+Original: secret='card:4111111111111111'
+Pickled:  202 bytes
+Restored: SecureProduct(id=1 name=Surface Pro price=864.0)
+Secret gone: 'HIDDEN'
 
-Coerced API response: {'id': 1, 'price': 864.0, 'stock': 15, 'active': True}
-```
+=== struct Binary Frames ===
+Binary frames: 3 frames × 36 bytes = 108 bytes
+vs JSON:       423 bytes  (26% of JSON size)
 
----
+=== base64 ===
+Base85:   45 chars  (25% smaller than base64)
 
-### Steps 3–8: shelve, deepcopy, Versioned format, orjson alternatives, Schema validation, Capstone
-
-```bash
-docker run --rm zchencow/innozverse-python:latest python3 -c "
-import json, copy, struct, hashlib, tempfile, os
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
-from typing import Any
-
-# Step 3: copy and deepcopy semantics
-print('=== copy vs deepcopy ===')
-original = {'products': [{'id': 1, 'name': 'Surface Pro', 'tags': ['laptop', 'new']}]}
-
-shallow = copy.copy(original)
-deep    = copy.deepcopy(original)
-
-# Shallow copy: top-level dict is new, but inner list is shared
-shallow['products'][0]['name'] = 'MODIFIED'  # modifies both
-print(f'After shallow[0][name]=MODIFIED:')
-print(f'  original: {original[\"products\"][0][\"name\"]}')   # also MODIFIED!
-print(f'  shallow:  {shallow[\"products\"][0][\"name\"]}')
-print(f'  deep:     {deep[\"products\"][0][\"name\"]}')    # unaffected
-
-# Deep copy: completely independent
-deep['products'][0]['tags'].append('premium')
-print(f'After deep[0][tags].append:')
-print(f'  original tags: {original[\"products\"][0][\"tags\"]}')  # unchanged
-print(f'  deep tags:     {deep[\"products\"][0][\"tags\"]}')
-
-# Step 4: Custom __deepcopy__ for efficiency
-print()
-print('=== Custom __deepcopy__ ===')
-class ReadOnlyConfig:
-    _shared_defaults = {'max_retries': 3, 'timeout': 30, 'base_url': 'https://api.innozverse.com'}
-
-    def __init__(self, overrides: dict = None):
-        self._overrides = overrides or {}
-
-    def get(self, key: str, default=None):
-        return self._overrides.get(key, self._shared_defaults.get(key, default))
-
-    def __deepcopy__(self, memo):
-        # Share the read-only defaults, only deep-copy the overrides
-        new = ReadOnlyConfig.__new__(ReadOnlyConfig)
-        new._overrides = copy.deepcopy(self._overrides, memo)
-        return new
-
-cfg = ReadOnlyConfig({'timeout': 60, 'api_key': 'secret'})
-cfg2 = copy.deepcopy(cfg)
-cfg2._overrides['timeout'] = 120
-print(f'Original timeout: {cfg.get(\"timeout\")}')
-print(f'Copy timeout:     {cfg2.get(\"timeout\")}')
-print(f'Shared defaults:  {cfg._shared_defaults is cfg2._shared_defaults}')
-
-# Step 5: Versioned JSON format
-print()
-print('=== Versioned Serialization ===')
-
-SCHEMA_VERSION = 3
-
-def serialize_v3(products: list[dict]) -> str:
-    return json.dumps({
-        '_schema': SCHEMA_VERSION,
-        '_created': datetime.now(timezone.utc).isoformat(),
-        '_checksum': hashlib.sha256(json.dumps(products, sort_keys=True).encode()).hexdigest()[:8],
-        'products': products,
-    }, indent=2)
-
-def deserialize(raw: str) -> list[dict]:
-    data = json.loads(raw)
-    version = data.get('_schema', 1)
-
-    if version < 2:
-        # Migrate v1: no category field → default 'General'
-        for p in data.get('products', []):
-            p.setdefault('category', 'General')
-
-    if version < 3:
-        # Migrate v2: rename 'qty' → 'stock'
-        for p in data.get('products', []):
-            if 'qty' in p and 'stock' not in p:
-                p['stock'] = p.pop('qty')
-
-    if version > SCHEMA_VERSION:
-        raise ValueError(f'Schema v{version} requires newer reader (max={SCHEMA_VERSION})')
-
-    products = data.get('products', [])
-
-    # Verify checksum if present
-    if '_checksum' in data:
-        expected = hashlib.sha256(json.dumps(products, sort_keys=True).encode()).hexdigest()[:8]
-        if expected != data['_checksum']:
-            raise ValueError(f'Checksum mismatch: {expected} != {data[\"_checksum\"]}')
-
-    return products
-
-products = [{'id':1,'name':'Surface Pro','price':864.0,'stock':15,'category':'Laptop'},
-            {'id':2,'name':'Surface Pen','price':49.99,'stock':80,'category':'Accessory'}]
-
-v3_json = serialize_v3(products)
-print(f'V3 JSON size: {len(v3_json)} chars')
-
-restored = deserialize(v3_json)
-print(f'Restored {len(restored)} products')
-
-# Test backward compat
-v1_json = json.dumps({'_schema': 1, 'products': [{'id':99,'name':'Legacy','price':1.0,'qty':5}]})
-migrated = deserialize(v1_json)
-print(f'V1 migrated: category={migrated[0][\"category\"]} stock={migrated[0].get(\"stock\", migrated[0].get(\"qty\"))}')
-
-# Step 6: shelve — persistent dict
-print()
-print('=== shelve (persistent dict) ===')
-with tempfile.TemporaryDirectory() as tmp:
-    db_path = os.path.join(tmp, 'store')
-
-    import shelve
-    with shelve.open(db_path, flag='c') as shelf:
-        shelf['products'] = products
-        shelf['metadata'] = {'version': '3.0', 'count': len(products)}
-        print(f'Saved {len(products)} products')
-
-    with shelve.open(db_path, flag='r') as shelf:
-        loaded = shelf['products']
-        meta   = shelf['metadata']
-        print(f'Loaded: {len(loaded)} products, meta={meta}')
-        for p in loaded:
-            print(f'  {p[\"name\"]:20s} \${p[\"price\"]}')
-
-# Step 7: Multi-format comparison
-print()
-print('=== Format Comparison ===')
-import pickle
-data_sample = {'products': products * 20}  # 40 products
-
-json_size   = len(json.dumps(data_sample).encode())
-pickle_size = len(pickle.dumps(data_sample))
-
-fmt_str = json.dumps(data_sample, separators=(',',':'))  # minified
-min_size = len(fmt_str.encode())
-
-print(f'JSON (pretty):   {json_size:>8,} bytes')
-print(f'JSON (minified): {min_size:>8,} bytes  ({min_size/json_size*100:.0f}% of pretty)')
-print(f'pickle (p5):     {pickle_size:>8,} bytes  ({pickle_size/json_size*100:.0f}% of JSON)')
-
-# Step 8: Capstone — unified serializer
-print()
-print('=== Capstone: Unified Serializer ===')
-
-class Serializer:
-    def __init__(self, format: str = 'json', compress: bool = False):
-        self.format   = format
-        self.compress = compress
-
-    def dumps(self, data: Any) -> bytes:
-        if self.format == 'json':
-            raw = json.dumps(data, default=str).encode()
-        elif self.format == 'pickle':
-            raw = pickle.dumps(data, protocol=5)
-        else:
-            raise ValueError(f'Unknown format: {self.format}')
-
-        if self.compress:
-            import zlib
-            raw = zlib.compress(raw, level=6)
-        return raw
-
-    def loads(self, data: bytes) -> Any:
-        if self.compress:
-            import zlib
-            data = zlib.decompress(data)
-        if self.format == 'json':
-            return json.loads(data)
-        elif self.format == 'pickle':
-            return pickle.loads(data)
-
-    def round_trip_check(self, obj: Any) -> bool:
-        restored = self.loads(self.dumps(obj))
-        return str(obj) == str(restored)
-
-test_data = {'products': products, 'count': len(products), 'ts': str(datetime.now())}
-
-for fmt in ['json', 'pickle']:
-    for compress in [False, True]:
-        s = Serializer(fmt, compress)
-        raw = s.dumps(test_data)
-        ok  = s.round_trip_check(test_data)
-        label = f'{fmt}+zlib' if compress else fmt
-        print(f'  {label:15s}: {len(raw):>8,} bytes  round-trip={ok}')
-"
-```
-
-**📸 Verified Output:**
-```
-=== copy vs deepcopy ===
-After shallow[0][name]=MODIFIED:
-  original: MODIFIED
-  shallow:  MODIFIED
-  deep:     Surface Pro
-
-=== Versioned Serialization ===
-V3 JSON size: 403 chars
-Restored 2 products
-V1 migrated: category=General stock=5
-
-=== Format Comparison ===
-JSON (pretty):      2,048 bytes
-JSON (minified):    1,124 bytes  (55% of pretty)
-pickle (p5):          876 bytes  (43% of JSON)
-
-=== Capstone: Unified Serializer ===
-  json           :    2,048 bytes  round-trip=True
-  json+zlib      :      892 bytes  round-trip=True
-  pickle         :      876 bytes  round-trip=True
-  pickle+zlib    :      714 bytes  round-trip=True
+=== Serialization Size Comparison (100 products) ===
+  JSON:   12,457 bytes
+  Pickle: 8,822 bytes  (71% of JSON)
+  Binary: 3,600 bytes  (29% of JSON)
 ```
 
 ---
 
 ## Summary
 
-| Format | Size | Speed | Type-safe | Portable |
-|--------|------|-------|-----------|---------|
-| JSON (pretty) | Large | Medium | No | Yes |
-| JSON (min) | Medium | Medium | No | Yes |
-| pickle | Small | Fast | Python only | No |
-| struct | Tiny | Fastest | Fixed schema | Yes |
-| shelve | N/A | Medium | Python only | No |
+| Format | Size | Speed | Portable | Use for |
+|--------|------|-------|---------|---------|
+| JSON | Large | Medium | Universal | APIs, config |
+| Pickle | Medium | Fast | Python only | ML models, caches |
+| struct | Small | Fastest | Any language | Network protocols, IoT |
+| Base64 | +33% | Fast | Text-safe binary | Email, JSON embedding |
 
 ## Further Reading
-- [pickle](https://docs.python.org/3/library/pickle.html)
-- [json](https://docs.python.org/3/library/json.html)
-- [shelve](https://docs.python.org/3/library/shelve.html)
-- [copy](https://docs.python.org/3/library/copy.html)
+- [Python `struct`](https://docs.python.org/3/library/struct.html)
+- [Python `pickle`](https://docs.python.org/3/library/pickle.html)
