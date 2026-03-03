@@ -57,9 +57,22 @@ All labs use **modern HTML5 and CSS3** — including features that have transfor
 
 ***
 
-## 🐳 Docker Setup
+## Quick Start
 
 {% tabs %}
+{% tab title="🐳 Docker (Recommended)" %}
+```bash
+# Pull the lab image — Node 20, html-validator, stylelint, prettier included
+docker pull zchencow/innozverse-htmlcss:latest
+
+# Run a one-liner
+docker run --rm zchencow/innozverse-htmlcss:latest node -e "console.log('HTML/CSS lab ready!')"
+
+# Interactive shell
+docker run --rm -it zchencow/innozverse-htmlcss:latest bash
+```
+{% endtab %}
+
 {% tab title="Ubuntu / Debian" %}
 ```bash
 # Install Docker
@@ -69,8 +82,8 @@ sudo systemctl start docker
 # Pull the HTML/CSS lab image
 docker pull zchencow/innozverse-htmlcss:latest
 
-# Run a lab verification
-docker run --rm -v /tmp:/workspace zchencow/innozverse-htmlcss:latest node -e "console.log('HTML/CSS lab ready!')"
+# Verify
+docker run --rm zchencow/innozverse-htmlcss:latest node -e "console.log('HTML/CSS lab ready!')"
 ```
 {% endtab %}
 
@@ -83,7 +96,6 @@ brew install --cask docker
 # Pull the HTML/CSS lab image
 docker pull zchencow/innozverse-htmlcss:latest
 
-# Verify node is available
 docker run --rm zchencow/innozverse-htmlcss:latest node -v
 ```
 {% endtab %}
@@ -93,26 +105,9 @@ docker run --rm zchencow/innozverse-htmlcss:latest node -v
 # Install Docker Desktop from https://docker.com/products/docker-desktop
 # Enable WSL2 backend recommended
 
-# Pull the HTML/CSS lab image
 docker pull zchencow/innozverse-htmlcss:latest
 
-# Run interactive session
-docker run --rm -it -v C:\tmp:/workspace zchencow/innozverse-htmlcss:latest bash
-```
-{% endtab %}
-
-{% tab title="Alpine Linux" %}
-```bash
-# Install Docker
-apk add docker docker-cli
-rc-service docker start
-rc-update add docker default
-
-# Pull the HTML/CSS lab image
-docker pull zchencow/innozverse-htmlcss:latest
-
-# Quick test
-docker run --rm zchencow/innozverse-htmlcss:latest node -v
+docker run --rm -it zchencow/innozverse-htmlcss:latest bash
 ```
 {% endtab %}
 {% endtabs %}

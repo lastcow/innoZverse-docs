@@ -54,16 +54,27 @@ TypeScript is the most popular typed language in web development — used by Ang
 ## Quick Start
 
 {% tabs %}
+{% tab title="🐳 Docker (Recommended)" %}
+```bash
+# Pull the lab image — TypeScript 5.x, Node 20, ts-node included
+docker pull zchencow/innozverse-ts:latest
+
+# Run a one-liner
+docker run --rm zchencow/innozverse-ts:latest ts-node -e "console.log('TypeScript ready!')"
+
+# Interactive shell
+docker run --rm -it zchencow/innozverse-ts:latest bash
+```
+{% endtab %}
 {% tab title="Ubuntu/Debian" %}
 ```bash
-# Install Node.js + TypeScript
+# Install Node.js 20 + TypeScript
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 npm install -g typescript ts-node
 
-# Or use Docker (recommended for labs)
-docker pull zchencow/innozverse-ts:latest
-docker run --rm -it zchencow/innozverse-ts:latest
+tsc --version   # TypeScript 5.x
+ts-node --version
 ```
 {% endtab %}
 {% tab title="macOS" %}
@@ -71,9 +82,8 @@ docker run --rm -it zchencow/innozverse-ts:latest
 brew install node
 npm install -g typescript ts-node
 
-# Or Docker
-docker pull zchencow/innozverse-ts:latest
-docker run --rm -it zchencow/innozverse-ts:latest
+tsc --version
+ts-node --version
 ```
 {% endtab %}
 {% tab title="Windows" %}
@@ -81,16 +91,8 @@ docker run --rm -it zchencow/innozverse-ts:latest
 # Install Node.js from nodejs.org, then:
 npm install -g typescript ts-node
 
-# Or Docker Desktop
-docker pull zchencow/innozverse-ts:latest
-docker run --rm -it zchencow/innozverse-ts:latest
-```
-{% endtab %}
-{% tab title="Alpine/Docker" %}
-```bash
-docker pull zchencow/innozverse-ts:latest
-docker run --rm -it zchencow/innozverse-ts:latest ts-node --version
-# TypeScript 5.x, Node 20, ts-node included
+tsc --version
+ts-node --version
 ```
 {% endtab %}
 {% endtabs %}
