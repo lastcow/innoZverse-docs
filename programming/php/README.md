@@ -133,10 +133,10 @@ After adding your user to the `docker` group on Linux, **log out and back in** (
 
 ```bash
 # Pull the pre-built PHP 8.3 lab image from Docker Hub
-docker pull zchencow/zchencow/innozverse-php:latest
+docker pull zchencow/innozverse-php:latest
 
 # Verify the image is ready
-docker run --rm zchencow/zchencow/innozverse-php:latest php --version
+docker run --rm zchencow/innozverse-php:latest php --version
 ```
 
 **Expected output:**
@@ -150,13 +150,13 @@ Zend Engine v4.3.x
 
 ```bash
 # Launch the interactive PHP REPL
-docker run --rm -it zchencow/zchencow/innozverse-php:latest php -a
+docker run --rm -it zchencow/innozverse-php:latest php -a
 
 # Run a local PHP file
-docker run --rm -v $(pwd):/app -w /app zchencow/zchencow/innozverse-php:latest php script.php
+docker run --rm -v $(pwd):/app -w /app zchencow/innozverse-php:latest php script.php
 
 # One-liner Hello World
-docker run --rm zchencow/zchencow/innozverse-php:latest php -r 'echo "Hello, PHP 8.3!\n";'
+docker run --rm zchencow/innozverse-php:latest php -r 'echo "Hello, PHP 8.3!\n";'
 ```
 
 ***
