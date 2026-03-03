@@ -1,0 +1,90 @@
+name: Sync to GitBook
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Sync changed markdown files to GitBook
+        env:
+          GITBOOK_TOKEN: ${{ secrets.GITBOOK_TOKEN }}
+        run: |
+          python3 << 'PYEOF'
+          import requests, os, json, subprocess
+
+          TOKEN = os.environ["GITBOOK_TOKEN"]
+          HEADERS = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"}
+          
+          # Space IDs mapping
+          SPACES = {
+              "cyber-security": "8OVp9rnpOCQ0IZhjGQHz",
+          }
+          
+          # Get changed files in this push
+          result = subprocess.run(
+              ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
+              capture_output=True, text=True
+          )
+          changed = result.stdout.strip().split("\n")
+          print(f"Changed files: {changed}")
+          
+          for fpath in changed:
+              if not fpath.endswith(".md"):
+                  continue
+              
+              # Determine space
+              section = fpath.split("/")[0]
+              space_id = SPACES.get(section)
+              if not space_id:
+                  print(f"  Skipping {fpath} (no space mapping)")
+                  continue
+              
+              # Find matching page by git path
+              content = requests.get(
+                  f"https://api.gitbook.com/v1/spaces/{space_id}/content",
+                  headers=HEADERS
+              ).json()
+              
+              def find_page(pages, git_path):
+                  for p in pages:
+                      if p.get("git", {}).get("path") == git_path:
+                          return p["id"]
+                      found = find_page(p.get("pages", []), git_path)
+                      if found:
+                          return found
+                  return None
+              
+              page_id = find_page(content.get("pages", []), fpath)
+              if not page_id:
+                  print(f"  No GitBook page found for {fpath}")
+                  continue
+              
+              # Create CR, import, merge
+              cr = requests.post(
+                  f"https://api.gitbook.com/v1/spaces/{space_id}/change-requests",
+                  headers=HEADERS,
+                  json={"title": f"Update {os.path.basename(fpath)}"}
+              ).json()
+              cr_id = cr.get("id")
+              
+              with open(fpath) as f:
+                  md = f.read()
+              
+              requests.post(
+                  f"https://api.gitbook.com/v1/spaces/{space_id}/change-requests/{cr_id}/content/page/{page_id}/import",
+                  headers=HEADERS,
+                  json={"source": "markdown", "value": md}
+              )
+              
+              mr = requests.post(
+                  f"https://api.gitbook.com/v1/spaces/{space_id}/change-requests/{cr_id}/merge",
+                  headers=HEADERS, json={}
+              )
+              print(f"  ✅ Synced {fpath} → GitBook page {page_id} (merge: {mr.status_code})")
+          
+          PYEOF
