@@ -38,6 +38,23 @@
   * [Lab 14: Context Managers & Protocols](python/practitioner/labs/lab-14-context-managers-protocols.md)
   * [Lab 15: Capstone — DataPipeline CLI](python/practitioner/labs/lab-15-capstone.md)
 
+* [Advanced](python/advanced/README.md)
+  * [Lab 1: Metaprogramming](python/advanced/labs/lab-01-metaprogramming.md)
+  * [Lab 2: AST & Bytecode](python/advanced/labs/lab-02-ast-bytecode.md)
+  * [Lab 3: Memory Management](python/advanced/labs/lab-03-memory-management.md)
+  * [Lab 4: Profiling & Performance](python/advanced/labs/lab-04-profiling-performance.md)
+  * [Lab 5: Advanced Async](python/advanced/labs/lab-05-advanced-async.md)
+  * [Lab 6: ctypes & Binary Protocols](python/advanced/labs/lab-06-ctypes-binary.md)
+  * [Lab 7: Cryptography & Security](python/advanced/labs/lab-07-cryptography-security.md)
+  * [Lab 8: Advanced SQLite](python/advanced/labs/lab-08-advanced-sqlite.md)
+  * [Lab 9: numpy Advanced](python/advanced/labs/lab-09-numpy-advanced.md)
+  * [Lab 10: pandas Advanced](python/advanced/labs/lab-10-pandas-advanced.md)
+  * [Lab 11: Advanced Concurrency](python/advanced/labs/lab-11-concurrency-advanced.md)
+  * [Lab 12: Plugin Architecture](python/advanced/labs/lab-12-plugin-architecture.md)
+  * [Lab 13: Serialization & Protocols](python/advanced/labs/lab-13-serialization-protocols.md)
+  * [Lab 14: Advanced FastAPI](python/advanced/labs/lab-14-fastapi-advanced.md)
+  * [Lab 15: Capstone — Production Platform](python/advanced/labs/lab-15-capstone.md)
+
 ## 🟨 JavaScript
 * [JavaScript Overview](javascript/README.md)
 * [Foundations](javascript/foundations/README.md)

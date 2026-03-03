@@ -27,7 +27,7 @@
     </tr>
     <tr>
       <td><strong>🟠 Advanced</strong></td>
-      <td>Microservices, ML pipelines, packaging, performance profiling — coming soon</td>
+      <td>Metaprogramming, AST/bytecode, memory mgmt, cryptography, binary protocols, production platform — 15 labs</td>
       <td><a href="advanced/">advanced</a></td>
     </tr>
   </tbody>
@@ -41,14 +41,14 @@
 {% tab title="🐳 Docker (Recommended)" %}
 ```bash
 # Pull the verified image
-docker pull zchencow/zchencow/innozverse-python:latest
+docker pull zchencow/innozverse-python:latest
 
 # Run any Python snippet
-docker run --rm zchencow/zchencow/innozverse-python:latest \
+docker run --rm zchencow/innozverse-python:latest \
   python3 -c "print('Hello from Python 3.12!')"
 
 # Interactive REPL
-docker run --rm -it zchencow/zchencow/innozverse-python:latest python3
+docker run --rm -it zchencow/innozverse-python:latest python3
 ```
 
 **Included packages:** `fastapi 0.135` · `pydantic 2.12` · `pandas 3.0` · `numpy 2.4` · `pytest 9.0` · `requests 2.32` · `uvicorn 0.41` · `rich`
@@ -142,7 +142,36 @@ Real-world Python engineering with advanced patterns.
 | 15 | Capstone — DataPipeline | Async pipeline + SQLite + FastAPI + pandas + rich CLI + pytest |
 
 {% hint style="success" %}
-**All Practitioner labs verified** inside `zchencow/zchencow/innozverse-python:latest` (Python 3.12.12). Every code block produces the exact output shown.
+**All Practitioner labs verified** inside `zchencow/innozverse-python:latest` (Python 3.12.12). Every code block produces the exact output shown.
+{% endhint %}
+
+---
+
+
+## 🟠 Advanced — 15 Labs
+
+Python internals, security, performance, and production systems.
+
+| Lab | Topic | Key Concepts |
+|-----|-------|-------------|
+| 01 | Metaprogramming | `__init_subclass__`, metaclasses, descriptors, `type()` factory |
+| 02 | AST & Bytecode | `ast.parse`, `NodeTransformer`, `dis`, filter DSL compiler |
+| 03 | Memory Management | `tracemalloc`, `__slots__`, weak refs, `memoryview`, GC cycles |
+| 04 | Profiling & Performance | `timeit`, `cProfile`, memoization, numpy vs pure Python benchmarks |
+| 05 | Advanced Async | Semaphore, TaskGroup, retry/backoff, `asyncio.timeout` (3.11+) |
+| 06 | ctypes & Binary Protocols | `struct`, `ctypes.Structure`, `array`, custom binary file format |
+| 07 | Cryptography & Security | PBKDF2, HMAC, `secrets`, JWT-style tokens, tamper-proof audit log |
+| 08 | Advanced SQLite | Window functions, FTS5, recursive CTEs, WAL mode, partial indexes |
+| 09 | numpy Advanced | Broadcasting, `einsum`, fancy indexing, structured arrays |
+| 10 | pandas Advanced | MultiIndex, time series, `pipe()`, `pd.eval`, memory optimisation |
+| 11 | Advanced Concurrency | ProcessPool, Actor pattern, condition variables, hybrid pipelines |
+| 12 | Plugin Architecture | importlib discovery, hook systems, DI container, versioned plugins |
+| 13 | Serialization | pickle, custom JSON encoder/decoder, versioned formats, `deepcopy` |
+| 14 | Advanced FastAPI | Lifespan, middleware chains, dependency injection, SSE streaming |
+| 15 | Capstone — Platform | Metaclass models + SQLite + async + numpy + FastAPI + pytest + rich |
+
+{% hint style="success" %}
+**All Advanced labs verified** inside `zchencow/innozverse-python:latest` (Python 3.12.12).
 {% endhint %}
 
 ---
@@ -151,7 +180,7 @@ Real-world Python engineering with advanced patterns.
 
 ```bash
 # Verify your environment
-docker run --rm zchencow/zchencow/innozverse-python:latest python3 -c "
+docker run --rm zchencow/innozverse-python:latest python3 -c "
 import sys, fastapi, pydantic, pandas, numpy, pytest
 print(f'Python:  {sys.version.split()[0]}')
 print(f'FastAPI: {fastapi.__version__}')
