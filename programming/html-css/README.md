@@ -63,13 +63,13 @@ All labs use **modern HTML5 and CSS3** — including features that have transfor
 {% tab title="🐳 Docker (Recommended)" %}
 ```bash
 # Pull the lab image — Node 20, html-validator, stylelint, prettier included
-docker pull zchencow/zchencow/innozverse-htmlcss:latest
+docker pull zchencow/innozverse-htmlcss:latest
 
 # Run a one-liner
-docker run --rm zchencow/zchencow/innozverse-htmlcss:latest node -e "console.log('HTML/CSS lab ready!')"
+docker run --rm zchencow/innozverse-htmlcss:latest node -e "console.log('HTML/CSS lab ready!')"
 
 # Interactive shell
-docker run --rm -it zchencow/zchencow/innozverse-htmlcss:latest bash
+docker run --rm -it zchencow/innozverse-htmlcss:latest bash
 ```
 {% endtab %}
 
@@ -80,10 +80,10 @@ sudo apt-get update && sudo apt-get install -y docker.io
 sudo systemctl start docker
 
 # Pull the HTML/CSS lab image
-docker pull zchencow/zchencow/innozverse-htmlcss:latest
+docker pull zchencow/innozverse-htmlcss:latest
 
 # Verify
-docker run --rm zchencow/zchencow/innozverse-htmlcss:latest node -e "console.log('HTML/CSS lab ready!')"
+docker run --rm zchencow/innozverse-htmlcss:latest node -e "console.log('HTML/CSS lab ready!')"
 ```
 {% endtab %}
 
@@ -94,9 +94,9 @@ docker run --rm zchencow/zchencow/innozverse-htmlcss:latest node -e "console.log
 brew install --cask docker
 
 # Pull the HTML/CSS lab image
-docker pull zchencow/zchencow/innozverse-htmlcss:latest
+docker pull zchencow/innozverse-htmlcss:latest
 
-docker run --rm zchencow/zchencow/innozverse-htmlcss:latest node -v
+docker run --rm zchencow/innozverse-htmlcss:latest node -v
 ```
 {% endtab %}
 
@@ -105,16 +105,16 @@ docker run --rm zchencow/zchencow/innozverse-htmlcss:latest node -v
 # Install Docker Desktop from https://docker.com/products/docker-desktop
 # Enable WSL2 backend recommended
 
-docker pull zchencow/zchencow/innozverse-htmlcss:latest
+docker pull zchencow/innozverse-htmlcss:latest
 
-docker run --rm -it zchencow/zchencow/innozverse-htmlcss:latest bash
+docker run --rm -it zchencow/innozverse-htmlcss:latest bash
 ```
 {% endtab %}
 {% endtabs %}
 
 ### Image Contents
 
-The `zchencow/zchencow/innozverse-htmlcss:latest` image includes:
+The `zchencow/innozverse-htmlcss:latest` image includes:
 
 | Tool | Purpose |
 |------|---------|
@@ -126,15 +126,15 @@ The `zchencow/zchencow/innozverse-htmlcss:latest` image includes:
 
 ```bash
 # Start a live dev server for your HTML file
-docker run --rm -it -p 8080:8080 -v /tmp:/workspace zchencow/zchencow/innozverse-htmlcss:latest \
+docker run --rm -it -p 8080:8080 -v /tmp:/workspace zchencow/innozverse-htmlcss:latest \
   live-server /workspace --port=8080 --host=0.0.0.0
 
 # Validate HTML
-docker run --rm -v /tmp:/workspace zchencow/zchencow/innozverse-htmlcss:latest \
+docker run --rm -v /tmp:/workspace zchencow/innozverse-htmlcss:latest \
   html-validator --file=/workspace/index.html
 
 # Format CSS with Prettier
-docker run --rm -v /tmp:/workspace zchencow/zchencow/innozverse-htmlcss:latest \
+docker run --rm -v /tmp:/workspace zchencow/innozverse-htmlcss:latest \
   prettier --write /workspace/style.css
 ```
 
