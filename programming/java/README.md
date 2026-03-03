@@ -156,33 +156,33 @@ After adding your user to the `docker` group on Linux, **log out and back in** (
 ### 2. Pull the Java Lab Image
 
 ```bash
-# Pull the pre-built Java 21 lab image
-docker pull innozverse-java:latest
+# Pull the pre-built Java 21 lab image from Docker Hub
+docker pull zchencow/innozverse-java:latest
 
 # Verify the image is ready
-docker run --rm innozverse-java:latest java --version
+docker run --rm zchencow/innozverse-java:latest java --version
 ```
 
 **Expected output:**
 ```
-openjdk 21.0.2 2024-01-16
-OpenJDK Runtime Environment (build 21.0.2+13)
-OpenJDK 64-Bit Server VM (build 21.0.2+13, mixed mode, sharing)
+openjdk 21.0.10 2026-01-20 LTS
+OpenJDK Runtime Environment Temurin-21.0.10+7 (build 21.0.10+7-LTS)
+OpenJDK 64-Bit Server VM (build 21.0.10+7-LTS, mixed mode, sharing)
 ```
 
 ### 3. Run Your First Java Program
 
 ```bash
 # One-liner Hello World
-docker run --rm innozverse-java:latest \
+docker run --rm zchencow/innozverse-java:latest \
   sh -c 'echo "class H{public static void main(String[]a){System.out.println(\"Hello, Java 21!\");}}" > H.java && javac H.java && java H'
 
 # Compile and run a local file
-docker run --rm -v $(pwd):/app -w /app innozverse-java:latest \
+docker run --rm -v $(pwd):/app -w /app zchencow/innozverse-java:latest \
   sh -c "javac Main.java && java Main"
 
 # Interactive REPL (JShell)
-docker run --rm -it innozverse-java:latest jshell
+docker run --rm -it zchencow/innozverse-java:latest jshell
 ```
 
 ***
