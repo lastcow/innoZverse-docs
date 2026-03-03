@@ -60,9 +60,23 @@
   * [Lab 15: Capstone — CLI Inventory System](java/foundations/labs/lab-15-capstone.md)
 
 ## 🐘 PHP
+* [PHP Overview](php/README.md)
 * [Foundations](php/foundations/README.md)
   * [Lab 1: Hello World & PHP Basics](php/foundations/labs/lab-01-hello-world.md)
   * [Lab 2: Data Types & Type Juggling](php/foundations/labs/lab-02-data-types.md)
+  * [Lab 3: Arrays](php/foundations/labs/lab-03-arrays.md)
+  * [Lab 4: Control Flow](php/foundations/labs/lab-04-control-flow.md)
+  * [Lab 5: Functions & Closures](php/foundations/labs/lab-05-functions.md)
+  * [Lab 6: Strings & Regular Expressions](php/foundations/labs/lab-06-strings-regex.md)
+  * [Lab 7: OOP — Classes & Encapsulation](php/foundations/labs/lab-07-oop.md)
+  * [Lab 8: Inheritance, Interfaces & Polymorphism](php/foundations/labs/lab-08-inheritance.md)
+  * [Lab 9: Error Handling & Exceptions](php/foundations/labs/lab-09-error-handling.md)
+  * [Lab 10: File I/O](php/foundations/labs/lab-10-file-io.md)
+  * [Lab 11: Database with PDO & SQLite](php/foundations/labs/lab-11-database-pdo.md)
+  * [Lab 12: JSON & APIs](php/foundations/labs/lab-12-json-apis.md)
+  * [Lab 13: Namespaces & Autoloading](php/foundations/labs/lab-13-namespaces.md)
+  * [Lab 14: Type System & Attributes](php/foundations/labs/lab-14-type-system.md)
+  * [Lab 15: Capstone — REST API](php/foundations/labs/lab-15-capstone.md)
 
 ## 🌐 HTML/CSS
 * [Foundations](html-css/foundations/README.md)
