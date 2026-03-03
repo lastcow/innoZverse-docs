@@ -36,7 +36,7 @@
     </tr>
     <tr>
       <td><strong>🌐 HTML/CSS</strong></td>
-      <td>The foundation of every website. Flexbox, Grid, responsive design. 2 levels × 15 labs = 30 labs.</td>
+      <td>The foundation of every website. 15 Foundations labs covering Flexbox, Grid, Responsive, Animations, Accessibility, and CSS Variables. Docker image: <code>zchencow/innozverse-htmlcss:latest</code></td>
       <td><a href="html-css/">html-css/</a></td>
     </tr>
     <tr>
@@ -94,7 +94,7 @@
 | Language | Levels | Total Labs |
 |----------|--------|-----------|
 | PHP 8.3 | Foundations + Practitioner + Advanced | 40 labs |
-| HTML/CSS | Foundations + Practitioner | 30 labs |
+| HTML/CSS | Foundations (15 labs complete) | Flexbox, Grid, Responsive, Animations, Accessibility, CSS Variables · `zchencow/innozverse-htmlcss:latest` |
 | TypeScript | Foundations + Practitioner | 24 labs |
 | Go 1.22 | Foundations + Practitioner | 30 labs |
 
