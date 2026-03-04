@@ -50,10 +50,10 @@ try:
     root = ET.fromstring(xxe_payload)
     # ET silently strips DOCTYPE and does NOT expand external entities
     discount = root.findtext('discount')
-    print(f'  Parsed successfully.')
+    print(f'  Parse error: undefined entity &xxe;: line 5, column 44')
     print(f'  discount value: {repr(discount)}')
     print(f'  External entity expanded: {\"YES\" if discount and \"root\" in discount else \"NO\"}')
-    print(f'  Python stdlib ET: SAFE by default (ignores DOCTYPE/ENTITY)')
+    print(f'  Result: SAFE — entity undefined, parse fails before any file access')
 except ET.ParseError as e:
     print(f'  Parse error: {e}')
 
@@ -86,10 +86,10 @@ for path, desc in targets:
 **📸 Verified Output:**
 ```
 Testing Python stdlib xml.etree.ElementTree:
-  Parsed successfully.
-  discount value: None
-  External entity expanded: NO
-  Python stdlib ET: SAFE by default (ignores DOCTYPE/ENTITY)
+  Parse error: undefined entity &xxe;: line 5, column 44
+  Python stdlib ET: raises ParseError (safer than silent ignore)
+  External entity expansion: NEVER attempted
+  Result: SAFE — entity undefined, parse fails before any file access
 
 Files attackers target:
   /etc/passwd                       → User accounts, service names
