@@ -65,3 +65,8 @@
 * [Lab 13: HTTP Parameter Pollution & Mass Assignment](advanced/labs/lab-13-param-pollution-mass-assignment.md)
 * [Lab 14: Advanced Reconnaissance](advanced/labs/lab-14-advanced-recon.md)
 * [Lab 15: Capstone — Multi-Vulnerability Attack Chain](advanced/labs/lab-15-capstone.md)
+* [Lab 16: Linux Privilege Escalation](advanced/labs/lab-16-linux-privilege-escalation.md)
+* [Lab 17: Lateral Movement & Persistence](advanced/labs/lab-17-lateral-movement-persistence.md)
+* [Lab 18: Network Penetration Testing](advanced/labs/lab-18-network-pentesting.md)
+* [Lab 19: Malware Analysis & Digital Forensics](advanced/labs/lab-19-malware-analysis-forensics.md)
+* [Lab 20: Threat Hunting & Red Team Capstone](advanced/labs/lab-20-threat-hunting-red-team.md)
