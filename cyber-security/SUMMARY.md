@@ -47,3 +47,21 @@
 * [Lab 18: Cross-Site Request Forgery (CSRF)](practitioner/labs/lab-18-csrf.md)
 * [Lab 19: Security Headers](practitioner/labs/lab-19-security-headers.md)
 * [Lab 20: Capstone — Web Application Penetration Test](practitioner/labs/lab-20-capstone-pentest.md)
+
+## ⚡ Advanced
+
+* [Lab 1: Blind SQL Injection](advanced/labs/lab-01-blind-sqli.md)
+* [Lab 2: Server-Side Template Injection (SSTI)](advanced/labs/lab-02-ssti.md)
+* [Lab 3: OS Command Injection](advanced/labs/lab-03-command-injection.md)
+* [Lab 4: Deserialization — Pickle RCE](advanced/labs/lab-04-deserialization-pickle.md)
+* [Lab 5: YAML Deserialization RCE](advanced/labs/lab-05-yaml-deserialization.md)
+* [Lab 6: JWT Algorithm Confusion](advanced/labs/lab-06-jwt-attacks.md)
+* [Lab 7: Race Conditions (TOCTOU)](advanced/labs/lab-07-race-conditions.md)
+* [Lab 8: Advanced XSS — Filter Bypass & Stored](advanced/labs/lab-08-advanced-xss.md)
+* [Lab 9: GraphQL Security Testing](advanced/labs/lab-09-graphql-security.md)
+* [Lab 10: OAuth 2.0 Attack Chain](advanced/labs/lab-10-oauth-attacks.md)
+* [Lab 11: Advanced SSRF — Internal Network Pivoting](advanced/labs/lab-11-advanced-ssrf.md)
+* [Lab 12: NoSQL Injection](advanced/labs/lab-12-nosql-injection.md)
+* [Lab 13: HTTP Parameter Pollution & Mass Assignment](advanced/labs/lab-13-param-pollution-mass-assignment.md)
+* [Lab 14: Advanced Reconnaissance](advanced/labs/lab-14-advanced-recon.md)
+* [Lab 15: Capstone — Multi-Vulnerability Attack Chain](advanced/labs/lab-15-capstone.md)
