@@ -23,13 +23,30 @@
 * [Lab 17: Building a RAG System in Practice](foundations/labs/lab-17-rag-system.md)
 * [Lab 18: AI in Cybersecurity — Threat Detection and AI Attacks](foundations/labs/lab-18-ai-cybersecurity.md)
 * [Lab 19: The AI Landscape in 2025–2026](foundations/labs/lab-19-ai-landscape-2025.md)
-* [Lab 20: Capstone — Design Your Own AI Product](foundations/labs/lab-20-capstone-design-your-ai-product.md)
+* [Lab 20: Capstone — Design Your Own AI Product](foundations/labs/lab-20-capstone-design-ai-product.md)
 
 ## ⚔️ Practitioner
 
-* [Supervised Learning](practitioner/supervised-learning.md)
-* [Neural Networks](practitioner/neural-networks.md)
-* [NLP Fundamentals](practitioner/nlp-fundamentals.md)
+* [Lab 01: Linear & Logistic Regression for Security](practitioner/labs/lab-01-linear-logistic-regression.md)
+* [Lab 02: Decision Trees & Random Forests](practitioner/labs/lab-02-decision-trees-random-forests.md)
+* [Lab 03: Gradient Boosting & XGBoost](practitioner/labs/lab-03-gradient-boosting-xgboost.md)
+* [Lab 04: Feature Engineering for ML](practitioner/labs/lab-04-feature-engineering.md)
+* [Lab 05: Model Evaluation & Metrics](practitioner/labs/lab-05-model-evaluation.md)
+* [Lab 06: Neural Networks from Scratch (NumPy)](practitioner/labs/lab-06-neural-network-numpy.md)
+* [Lab 07: Convolutional Neural Networks](practitioner/labs/lab-07-convolutional-neural-networks.md)
+* [Lab 08: Transfer Learning](practitioner/labs/lab-08-transfer-learning.md)
+* [Lab 09: Text Classification with BERT](practitioner/labs/lab-09-text-classification-bert.md)
+* [Lab 10: NER & Information Extraction](practitioner/labs/lab-10-ner-information-extraction.md)
+* [Lab 11: Sentiment Analysis Pipeline](practitioner/labs/lab-11-sentiment-analysis-pipeline.md)
+* [Lab 12: Embeddings & Semantic Search](practitioner/labs/lab-12-embeddings-semantic-search.md)
+* [Lab 13: Fine-Tuning with LoRA](practitioner/labs/lab-13-fine-tuning-lora.md)
+* [Lab 14: RAG Chatbot](practitioner/labs/lab-14-rag-chatbot.md)
+* [Lab 15: AI Agents — ReAct & Tool Use](practitioner/labs/lab-15-ai-agents.md)
+* [Lab 16: Time Series Forecasting](practitioner/labs/lab-16-time-series-forecasting.md)
+* [Lab 17: Anomaly Detection for Security Logs](practitioner/labs/lab-17-anomaly-detection-security.md)
+* [Lab 18: Multimodal AI — Vision + Language](practitioner/labs/lab-18-multimodal-ai.md)
+* [Lab 19: Deploying ML with FastAPI + Docker](practitioner/labs/lab-19-deploy-ml-fastapi.md)
+* [Lab 20: Capstone — End-to-End ML Pipeline](practitioner/labs/lab-20-capstone-ml-pipeline.md)
 
 ## 🔴 Advanced
 

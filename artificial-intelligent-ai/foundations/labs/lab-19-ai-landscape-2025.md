@@ -1,245 +1,341 @@
-# Lab 19: The AI Landscape in 2025–2026 — GPT-4o, Claude 4, Gemini 2, Grok, and Beyond
+# Lab 19: The AI Landscape 2025–2026
 
 ## Objective
+Survey the frontier AI models of 2025–2026: GPT-4o, Claude 4, Gemini 2.0, Grok, Llama 3, Mistral, and emerging open-source models. Understand their capabilities, limitations, pricing, and when to choose each one.
 
-Get a current map of the AI industry. By the end you will understand:
-
-- The state of frontier models and how they compare
-- Key trends shaping AI development in 2025–2026
-- Which companies are leading in which areas
-- Where the industry is likely to go next
+**Time:** 40 minutes | **Level:** Foundations | **Type:** Reading + Analysis
 
 ---
 
-## The Current Frontier (Early 2026)
+## Background
 
-The AI landscape has never moved faster. Models that were state-of-the-art six months ago are now mid-tier. Here is the lay of the land:
-
-### Language Models
-
-| Model | Organisation | Context | Key Strength |
-|-------|-------------|---------|-------------|
-| **o3 / o3-pro** | OpenAI | 128K | Extended reasoning (chain of thought); highest benchmark scores |
-| **GPT-4o** | OpenAI | 128K | Fast, multimodal (text/image/audio/video), API dominance |
-| **Claude 4 Sonnet** | Anthropic | 1M+ | Long context, coding, nuanced writing, agentic tasks |
-| **Claude 4 Opus** | Anthropic | 1M+ | Highest quality; research and complex analysis |
-| **Gemini 2.0 Ultra** | Google DeepMind | 2M | Natively multimodal; deep Google integration |
-| **Gemini 2.0 Flash** | Google DeepMind | 1M | Speed + cost; production scale |
-| **Grok 3** | xAI | 128K | Real-time X/Twitter data; less restricted |
-| **Llama 3.3 (70B)** | Meta | 128K | Best open-weight; competitive with GPT-3.5 |
-| **DeepSeek V3** | DeepSeek | 128K | Near-frontier quality; open weights; trained cheaply |
-| **Mistral Large 2** | Mistral AI | 128K | European; strong multilingual; open weights option |
-
-### The Reasoning Revolution: OpenAI o-series
-
-The most significant development of 2024–2025: models that **think before answering**.
+The AI landscape in 2025–2026 looks nothing like 2023. Models have crossed capability thresholds that seemed years away:
 
 ```
-Standard LLM:
-  Question → [single forward pass] → Answer
-
-o1 / o3:
-  Question → [internal chain of thought, hundreds of steps] → Answer
-  The model "thinks" for 5–60 seconds before responding
-
-Result: dramatically better performance on:
-- Mathematical reasoning (competition-level)
-- Scientific problem solving
-- Multi-step logic
-- Code generation for complex algorithms
+2022: GPT-3.5 surprises the world
+2023: GPT-4 dominates, open-source emerges (Llama 1/2)
+2024: Multimodal is standard, reasoning models arrive
+2025: Agents are real, 1M+ token contexts, video/audio native
+2026: ???
 ```
 
-**Benchmark example:**
-- GPT-4o on AIME 2024 math competition: **13%**
-- o1 on same benchmark: **83%**
-- o3 on same benchmark: **96.7%** (near perfect)
-
-The tradeoff: thinking takes time and tokens. o3 can cost 30–100× more than GPT-4o for the same question.
+Understanding the current landscape is not trivia — it directly affects which tool you pick for each job.
 
 ---
 
-## Multimodal: One Model for Everything
+## The Frontier Models (2025)
 
-The "any-to-any" model is the dominant architecture of 2025:
+### GPT-4o and the OpenAI Family
 
-```
-INPUT MODALITIES:           OUTPUT MODALITIES:
-  Text        ─────┐        ┌──── Text
-  Images      ─────┤        ├──── Images (generation)
-  Audio       ─────┤ MODEL  ├──── Audio (speech, music)
-  Video       ─────┤        ├──── Video (short clips)
-  Documents   ─────┤        ├──── Code
-  Code        ─────┘        └──── Structured data
-```
+OpenAI's flagship model family in 2025 centres around **GPT-4o** and its variants:
 
-**GPT-4o:** The "o" stands for "omni" — processes and generates text, image, and audio in a single model (no separate modules). Result: real-time voice conversation with emotional tone, laughter, and interruption handling.
+| Model | Strengths | Context | Best For |
+|-------|-----------|---------|----------|
+| GPT-4o | Multimodal, fast, reliable | 128K | General purpose, coding |
+| o1 / o3 | Deep reasoning, maths | 128K | Complex problems, STEM |
+| o3-mini | Cheap reasoning | 128K | High-volume reasoning tasks |
+| GPT-4.5 | Instruction following | 128K | Agentic workflows |
 
-**Gemini 2.0:** Designed as native multimodal from the ground up (not text-model with vision bolted on). Processes 2M token context — can ingest an entire film + script + book as context.
+**What makes GPT-4o special:**
+- Native multimodal — processes text, images, audio, video in a single model
+- Real-time voice with emotional understanding
+- Function calling / tool use at scale
+- Massive fine-tuning ecosystem
 
----
+> 💡 OpenAI's competitive advantage is not just the models — it's the ecosystem: DALL·E 3, Whisper, fine-tuning API, assistants API, and deep enterprise integrations.
 
-## The Context Window Arms Race
-
-```
-2020: GPT-3       →    4,096 tokens  (about 3,000 words)
-2023: GPT-4       →  128,000 tokens  (a novel)
-2023: Claude 2    →  100,000 tokens
-2024: Claude 3    →  200,000 tokens  (a long dissertation)
-2024: Gemini 1.5  →1,000,000 tokens  (the entire Harry Potter series)
-2025: Claude 4    →1,000,000+ tokens
-2025: Gemini 2    →2,000,000 tokens  (multiple novels + their film adaptations)
-```
-
-**What this enables:**
-- Entire codebase in one context window (vs. retrieval-based approaches)
-- Full legal contract analysis (thousands of pages)
-- Long-document translation without chunking artefacts
-- Meeting transcripts + all related emails + Slack history as context
+**Limitations:**
+- No internet access by default (requires tools/plugins)
+- Knowledge cutoff (check current model card)
+- API costs add up quickly at scale
+- No open weights — you can't run it locally
 
 ---
 
-## The Open Source Surge
+### Claude 4 and the Anthropic Family
 
-2024–2025 saw open-weight models close the gap dramatically:
+Anthropic's **Claude** line is built around safety and reliability:
 
-| Model | Year | Notable |
-|-------|------|---------|
-| **Llama 3.1 405B** | 2024 | First open model competitive with GPT-4 on some benchmarks |
-| **DeepSeek V3** | 2024 | Trained for ~$6M vs. estimated $100M+ for GPT-4; near-identical performance |
-| **Mistral Large 2** | 2024 | European open model; Apache 2.0 licence |
-| **Qwen 2.5 Max** | 2025 | Alibaba; strong multilingual; open weights |
-| **Falcon 3** | 2025 | UAE Technology Innovation Institute |
+| Model | Strengths | Context | Best For |
+|-------|-----------|---------|----------|
+| Claude Sonnet 4 | Balance of speed + intelligence | 200K | Everyday tasks, coding |
+| Claude Opus 4 | Highest capability | 200K | Complex reasoning, writing |
+| Claude Haiku 3.5 | Fast, cheap | 200K | High-volume, simple tasks |
 
-**The DeepSeek moment (January 2025):**
+**What makes Claude special:**
+- **Constitutional AI training** — RLHF guided by explicit principles
+- **200K token context** — processes entire codebases in one call
+- Exceptionally good at long-form writing, analysis, and coding
+- Strong instruction-following and refusal calibration
+- **Extended thinking** — Claude 3.7 Sonnet+ can show its reasoning chain
 
-DeepSeek released R1, a reasoning model competitive with o1 — trained at a fraction of the cost using efficient training techniques (MoE architecture, mixture of experts). US AI stocks dropped 15–20% in a single day. The implication: frontier AI capability is not as compute-exclusive as assumed.
+> 💡 Claude's 200K context window is a genuine competitive advantage for enterprise use cases: processing entire legal documents, codebases, or research papers without chunking.
+
+**The OpenClaw Connection:**
+OpenClaw (the platform running this very assistant) is built on Claude's API. The `claude-sonnet-4-6` model serves as the intelligence layer behind Skills, HEARTBEAT, and ACP multi-agent workflows.
+
+**Limitations:**
+- No image generation
+- Fewer third-party integrations than OpenAI
+- Sometimes more cautious than competitors on edge cases
 
 ---
 
-## Key Trends Shaping AI (2025–2026)
+### Gemini 2.0 and the Google Family
 
-### 1. AI Agents Go Mainstream
+Google's **Gemini** family powers both consumer (Google products) and developer use cases:
 
-Moving from demos to production:
-- **OpenAI Operator** — agent that controls a web browser to complete tasks
-- **Anthropic Computer Use** — Claude controls a real computer
-- **Google Project Mariner** — browser agent integrated into Chrome
-- **Apple Intelligence** — on-device agent with deep app integration
+| Model | Strengths | Context | Best For |
+|-------|-----------|---------|----------|
+| Gemini 2.0 Flash | Fast, cheap, multimodal | 1M | High-volume, real-time |
+| Gemini 2.0 Pro | Capable, Google-integrated | 1M | Research, complex tasks |
+| Gemini 2.0 Ultra | Frontier capability | 1M | Hardest tasks |
+
+**What makes Gemini special:**
+- **1M token context** (2M in some versions) — process entire books, hours of video
+- Native Google integration: Search, Workspace, Maps, YouTube
+- Strong multilingual capabilities (trained on massive multilingual corpus)
+- Deep Search grounding — can cite live web results
+
+> 💡 Gemini's 1M token context enables genuinely new use cases: "analyse this entire codebase," "summarise this 4-hour meeting recording," "find inconsistencies across all 500 documents."
+
+**Limitations:**
+- Historically inconsistent quality vs GPT-4
+- Google services integration creates vendor lock-in
+- Privacy concerns around data used in training
+
+---
+
+### Grok (xAI)
+
+Elon Musk's **xAI** released Grok with a distinctive positioning:
+
+- **Real-time X (Twitter) access** — sees what's trending right now
+- Less filtering than competitors — designed for "maximum truth-seeking"
+- Grok 2 and Grok 3 showed significant capability improvements
 
 ```python
-# What agentic AI looks like in production (2025)
-result = agent.run("""
-    1. Check my calendar for next week's meetings
-    2. For any meeting without a prepared agenda, draft one based on previous meeting notes
-    3. Send the draft agendas to attendees via email for review
-    4. Book a 15-minute buffer before each meeting
-""")
-# → Agent executes all 4 steps autonomously over several minutes
+# Unique capability: real-time information access
+response = grok.chat("What is trending on X right now about AI security?")
+# Returns live data from X — no knowledge cutoff for trending topics
 ```
 
-### 2. On-Device AI
-
-Models running on phones and laptops, not cloud servers:
-- **Apple A18 Pro** (iPhone 16 Pro) — dedicated Neural Engine for on-device LLMs
-- **Qualcomm Snapdragon X** — PC chip with 45 TOPS NPU for Windows AI
-- **Microsoft Copilot+ PCs** — certified AI PC category
-- **Phi-3.5 (3.8B)** — Microsoft's model specifically designed for phone deployment
-
-Benefits: privacy, latency, works offline. Limitation: quality gap vs. frontier models.
-
-### 3. AI Coding: The Productivity Revolution
-
-```
-GitHub Copilot statistics (2024):
-  - 1.3 million paying users
-  - 55% of code in some repositories is AI-generated
-  - 55% faster task completion for developers
-
-New agentic coding tools (2025):
-  - Cursor: AI-first IDE (4 million users)
-  - Devin: first autonomous software engineer (handles full engineering tasks)
-  - Claude Code: AI coding agent in terminal
-  - GitHub Copilot Workspace: multi-agent PR creation
-```
-
-### 4. AI Search: The End of the 10 Blue Links?
-
-- **Perplexity AI** — AI-native search with citations; 100M+ monthly searches
-- **Google AI Overviews** — AI-generated summaries at top of search results
-- **Bing Copilot** — GPT-4 integrated into search
-- **ChatGPT Search** — real-time web search in ChatGPT
-
-### 5. Synthetic Data and Model Self-Improvement
-
-The frontier models are increasingly trained on data generated by other frontier models:
-- Meta uses LLM-generated data to train Llama
-- OpenAI's GPT-4 used to generate training data for smaller models
-- "Constitutional AI" uses Claude to critique Claude
-
-The concern: **model collapse** — if models train on their own outputs recursively, quality degrades. Current research shows this requires careful management.
+**Best for:** Real-time event tracking, social media monitoring, trend analysis  
+**Limitations:** Smaller ecosystem, less enterprise tooling, variable quality
 
 ---
 
-## The Compute Race
+## Open-Source Models: The Real Story
+
+The open-source models in 2025 are genuinely competitive with frontier models for many tasks.
+
+### Llama 3.1 / 3.2 / 3.3 (Meta)
+
+Meta's Llama family redefined open-source AI:
+
+| Model | Parameters | Capability Level |
+|-------|-----------|----------------|
+| Llama 3.1 8B | 8B | Strong for its size |
+| Llama 3.1 70B | 70B | Near GPT-4 quality |
+| Llama 3.1 405B | 405B | Frontier quality |
+| Llama 3.2 11B/90B | Vision | Multimodal open-source |
+
+```bash
+# Run locally with Ollama:
+ollama pull llama3.1:8b
+ollama run llama3.1:8b "Explain SQL injection in 3 sentences"
+```
+
+> 💡 Llama 3.1 70B running on a high-end laptop beats GPT-3.5 on most benchmarks — with zero API costs and complete privacy.
+
+### Mistral and the European Open-Source Wave
+
+**Mistral AI** (France) punches far above its weight:
+
+- **Mistral 7B**: Outperformed Llama 2 13B at half the size
+- **Mixtral 8x7B**: Mixture-of-Experts architecture, very efficient
+- **Mistral Large 2**: Competes with GPT-4o on coding
+- **Codestral**: Specialised for code generation (80K context)
+
+```python
+# Mixtral's MoE architecture explanation
+"""
+MoE (Mixture of Experts):
+- 8 expert networks, each 7B parameters
+- Router sends each token to 2 of 8 experts
+- Inference uses only 2x7B = 14B of the 56B total
+- Result: 56B model quality at ~14B inference cost
+"""
+```
+
+### DeepSeek: The Efficiency Pioneer
+
+DeepSeek (China) shocked the AI world in 2025:
+
+- **DeepSeek-R1**: Matched o1's reasoning at a fraction of training cost
+- Trained on $6M vs hundreds of millions for comparable US models
+- Proved efficient training is possible — triggered major industry rethink
+- Fully open-source with MIT license
+
+```python
+# DeepSeek R1 reasoning traces
+"""
+<think>
+The user asks about SQL injection prevention...
+- Primary attack: user input appended to SQL string
+- Fix 1: Parameterised queries
+- Fix 2: Input validation
+- Fix 3: Least privilege database accounts
+Therefore, the recommended approach is...
+</think>
+Answer: Use parameterised queries...
+"""
+```
+
+---
+
+## Specialised Models Worth Knowing
+
+| Model | Speciality | Why It Matters |
+|-------|-----------|----------------|
+| GitHub Copilot / Cursor | Code completion | IDE-native, context-aware |
+| Codestral / StarCoder2 | Code generation | Open-source alternatives |
+| Whisper v3 | Speech-to-text | Near-human accuracy, open |
+| DALL·E 3 / Flux / SDXL | Image generation | Creative + commercial use |
+| Sora / RunwayML | Video generation | Marketing, prototyping |
+| AlphaFold 3 | Protein folding | Scientific research |
+| AlphaCode 2 | Competitive programming | ICPC-level problems |
+
+---
+
+## How to Choose a Model
 
 ```
-AI compute (FLOPs) used in training:
+Decision Framework:
 
-GPT-2 (2019):     3 × 10²¹ FLOP
-GPT-3 (2020):     3 × 10²³ FLOP
-GPT-4 (2023):     ~2 × 10²⁵ FLOP  (estimated)
-Projected 2026:   10²⁷ FLOP
+1. PRIVACY REQUIRED?
+   Yes → Local (Ollama + Llama/Mistral)
+   No  → Continue to 2
 
-Each step: ~100× increase in compute
-Every 2-3 years since 2012 (faster than Moore's Law)
+2. COST SENSITIVE?
+   Very → Haiku / o3-mini / Flash / open-source
+   No   → Continue to 3
+
+3. TASK TYPE?
+   Coding          → Claude Sonnet / GPT-4o / Copilot
+   Reasoning/Maths → o1 / o3 / R1
+   Long documents  → Claude Opus (200K) / Gemini (1M)
+   Real-time info  → Gemini + Search / Grok
+   Image/vision    → GPT-4o / Gemini / LLaVA
+   High volume API → GPT-4o-mini / Haiku / Flash
+
+4. ENTERPRISE REQUIREMENTS?
+   SOC2/HIPAA compliance → Check each vendor's DPA
+   EU data residency      → Azure OpenAI EU / Claude EU
+   On-premise            → Llama 3.1 70B self-hosted
 ```
 
-**The energy question:** Training and running LLMs consumes significant energy. GPT-4 inference is estimated to use ~10× the energy of a Google search. AI data centres are a growing share of global electricity consumption. This is an active area of research and policy debate.
+---
+
+## Benchmark Reality Check
+
+Model benchmarks are marketing. Here's what actually matters:
+
+```python
+# What benchmarks claim vs reality:
+benchmarks = {
+    "MMLU":        "academic knowledge — rarely what you need in prod",
+    "HumanEval":   "easy Python exercises — ≠ real codebase quality",
+    "MATH":        "competition maths — useful only for STEM apps",
+    "MT-Bench":    "human preference rankings — closer to real use",
+    "LM Arena":    "blind human preferences — most honest ranking",
+}
+
+# The only benchmark that matters:
+real_benchmark = """
+Does it do MY specific task reliably, at MY budget,
+with MY latency requirements, on MY data?
+"""
+```
+
+> 💡 Always run your own evals on 50–100 representative examples from your actual use case before committing to a model in production.
+
+---
+
+## The Open vs Closed Divide in 2025
+
+```
+Closed (API-only):          Open (weights available):
+  GPT-4o                      Llama 3.1 405B
+  Claude Opus                 Mistral Large
+  Gemini Ultra                DeepSeek R1
+  
+  Advantages:                 Advantages:
+  - No infrastructure         - Zero marginal cost
+  - Latest capabilities       - Complete privacy
+  - Vendor managed            - Customisable
+  - Simple billing            - No vendor lock-in
+  
+  Disadvantages:              Disadvantages:
+  - Data leaves your infra    - Requires infrastructure
+  - API costs at scale        - Maintenance burden
+  - Rate limits               - Smaller than frontier closed
+  - Vendor risk               - Self-serve support
+```
+
+The gap between open and closed models **narrowed dramatically** in 2024–2025. For many enterprise use cases, a well-tuned 70B open-source model now outperforms closed models from 2022–2023.
 
 ---
 
 ## What's Coming: 2026 and Beyond
 
-**Near-certain (12–18 months):**
-- Reasoning models (o-series style) become standard across all providers
-- 10M+ token context windows in production
-- AI agents handling multi-day autonomous tasks
-- Physical AI: robotics (Figure, Tesla Optimus) using LLM-based reasoning
+Reasonable predictions based on current trajectories:
 
-**Likely (2–3 years):**
-- AI scientist — autonomous hypothesis generation and experimental design
-- "AGI" claims from at least one major lab (definition contested)
-- AI writing most of its own training data
-- Personalised on-device models fine-tuned to individual users
-
-**Contested/uncertain:**
-- AGI (generally capable AI) — timelines range from "already achieved" to "decades away"
-- AI replacing most knowledge workers — vs. augmenting them
-- Regulatory fragmentation — EU AI Act vs. US executive orders vs. Chinese regulations
-- Open vs. closed — will the open ecosystem sustain the frontier gap closure?
+1. **Agents become ubiquitous** — AI models that browse, code, and take actions autonomously will be standard enterprise tools
+2. **Cost collapse continues** — API prices drop ~10× every 18 months historically; sub-$0.001/1K token for capable models
+3. **Multimodal becomes table stakes** — every frontier model will natively handle text, image, audio, video
+4. **Open-source closes the gap** — community models within 6 months of frontier capabilities
+5. **Specialised models dominate verticals** — medical, legal, security, scientific AI trained on domain data
+6. **Inference hardware revolution** — purpose-built chips (Groq, Cerebras, Etched) push latency to near-zero
 
 ---
 
-## Staying Current
+## Lab Exercise: Model Comparison Matrix
 
-The AI landscape moves faster than any textbook can track. Resources to stay informed:
+Rate each model on a scale of 1–5 for your use case:
 
-| Resource | Frequency | Focus |
-|----------|-----------|-------|
-| **The Batch (DeepLearning.AI)** | Weekly | Applied ML news, curated by Andrew Ng |
-| **Import AI (Jack Clark)** | Weekly | Research papers and safety |
-| **The State of AI Report** | Annual | Comprehensive industry review |
-| **Hugging Face Papers** | Daily | Latest research, with code |
-| **Andrej Karpathy (YouTube/X)** | Irregular | Deep technical explanations |
-| **Simon Willison's Weblog** | Near-daily | LLM applications and tools |
-| **LMSYS Chatbot Arena** | Continuous | Live model benchmarking |
+```python
+use_cases = {
+    "SOC threat analysis":     {"claude": 5, "gpt4o": 4, "gemini": 4, "llama70b": 3},
+    "Code review":             {"claude": 5, "gpt4o": 5, "gemini": 4, "llama70b": 4},
+    "Real-time monitoring":    {"claude": 3, "gpt4o": 3, "gemini": 5, "llama70b": 3},
+    "Private data analysis":   {"claude": 2, "gpt4o": 2, "gemini": 2, "llama70b": 5},
+    "High-volume cheap tasks": {"claude": 3, "gpt4o": 4, "gemini": 5, "llama70b": 4},
+    "Reasoning/problem-solving":{"claude": 5, "gpt4o": 5, "gemini": 4, "llama70b": 3},
+}
+
+print(f"{'Use Case':<30} {'Claude':>8} {'GPT-4o':>8} {'Gemini':>8} {'Llama70B':>10}")
+print("-" * 68)
+for task, scores in use_cases.items():
+    best = max(scores, key=scores.get)
+    row  = f"{task:<30}"
+    for model in ['claude', 'gpt4o', 'gemini', 'llama70b']:
+        score = scores[model]
+        star  = " ★" if model == best else ""
+        row  += f" {score:>6}{star if star else '  '}"
+    print(row)
+```
 
 ---
+
+## Summary
+
+**The 2025 AI landscape in one paragraph:**
+
+OpenAI leads in ecosystem and multimodal capabilities. Anthropic leads in safety, long-context, and enterprise reliability. Google dominates in grounding with live data and ultra-long context. xAI/Grok owns real-time social intelligence. Meta, Mistral, and DeepSeek make powerful open-source models freely available. No single model wins every task — the skill is knowing which tool fits which job.
 
 ## Further Reading
-
-- [State of AI Report 2025](https://www.stateof.ai/)
-- [Epoch AI — AI Compute Trends](https://epochai.org/)
-- [LMSYS Chatbot Arena Leaderboard](https://chat.lmsys.org/)
-- [DeepSeek R1 Technical Report](https://arxiv.org/abs/2501.12948)
-- [Anthropic's Model Card for Claude](https://www.anthropic.com/claude)
+- [LM Arena Leaderboard](https://lmarena.ai/) — human preference rankings, updated live
+- [Open LLM Leaderboard](https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard) — open-source benchmarks
+- [Anthropic Model Cards](https://www.anthropic.com/research)
+- [OpenAI Model Comparison](https://platform.openai.com/docs/models)
