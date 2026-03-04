@@ -50,9 +50,9 @@
 
 ## 🔴 Advanced
 
-* [Computer Vision](advanced/computer-vision.md)
-* [Working with LLMs](advanced/working-with-llms.md)
-* [Building AI Applications](advanced/building-ai-apps.md)
+* [Lab 01: PyTorch Deep Dive — Custom Training Loops](advanced/labs/lab-01-pytorch-deep-dive.md)
+* [Lab 02: Computer Vision Pipelines — Detection and Segmentation](advanced/labs/lab-02-computer-vision-pipeline.md)
+* [Lab 03: LLM API Integration — Streaming, Tool Use, Structured Output](advanced/labs/lab-03-llm-api-integration.md)
 
 ## 🏛️ Architect
 
