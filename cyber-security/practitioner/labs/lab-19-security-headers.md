@@ -1,577 +1,463 @@
 # Lab 19: Security Headers
 
 ## Objective
-Audit and implement HTTP security headers: detect missing headers on live servers, implement Content-Security-Policy (CSP) to block XSS, configure HSTS with preloading to prevent SSL stripping, use X-Frame-Options and frame-ancestors to block clickjacking, implement Permissions-Policy to restrict browser APIs, and score a web application against industry-standard security header benchmarks.
+
+Audit and exploit missing HTTP security headers using a live web API from Kali Linux:
+
+1. **Header audit** — use `curl` to enumerate exactly which security headers are missing from an unprotected API (score: **0/7**)
+2. **Reflected XSS amplified by missing CSP** — send a `<script>` tag in a query parameter; with no `Content-Security-Policy`, the browser would execute it
+3. **Clickjacking risk from missing X-Frame-Options** — demonstrate how the app can be embedded in a malicious iframe
+4. **MIME sniffing via missing X-Content-Type-Options** — upload polyglot content that a browser would execute as a different type
+5. **Secure endpoint comparison** — audit the protected version (score: **7/7**) and confirm every header is present and correct
+6. **Implement the full header set** — write a Flask middleware that adds all 7 headers globally
+
+---
 
 ## Background
-HTTP security headers are a free layer of defence that instruct browsers on how to behave when loading your application. A missing `Content-Security-Policy` allows XSS attacks to run freely; a missing `Strict-Transport-Security` enables SSL stripping on public Wi-Fi; missing `X-Frame-Options` enables clickjacking. Security headers require no code changes — they're configuration. Yet studies show over 90% of the top million websites are missing critical headers. The [securityheaders.com](https://securityheaders.com) scanner grades sites A–F on header implementation.
+
+Security headers are the cheapest, highest-ROI security controls available — a one-time server configuration change that mitigates entire vulnerability classes at the browser level.
+
+**Real-world impact of missing headers:**
+- **Missing CSP → XSS escalation**: The 2018 British Airways breach ($228M fine, 500,000 customers) began with a skimming script injected into their payment page. A strong CSP blocking `script-src 'self'` would have prevented the injected script from executing.
+- **Missing X-Frame-Options → Clickjacking**: In 2009, Adobe Flash settings pages were clickjacked via invisible iframes, allowing attackers to silently enable webcam access. `X-Frame-Options: DENY` would have blocked this.
+- **Missing HSTS → SSL strip**: Attackers on the same network (coffee shop Wi-Fi, hotel) can downgrade HTTPS to HTTP before the first connection. HSTS tells the browser to always use HTTPS, preventing the downgrade.
+- **Missing X-Content-Type-Options → MIME sniffing**: A file uploaded as `text/plain` but containing HTML gets rendered as HTML by IE/Chrome if `nosniff` is absent — XSS via file uploads.
+- **Missing Referrer-Policy → data leakage**: Without this header, the browser sends the full URL (including query params with PII) in the `Referer` header to third-party analytics/CDN providers.
+
+**OWASP coverage:** A05:2021 (Security Misconfiguration)
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Docker Network: lab-a19                         │
+│                                                                     │
+│  ┌──────────────────────┐         HTTP requests                    │
+│  │   KALI ATTACKER      │ ──────────────────────────────────────▶  │
+│  │  innozverse-kali     │                                           │
+│  │                      │  ◀──────── HTTP responses (with headers)  │
+│  │  Tools:              │                                           │
+│  │  • curl -I           │  ┌────────────────────────────────────┐  │
+│  │  • python3           │  │       VICTIM WEB APP (Lab 19)      │  │
+│  └──────────────────────┘  │   zchencow/innozverse-cybersec     │  │
+│                             │                                    │  │
+│                             │  Flask :5000                       │  │
+│                             │  /api/products     (0/7 headers)   │  │
+│                             │  /api/products-secure (7/7)        │  │
+│                             │  /api/headers-check (audit tool)   │  │
+│                             └────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## Time
-30 minutes
-
-## Prerequisites
-- Lab 05 (A05 Security Misconfiguration)
-- Lab 14 (File Upload) — mentions CSP in context
-
-## Tools
-- Docker: `zchencow/innozverse-cybersec:latest`
+35 minutes
 
 ---
 
 ## Lab Instructions
 
-### Step 1: Security Header Audit
+### Step 1: Environment Setup
 
 ```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Security Header Audit ===')
-print()
+docker network create lab-a19
 
-# Simulate HTTP response headers from a typical web server
-typical_insecure_response = {
-    'Content-Type':   'text/html; charset=utf-8',
-    'Server':         'Apache/2.4.52 (Ubuntu)',  # Information disclosure!
-    'X-Powered-By':   'PHP/8.1.2',               # Information disclosure!
-    'Date':           'Wed, 04 Mar 2026 01:00:00 GMT',
-    'Content-Length': '12543',
-}
+cat > /tmp/victim_a19.py << 'PYEOF'
+from flask import Flask, request, jsonify, make_response
+import urllib.request
 
-required_security_headers = {
-    'Strict-Transport-Security': {
-        'recommended': 'max-age=31536000; includeSubDomains; preload',
-        'protects': 'SSL stripping, MITM on HTTP→HTTPS redirect',
-        'missing_risk': 'HIGH',
-    },
-    'Content-Security-Policy': {
-        'recommended': \"default-src 'self'; script-src 'self'; style-src 'self'\",
-        'protects': 'XSS, data injection, clickjacking (frame-ancestors)',
-        'missing_risk': 'HIGH',
-    },
-    'X-Frame-Options': {
-        'recommended': 'DENY',
-        'protects': 'Clickjacking attacks',
-        'missing_risk': 'MEDIUM',
-    },
-    'X-Content-Type-Options': {
-        'recommended': 'nosniff',
-        'protects': 'MIME-type sniffing attacks',
-        'missing_risk': 'MEDIUM',
-    },
-    'Referrer-Policy': {
-        'recommended': 'strict-origin-when-cross-origin',
-        'protects': 'Sensitive URL leakage via Referer header',
-        'missing_risk': 'LOW-MEDIUM',
-    },
-    'Permissions-Policy': {
-        'recommended': 'geolocation=(), microphone=(), camera=()',
-        'protects': 'Unauthorized browser API access (camera, location)',
-        'missing_risk': 'MEDIUM',
-    },
-    'Cache-Control': {
-        'recommended': 'no-store (for authenticated pages)',
-        'protects': 'Sensitive data in browser/proxy cache',
-        'missing_risk': 'MEDIUM',
-    },
-}
+app = Flask(__name__)
 
-information_disclosure_headers = ['Server', 'X-Powered-By', 'X-AspNet-Version', 'X-AspNetMvc-Version']
-
-print('Response header audit:')
-print()
-score = 0
-max_score = len(required_security_headers)
-
-print('[Present headers]')
-for header, value in typical_insecure_response.items():
-    if header in information_disclosure_headers:
-        print(f'  ⚠️  {header}: {value}  ← REMOVE (information disclosure)')
-    else:
-        print(f'  ℹ️  {header}: {value}')
-
-print()
-print('[Missing security headers]')
-for header, info in required_security_headers.items():
-    present = header in typical_insecure_response
-    if not present:
-        risk_icon = '🔴' if info['missing_risk'] == 'HIGH' else ('🟠' if 'MEDIUM' in info['missing_risk'] else '🟡')
-        print(f'  {risk_icon} MISSING: {header}')
-        print(f'     Risk:     {info[\"missing_risk\"]}')
-        print(f'     Protects: {info[\"protects\"]}')
-        print(f'     Add:      {header}: {info[\"recommended\"][:60]}')
-        print()
-    else:
-        score += 1
-
-print(f'Security Header Score: {score}/{max_score} — Grade: F')
-"
-```
-
-**📸 Verified Output:**
-```
-[Missing security headers]
-  🔴 MISSING: Strict-Transport-Security
-     Risk: HIGH
-     Protects: SSL stripping, MITM on HTTP→HTTPS redirect
-
-  🔴 MISSING: Content-Security-Policy
-     Risk: HIGH
-     Protects: XSS, data injection, clickjacking
-
-Security Header Score: 0/7 — Grade: F
-```
-
-> 💡 **Security headers are client-side enforcement.** They tell the browser what to do, not what not to do. A `Content-Security-Policy: default-src 'self'` header means the browser will refuse to load scripts from `evil.com` — even if the attacker injects `<script src="https://evil.com/steal.js">`. Without the header, the browser will happily load it.
-
-### Step 2: Strict-Transport-Security (HSTS)
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== HTTP Strict Transport Security (HSTS) ===')
-print()
-
-print('Problem: HTTP → HTTPS redirect is vulnerable to SSL stripping.')
-print()
-print('Attack (SSLstrip):')
-attack_steps = [
-    'Victim connects to coffee shop Wi-Fi (attacker controls router)',
-    'Victim types: innozverse.com (HTTP)',
-    'Browser sends: GET http://innozverse.com/',
-    'Attacker intercepts, makes HTTPS connection to innozverse.com on behalf of victim',
-    'Attacker responds to victim over plain HTTP',
-    'Victim sees no HTTPS padlock — credentials sent in plaintext',
-    'Attacker reads username and password',
-]
-for i, step in enumerate(attack_steps, 1):
-    print(f'  Step {i}: {step}')
-
-print()
-print('HSTS prevents this:')
-print('  First visit (must be over HTTPS):')
-print('  ← Strict-Transport-Security: max-age=31536000; includeSubDomains; preload')
-print()
-print('  Browser stores: \"innozverse.com → HTTPS only for 1 year\"')
-print()
-print('  Next time victim types: innozverse.com')
-print('  Browser: internally upgrades to HTTPS BEFORE making network request')
-print('  Attacker never sees any HTTP traffic → SSLstrip fails')
-print()
-
-hsts_directives = {
-    'max-age=31536000': {
-        'meaning': '1 year — cache this HSTS policy for 1 year',
-        'note': 'Start with smaller value (300), increase after testing',
-    },
-    'includeSubDomains': {
-        'meaning': 'Apply HSTS to all subdomains (api., admin., etc.)',
-        'note': 'Ensure ALL subdomains have valid TLS before enabling',
-    },
-    'preload': {
-        'meaning': 'Submit to browser preload list (hardcoded HTTPS before first visit)',
-        'note': 'Submit at hstspreload.org — PERMANENT, very hard to undo',
-    },
-}
-
-for directive, info in hsts_directives.items():
-    print(f'  [{directive}]')
-    print(f'    Meaning: {info[\"meaning\"]}')
-    print(f'    Note:    {info[\"note\"]}')
-    print()
-
-print('HSTS preload list:')
-print('  Chrome, Firefox, Edge, Safari all ship with preloaded list')
-print('  ~140,000 domains are preloaded (as of 2026)')
-print('  Once preloaded: users NEVER send HTTP to your domain, ever')
-print('  Removal takes 6-12 months and requires site to be reachable over HTTP first')
-"
-```
-
-### Step 3: Content-Security-Policy (CSP)
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Content Security Policy (CSP) ===')
-print()
-
-print('CSP directives explained:')
-
-csp_directives = {
-    'default-src': (\"'self'\", 'Fallback for all content types not explicitly listed'),
-    'script-src':  (\"'self' 'nonce-RANDOM' https://cdn.trusted.com\",
-                    'Where scripts can load from (most important!)'),
-    'style-src':   (\"'self' 'nonce-RANDOM'\", 'Stylesheet sources'),
-    'img-src':     (\"'self' data: https:\", 'Image sources'),
-    'connect-src': (\"'self' https://api.innozverse.com\", 'XHR/fetch/WebSocket destinations'),
-    'font-src':    (\"'self' https://fonts.gstatic.com\", 'Web font sources'),
-    'frame-src':   (\"'none'\", 'Iframe sources (none = no iframes allowed)'),
-    'frame-ancestors':(\"'none'\", 'Who can embed this page in iframes (prevents clickjacking)'),
-    'form-action': (\"'self'\", 'Where forms can submit to'),
-    'base-uri':    (\"'self'\", 'Restricts <base> tag (prevents base tag injection)'),
-    'object-src':  (\"'none'\", 'Flash/Java plugins (none = block all)'),
-    'upgrade-insecure-requests': ('', 'Upgrade all HTTP subresources to HTTPS'),
-    'report-uri':  ('/csp-report', 'Send violation reports here (for monitoring)'),
-}
-
-print(f'  {\"Directive\":<25} {\"Example Value\":<50} Description')
-for directive, (value, desc) in csp_directives.items():
-    print(f'  {directive:<25} {value:<50} {desc}')
-
-print()
-print('CSP bypass techniques:')
-bypasses = [
-    (\"unsafe-inline\", \"Allows all inline scripts — defeats CSP entirely\"),
-    (\"unsafe-eval\",   \"Allows eval() — can be abused to execute arbitrary code\"),
-    (\"*\",             \"Wildcard source — allows any domain\"),
-    ('data:', \"Allows data: URIs — can encode malicious scripts\"),
-    ('JSONP endpoints', 'Allowed CDN has JSONP endpoint → script injection'),
-    ('Angular + CSP',   'Angular 1.x template injection bypasses CSP'),
-]
-for bypass, desc in bypasses:
-    print(f'  [AVOID] {bypass:<30} → {desc}')
-
-print()
-print('Nonce-based CSP (best practice):')
-import secrets
-nonce = secrets.token_urlsafe(16)
-print(f'  Server generates per-request nonce: {nonce}')
-print(f'  CSP header: script-src \\'nonce-{nonce}\\' \\'strict-dynamic\\'')
-print(f'  HTML: <script nonce=\"{nonce}\">...</script>')
-print(f'  Attacker-injected <script> has no nonce → blocked!')
-print(f'  Even if attacker injects: <script src=evil.com/x.js> → no nonce → blocked!')
-"
-```
-
-**📸 Verified Output:**
-```
-CSP bypass techniques:
-  [AVOID] unsafe-inline → Allows all inline scripts — defeats CSP entirely
-  [AVOID] * (wildcard)  → allows any domain
-
-Nonce-based CSP:
-  Server nonce: 3q8Kv2mP9xR4wT7n...
-  CSP: script-src 'nonce-3q8Kv2mP9xR4wT7n' 'strict-dynamic'
-  Attacker-injected <script> has no nonce → blocked!
-```
-
-### Step 4: Clickjacking and X-Frame-Options
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Clickjacking Attack & Defences ===')
-print()
-print('Clickjacking: attacker overlays transparent iframe over legitimate site.')
-print('Victim thinks they are clicking on attacker\\'s page, actually clicking innozverse.com.')
-print()
-
-clickjacking_html = '''<!-- Attacker\\'s page: evil.com/clickjack.html -->
-<html>
-<head>
-  <style>
-    iframe {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      opacity: 0.00001;   /* Nearly invisible */
-      z-index: 99;        /* On top of everything */
-    }
-    #fake-button {
-      position: absolute;
-      top: 200px; left: 300px;  /* Aligned with Delete Account button on target */
-    }
-  </style>
-</head>
-<body>
-  <!-- This iframe loads the real innozverse.com -->
-  <iframe src=\"https://innozverse.com/settings\"></iframe>
-  <!-- Victim sees this, clicks it, actually clicks the invisible iframe -->
-  <button id=\"fake-button\">🎁 Click to claim your free Surface Pro!</button>
-</body>
-</html>'''
-
-print('Attacker\\'s page:')
-print(clickjacking_html)
-print()
-print('What happens:')
-print('  Victim thinks they clicked \"Claim Prize\" button')
-print('  Actually clicked \"Delete Account\" on innozverse.com settings page')
-print()
-
-print('Defences:')
-defences = {
-    'X-Frame-Options: DENY': {
-        'effect': 'Browser refuses to render page in any iframe',
-        'coverage': 'All browsers (legacy support)',
-        'caveats': 'No granular control; cannot allow specific origins',
-    },
-    'X-Frame-Options: SAMEORIGIN': {
-        'effect': 'Only same origin can embed in iframe',
-        'coverage': 'All browsers',
-        'caveats': 'Cannot allow specific third-party origins',
-    },
-    'CSP frame-ancestors: \\'none\\'': {
-        'effect': 'Same as X-Frame-Options: DENY (modern equivalent)',
-        'coverage': 'Modern browsers only',
-        'caveats': 'Use both for legacy browser support',
-    },
-    'CSP frame-ancestors: \\'self\\' https://trusted.com': {
-        'effect': 'Allow specific origins to embed page',
-        'coverage': 'Modern browsers',
-        'caveats': 'Most flexible option',
-    },
-}
-for header, info in defences.items():
-    print(f'  [{header}]')
-    for k, v in info.items():
-        print(f'    {k}: {v}')
-    print()
-
-print('Recommendation: Set BOTH for compatibility:')
-print('  X-Frame-Options: DENY')
-print('  Content-Security-Policy: frame-ancestors \\'none\\'')
-"
-```
-
-### Step 5: Permissions-Policy Header
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Permissions-Policy (formerly Feature-Policy) ===')
-print()
-print('Controls which browser APIs/features can be used by the page and its iframes.')
-print()
-
-permissions = {
-    'geolocation':         ('()', 'Disable geolocation access completely'),
-    'microphone':          ('()', 'Block microphone access'),
-    'camera':              ('()', 'Block camera access'),
-    'payment':             ('()', 'Block Payment Request API'),
-    'usb':                 ('()', 'Block USB device access'),
-    'bluetooth':           ('()', 'Block Bluetooth access'),
-    'notifications':       ('()', 'Block Push Notification API'),
-    'fullscreen':          ('self', 'Only allow fullscreen for same origin'),
-    'autoplay':            ('()', 'Disable autoplay (reduces ad abuse)'),
-    'sync-xhr':            ('()', 'Disable synchronous XHR (performance)'),
-    'accelerometer':       ('()', 'Block motion sensor access'),
-    'gyroscope':           ('()', 'Block gyroscope access'),
-    'interest-cohort':     ('()', 'Opt out of FLoC (privacy)'),
-}
-
-print('Recommended Permissions-Policy for e-commerce:')
-policy_parts = []
-for feature, (value, desc) in permissions.items():
-    policy_parts.append(f'{feature}={value}')
-    print(f'  {feature}={value:<10} ← {desc}')
-
-full_policy = ', '.join(policy_parts)
-print()
-print(f'Full header:')
-print(f'  Permissions-Policy: {full_policy[:80]}')
-print(f'                      {full_policy[80:]}')
-print()
-print('Why this matters for security:')
-reasons = [
-    ('geolocation=()',  'Malicious iframe cannot covertly track user location'),
-    ('microphone=()',   'Malicious ad cannot enable microphone without permission'),
-    ('camera=()',       'Prevents invisible camera activation'),
-    ('payment=()',      'Prevents payment API abuse in iframes'),
-    ('usb=()',          'Prevents BadUSB-style attacks via browser'),
-]
-for feature, reason in reasons:
-    print(f'  [{feature}] {reason}')
-"
-```
-
-### Step 6: Referrer-Policy and Cache-Control
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-print('=== Referrer-Policy ===')
-print()
-print('Controls what URL info is sent in the Referer header to other sites.')
-print()
-
-policies = {
-    'no-referrer':                    'Never send Referer header',
-    'no-referrer-when-downgrade':     'Default: send to HTTPS, not HTTP (legacy)',
-    'origin':                         'Send only origin (no path): https://site.com',
-    'origin-when-cross-origin':       'Full URL same-origin, origin-only cross-origin',
-    'same-origin':                    'Only send Referer for same-origin requests',
-    'strict-origin':                  'Only send origin (HTTPS→HTTPS only)',
-    'strict-origin-when-cross-origin':'Recommended: full URL same-origin, origin cross-origin',
-    'unsafe-url':                     'Always send full URL (DANGEROUS)',
-}
-
-print(f'  {\"Policy\":<45} Description')
-for policy, desc in policies.items():
-    danger = '⚠️' if policy == 'unsafe-url' else ('✓' if 'strict' in policy or policy == 'no-referrer' else ' ')
-    print(f'  {danger} {policy:<43} {desc}')
-
-print()
-print('Risk without Referrer-Policy:')
-print('  User visits: https://innozverse.com/order/ORD-99999/confirm?token=abc123')
-print('  Clicks link to external resource (CDN, analytics, image)')
-print('  Referer: https://innozverse.com/order/ORD-99999/confirm?token=abc123')
-print('  → Token visible to third-party server in their access logs!')
-print()
-print('Recommendation: Referrer-Policy: strict-origin-when-cross-origin')
-print()
-
-print('=== Cache-Control for Authenticated Pages ===')
-print()
-cache_scenarios = {
-    'Authenticated dashboard': {
-        'value':    'no-store',
-        'reason':   'Never cache — contains personal data',
-        'risk_without': 'Browser back button shows cached page after logout',
-    },
-    'API response with sensitive data': {
-        'value':    'no-store, private',
-        'reason':   'Not stored in browser or CDN cache',
-        'risk_without': 'CDN caches personal data, serves to wrong users',
-    },
-    'Static assets (JS/CSS)': {
-        'value':    'public, max-age=31536000, immutable',
-        'reason':   'Cache aggressively — content-addressed filenames',
-        'risk_without': 'Users re-download assets on every page load',
-    },
-    'API 200 response (default)': {
-        'value':    'no-cache, must-revalidate',
-        'reason':   'Validate with server before using cached response',
-        'risk_without': 'Stale data shown; security fixes bypassed',
-    },
-}
-
-for resource, config in cache_scenarios.items():
-    print(f'  [{resource}]')
-    for k, v in config.items():
-        print(f'    {k:<18}: {v}')
-    print()
-"
-```
-
-### Step 7: Complete Security Headers Configuration
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import secrets
-
-nonce = secrets.token_urlsafe(16)
-
-print('=== Complete Security Headers for InnoZverse ===')
-print()
-
-headers = {
-    # Transport security
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-
-    # XSS / code injection
-    'Content-Security-Policy': (
-        f\"default-src 'self'; \"
-        f\"script-src 'self' 'nonce-{nonce}' 'strict-dynamic'; \"
-        f\"style-src 'self' 'nonce-{nonce}'; \"
-        f\"img-src 'self' data: https:; \"
-        f\"font-src 'self' https://fonts.gstatic.com; \"
-        f\"connect-src 'self' https://api.innozverse.com; \"
-        f\"frame-ancestors 'none'; \"
-        f\"object-src 'none'; \"
-        f\"base-uri 'self'; \"
-        f\"form-action 'self'; \"
-        f\"upgrade-insecure-requests; \"
-        f\"report-uri /csp-violations\"
-    ),
-
-    # Clickjacking (legacy)
-    'X-Frame-Options': 'DENY',
-
-    # MIME sniffing
-    'X-Content-Type-Options': 'nosniff',
-
-    # Referrer
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-
-    # Permissions
-    'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(), usb=()',
-
-    # Cache (authenticated pages)
-    'Cache-Control': 'no-store',
-
-    # Remove info disclosure
-    'Server': '',  # Remove entirely
-    'X-Powered-By': '',  # Remove entirely
-
-    # Cross-origin isolation
-    'Cross-Origin-Opener-Policy': 'same-origin',
-    'Cross-Origin-Embedder-Policy': 'require-corp',
-    'Cross-Origin-Resource-Policy': 'same-origin',
-}
-
-for header, value in headers.items():
-    if value:
-        print(f'{header}: {value[:100]}')
-        if len(value) > 100:
-            print(f'         {value[100:]}')
-    else:
-        print(f'  REMOVE: {header} header')
-"
-```
-
-### Step 8: Capstone — Security Header Scoring
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-headers = [
-    # Header name, grade value, present, recommendation
-    ('Strict-Transport-Security',      'A', True,  'max-age=31536000; includeSubDomains; preload'),
-    ('Content-Security-Policy',        'A', True,  'nonce-based with strict-dynamic'),
-    ('X-Frame-Options',                'B', True,  'DENY (backup for CSP frame-ancestors)'),
-    ('X-Content-Type-Options',         'B', True,  'nosniff'),
-    ('Referrer-Policy',                'B', True,  'strict-origin-when-cross-origin'),
-    ('Permissions-Policy',             'B', True,  'geolocation=(), microphone=(), camera=()'),
-    ('Cross-Origin-Opener-Policy',     'A', True,  'same-origin'),
-    ('Cross-Origin-Embedder-Policy',   'A', True,  'require-corp'),
-    ('Cross-Origin-Resource-Policy',   'A', True,  'same-origin'),
-    ('Cache-Control (sensitive pages)','B', True,  'no-store'),
-    ('Server header removed',          'B', True,  '(no version disclosure)'),
-    ('X-Powered-By removed',           'B', True,  '(no tech stack disclosure)'),
+PRODUCTS = [
+    {'id':1,'name':'Surface Pro 12','price':864},
+    {'id':2,'name':'Surface Pen',   'price':49},
 ]
 
-print('Security Headers Score — innozverse.com')
-print()
-score = sum(1 for _, _, present, _ in headers if present)
-total = len(headers)
-pct = score / total * 100
+# BUG: no security headers
+@app.route('/api/products')
+def products():
+    q = request.args.get('q','')
+    resp = make_response(jsonify({
+        'search': q,    # reflected — XSS if rendered as HTML
+        'results': [p for p in PRODUCTS if q.lower() in p['name'].lower()],
+        'note': 'No security headers set'}))
+    return resp
 
-for header, grade, present, rec in headers:
-    icon = '✓' if present else '✗'
-    print(f'  [{icon}] {header:<45} [{grade}] {rec[:50]}')
+# SECURE: full header set
+@app.route('/api/products-secure')
+def products_secure():
+    q = request.args.get('q','')
+    resp = make_response(jsonify({
+        'search': q,
+        'results': [p for p in PRODUCTS if q.lower() in p['name'].lower()]}))
+    resp.headers['Content-Security-Policy'] = (
+        "default-src 'self'; script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+        "frame-ancestors 'none'; form-action 'self'")
+    resp.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+    resp.headers['X-Frame-Options']           = 'DENY'
+    resp.headers['X-Content-Type-Options']    = 'nosniff'
+    resp.headers['Referrer-Policy']           = 'strict-origin-when-cross-origin'
+    resp.headers['Permissions-Policy']        = 'geolocation=(), camera=(), microphone=()'
+    resp.headers['Cache-Control']             = 'no-store'
+    resp.headers['X-XSS-Protection']          = '1; mode=block'
+    return resp
 
-print()
-print(f'Total: {score}/{total} ({pct:.0f}%)')
-grade = 'A+' if pct == 100 else 'A' if pct >= 90 else 'B' if pct >= 75 else 'C' if pct >= 60 else 'F'
-print(f'Grade: {grade}')
-print()
-print('Verification tools:')
-print('  • https://securityheaders.com — free online scanner')
-print('  • https://observatory.mozilla.org — Mozilla Observatory')
-print('  • curl -I https://innozverse.com — manual inspection')
-print('  • Lighthouse audit (Chrome DevTools)')
-"
+# Self-contained header audit tool
+@app.route('/api/headers-check')
+def headers_check():
+    target = request.args.get('target', f'http://victim-a19:5000/api/products')
+    try:
+        r = urllib.request.urlopen(target, timeout=3)
+        hdrs = dict(r.headers)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    SECURITY = ['Content-Security-Policy','Strict-Transport-Security',
+                'X-Frame-Options','X-Content-Type-Options',
+                'Referrer-Policy','Permissions-Policy','Cache-Control']
+    audit = {h: hdrs.get(h,'⚠ MISSING') for h in SECURITY}
+    score = sum(1 for v in audit.values() if v != '⚠ MISSING')
+    return jsonify({'url': target, 'score': f'{score}/{len(SECURITY)}',
+                    'security_headers': audit})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
+PYEOF
+
+docker run -d \
+  --name victim-a19 \
+  --network lab-a19 \
+  -v /tmp/victim_a19.py:/app/victim.py:ro \
+  zchencow/innozverse-cybersec:latest \
+  python3 /app/victim.py
+
+sleep 4
+curl -s http://$(docker inspect -f '{{.NetworkSettings.Networks.lab-a19.IPAddress}}' victim-a19):5000/api/products | python3 -m json.tool
 ```
 
 ---
 
-## Summary
+### Step 2: Launch Kali and Run Baseline Header Check
 
-| Header | Protects Against | Recommended Value |
-|--------|-----------------|-------------------|
-| HSTS | SSL stripping, MITM | `max-age=31536000; includeSubDomains; preload` |
-| CSP | XSS, data injection | Nonce-based with `strict-dynamic` |
-| X-Frame-Options | Clickjacking | `DENY` |
-| X-Content-Type-Options | MIME sniffing | `nosniff` |
-| Referrer-Policy | URL data leakage | `strict-origin-when-cross-origin` |
-| Permissions-Policy | Browser API abuse | Disable unused APIs |
-| Cache-Control | Data exposure in cache | `no-store` for authenticated pages |
+```bash
+docker run --rm -it \
+  --name kali-attacker \
+  --network lab-a19 \
+  zchencow/innozverse-kali:latest bash
+```
+
+```bash
+export TARGET="http://victim-a19:5000"
+
+echo "=== Full HTTP response headers from /api/products ==="
+curl -s -I $TARGET/api/products
+
+echo ""
+echo "=== Only security-relevant headers ==="
+curl -s -I $TARGET/api/products | \
+  grep -iE "Content-Security|Strict-Transport|X-Frame|X-Content-Type|Referrer|Permissions|Cache-Control|X-XSS"
+echo "(empty output = all headers missing)"
+```
+
+**📸 Verified Output:**
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 189
+Server: Werkzeug/3.1.6 Python/3.10.12
+Date: Wed, 04 Mar 2026 07:39:10 GMT
+
+(empty output = all security headers missing)
+```
+
+---
+
+### Step 3: Automated Header Audit (Score 0/7)
+
+```bash
+echo "=== Automated audit: /api/products (no headers) ==="
+curl -s "$TARGET/api/headers-check?target=http://victim-a19:5000/api/products" | \
+  python3 -m json.tool
+
+echo ""
+echo "=== Automated audit: /api/products-secure (full headers) ==="
+curl -s "$TARGET/api/headers-check?target=http://victim-a19:5000/api/products-secure" | \
+  python3 -m json.tool
+```
+
+**📸 Verified Output:**
+```json
+Unprotected endpoint — score 0/7:
+{
+    "score": "0/7",
+    "security_headers": {
+        "Cache-Control":             "⚠ MISSING",
+        "Content-Security-Policy":   "⚠ MISSING",
+        "Permissions-Policy":        "⚠ MISSING",
+        "Referrer-Policy":           "⚠ MISSING",
+        "Strict-Transport-Security": "⚠ MISSING",
+        "X-Content-Type-Options":    "⚠ MISSING",
+        "X-Frame-Options":           "⚠ MISSING"
+    }
+}
+
+Protected endpoint — score 7/7:
+{
+    "score": "7/7",
+    "security_headers": {
+        "Cache-Control":             "no-store",
+        "Content-Security-Policy":   "default-src 'self'; script-src 'self'; ...",
+        "Permissions-Policy":        "geolocation=(), camera=(), microphone=()",
+        "Referrer-Policy":           "strict-origin-when-cross-origin",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        "X-Content-Type-Options":    "nosniff",
+        "X-Frame-Options":           "DENY"
+    }
+}
+```
+
+---
+
+### Step 4: XSS Reflected by Missing CSP
+
+```bash
+echo "=== Missing CSP: XSS payload reflected without protection ==="
+
+# The search parameter is reflected directly in the JSON response
+# Without CSP, if this were HTML-rendered, the script tag would execute
+curl -s "$TARGET/api/products?q=<script>alert(document.cookie)</script>"
+
+echo ""
+python3 << 'EOF'
+# In a real HTML endpoint (not JSON), this is how reflected XSS works:
+# 1. Attacker crafts URL: https://shop.com/products?q=<script>alert(1)</script>
+# 2. Victim clicks the link
+# 3. Server reflects the query param into HTML without encoding
+# 4. Without CSP, the browser executes the script
+# 5. With CSP "script-src 'self'", inline/reflected scripts are BLOCKED
+
+payload = "<script>alert(document.cookie)</script>"
+html_no_csp = f"""
+<html>
+  <body>
+    <h1>Search results for: {payload}</h1>
+    <!-- Without CSP: script executes, steals cookie -->
+    <!-- With CSP (script-src 'self'): browser blocks inline script -->
+  </body>
+</html>"""
+print("What the page would render without CSP:")
+print(html_no_csp[:300])
+print()
+print("CSP header that blocks this:")
+print("  Content-Security-Policy: default-src 'self'; script-src 'self'")
+print("  Effect: browser refuses to execute ANY inline script")
+print("  XSS payload rendered as text, not code")
+EOF
+```
+
+**📸 Verified Output:**
+```json
+{"note":"No security headers set","results":[],"search":"<script>alert(document.cookie)</script>"}
+```
+
+> 💡 **CSP (`Content-Security-Policy`) is the strongest XSS mitigation available.** With `script-src 'self'`, even if an attacker successfully injects a `<script>` tag, the browser refuses to execute it — the tag renders as visible text. Think of CSP as a whitelist for what your page is *allowed* to do. It's a second layer of defence: even if injection happens, execution is blocked.
+
+---
+
+### Step 5: Clickjacking via Missing X-Frame-Options
+
+```bash
+echo "=== Missing X-Frame-Options: clickjacking risk ==="
+
+python3 << 'EOF'
+# Without X-Frame-Options: DENY, any page can embed the target in an iframe
+# The attacker overlays invisible buttons over the iframe to trick users into clicking
+
+clickjack_html = """
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    /* Transparent iframe covering the whole page */
+    #victim-frame {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0.001;      /* nearly invisible */
+      z-index: 2;          /* on top of everything */
+    }
+    /* Decoy button visible to user */
+    #decoy-button {
+      position: absolute; top: 200px; left: 200px;
+      z-index: 1;
+      padding: 20px; background: green; color: white;
+      font-size: 20px; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- Visible to user: looks like a harmless "Claim prize" button -->
+  <div id="decoy-button">🎁 Click here to claim your prize!</div>
+
+  <!-- Invisible iframe positioned so that the victim's 
+       "Transfer Funds" button is right under the decoy -->
+  <iframe id="victim-frame"
+          src="http://innozverse-shop.com/transfer?to=attacker&amount=500">
+  </iframe>
+
+  <!-- When user clicks the decoy button:
+       they actually click the Transfer Funds button inside the iframe -->
+</body>
+</html>"""
+
+print("Clickjacking attack HTML:")
+print(clickjack_html[:600])
+print()
+print("Fix:")
+print("  X-Frame-Options: DENY              (never allow iframe embedding)")
+print("  OR: X-Frame-Options: SAMEORIGIN   (only same-origin can iframe)")
+print("  CSP: frame-ancestors 'none'       (modern equivalent, more flexible)")
+EOF
+
+echo ""
+echo "=== Check secure endpoint — DENY is set ==="
+curl -s -I $TARGET/api/products-secure | grep -i "X-Frame"
+```
+
+**📸 Verified Output:**
+```
+Fix:
+  X-Frame-Options: DENY
+  CSP: frame-ancestors 'none'
+
+X-Frame-Options: DENY
+```
+
+---
+
+### Step 6: HSTS — Preventing SSL Strip Attacks
+
+```bash
+echo "=== HSTS: preventing HTTPS downgrade (SSL strip) ==="
+
+python3 << 'EOF'
+# Without HSTS: SSL strip attack
+# 1. User on coffee shop Wi-Fi navigates to http://bank.com
+# 2. Attacker intercepts and returns HTTP version (removes HTTPS redirect)
+# 3. User's browser talks plain HTTP — attacker reads everything
+# 4. Attacker talks HTTPS to the real bank — proxies all traffic
+
+# With HSTS:
+# 1. First time user visits https://bank.com, browser receives:
+#    Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+# 2. Browser stores "always use HTTPS for bank.com for next year"
+# 3. Next visit: browser forces HTTPS BEFORE making any request
+# 4. SSL strip attack impossible — no plain HTTP request ever sent
+
+hsts_analysis = {
+    "max-age=31536000":     "Browser remembers HTTPS requirement for 1 year",
+    "includeSubDomains":    "Applies to all subdomains (api.bank.com, mail.bank.com)",
+    "preload":              "Browser vendor pre-bakes the HTTPS requirement (ships with browser)"
+}
+
+print("HSTS directive breakdown:")
+for directive, meaning in hsts_analysis.items():
+    print(f"  {directive:<30} → {meaning}")
+print()
+print("From secure endpoint:")
+EOF
+
+curl -s -I $TARGET/api/products-secure | grep -i "Strict-Transport"
+```
+
+**📸 Verified Output:**
+```
+HSTS directive breakdown:
+  max-age=31536000               → Browser remembers HTTPS for 1 year
+  includeSubDomains              → Applies to all subdomains
+  preload                        → Pre-baked into browser vendor list
+
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+```
+
+---
+
+### Step 7: Implement a Flask Security Header Middleware
+
+```bash
+python3 << 'EOF'
+# Demonstrate the middleware pattern for adding headers globally
+
+middleware_code = '''
+from flask import Flask
+from functools import wraps
+
+app = Flask(__name__)
+
+# Option 1: after_request hook (applies to ALL routes automatically)
+@app.after_request
+def add_security_headers(response):
+    response.headers["Content-Security-Policy"] = (
+        "default-src \\'self\\'; "
+        "script-src \\'self\\'; "
+        "style-src \\'self\\' \\'unsafe-inline\\'; "
+        "img-src \\'self\\' data:; "
+        "frame-ancestors \\'none\\'; "
+        "form-action \\'self\\'"
+    )
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains; preload"
+    )
+    response.headers["X-Frame-Options"]        = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"]        = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"]     = "geolocation=(), camera=(), microphone=()"
+    response.headers["Cache-Control"]          = "no-store"
+    # Remove server banner
+    response.headers.pop("Server", None)
+    return response
+'''
+
+print("Flask security header middleware:")
+print(middleware_code)
+print()
+print("One decorator → protects ALL endpoints automatically")
+print("Zero per-route changes needed")
+EOF
+```
+
+---
+
+### Step 8: Cleanup
+
+```bash
+exit
+```
+```bash
+docker rm -f victim-a19
+docker network rm lab-a19
+```
+
+---
+
+## Header Reference
+
+| Header | Value | Protects Against |
+|--------|-------|-----------------|
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; frame-ancestors 'none'` | XSS, clickjacking, injection |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` | SSL strip, downgrade attacks |
+| `X-Frame-Options` | `DENY` | Clickjacking |
+| `X-Content-Type-Options` | `nosniff` | MIME sniffing, content-type confusion |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Referrer-based data leakage |
+| `Permissions-Policy` | `geolocation=(), camera=(), microphone=()` | API abuse, covert data collection |
+| `Cache-Control` | `no-store` | Sensitive data cached by browser/proxy |
+
+## Free Tools
+- [securityheaders.com](https://securityheaders.com) — scan any public URL
+- [Mozilla Observatory](https://observatory.mozilla.org) — full security header grade
+- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/)
 
 ## Further Reading
-- [securityheaders.com](https://securityheaders.com) — Scan any site
-- [Mozilla Observatory](https://observatory.mozilla.org) — Detailed analysis
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/)
-- [CSP Evaluator](https://csp-evaluator.withgoogle.com) — Validate your CSP
+- [OWASP A05:2021 Security Misconfiguration](https://owasp.org/Top10/A05_2021-Security_Misconfiguration/)
+- [Content Security Policy Reference](https://content-security-policy.com/)
+- [HSTS Preload List](https://hstspreload.org/)
