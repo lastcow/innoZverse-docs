@@ -53,6 +53,23 @@
 * [Lab 01: PyTorch Deep Dive — Custom Training Loops](advanced/labs/lab-01-pytorch-deep-dive.md)
 * [Lab 02: Computer Vision Pipelines — Detection and Segmentation](advanced/labs/lab-02-computer-vision-pipeline.md)
 * [Lab 03: LLM API Integration — Streaming, Tool Use, Structured Output](advanced/labs/lab-03-llm-api-integration.md)
+* [Lab 04: LangChain & Vector Databases — RAG at Scale](advanced/labs/lab-04-langchain-vector-databases.md)
+* [Lab 05: Adversarial ML & Model Robustness](advanced/labs/lab-05-adversarial-ml.md)
+* [Lab 06: MLflow — Experiment Tracking & Model Registry](advanced/labs/lab-06-mlflow-experiment-tracking.md)
+* [Lab 07: Distributed Training Patterns](advanced/labs/lab-07-distributed-training.md)
+* [Lab 08: ML Monitoring & Drift Detection](advanced/labs/lab-08-ml-monitoring-drift.md)
+* [Lab 09: Reinforcement Learning for Security](advanced/labs/lab-09-reinforcement-learning.md)
+* [Lab 10: Graph Neural Networks for Threat Intelligence](advanced/labs/lab-10-graph-neural-networks.md)
+* [Lab 11: Generative Models — VAE for Anomaly Detection](advanced/labs/lab-11-generative-models-vae.md)
+* [Lab 12: Federated Learning & Privacy-Preserving ML](advanced/labs/lab-12-federated-learning-privacy.md)
+* [Lab 13: Prompt Injection Defence & LLM Security](advanced/labs/lab-13-prompt-injection-llm-security.md)
+* [Lab 14: Model Compression & Quantisation](advanced/labs/lab-14-model-compression-quantization.md)
+* [Lab 15: AutoML & Neural Architecture Search](advanced/labs/lab-15-automl-neural-architecture-search.md)
+* [Lab 16: Causal ML & Counterfactual Reasoning](advanced/labs/lab-16-causal-ml-counterfactual.md)
+* [Lab 17: Multi-Modal Learning — Vision + Text](advanced/labs/lab-17-multimodal-learning.md)
+* [Lab 18: Self-Supervised & Contrastive Learning](advanced/labs/lab-18-self-supervised-contrastive.md)
+* [Lab 19: AI Red Teaming & Security Audit](advanced/labs/lab-19-ai-red-teaming.md)
+* [Lab 20: Capstone — Enterprise AI Security Platform](advanced/labs/lab-20-capstone-enterprise-ai-security.md)
 
 ## 🏛️ Architect
 
