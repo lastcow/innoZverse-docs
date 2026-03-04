@@ -1,508 +1,298 @@
 # Lab 20: Capstone — Design Your Own AI Product
 
 ## Objective
-Apply everything from Labs 01–19 to design a complete AI product: from problem definition through architecture, model selection, data strategy, safety considerations, deployment plan, and business model. You leave with a professional product spec.
+Apply everything from the Foundations track to design a complete AI product: define the problem, choose the right AI approach, design the system architecture, plan for safety and ethics, estimate costs, and create a product roadmap. This is a thinking and design exercise — no coding required.
 
-**Time:** 60 minutes | **Level:** Foundations | **Type:** Design Workshop
-
----
-
-## Background
-
-Building an AI product is 20% choosing the model and 80% everything else:
-
-```
-20%: Which model?
-80%: What problem? Who for? What data? How to evaluate?
-     How to handle failures? What are the risks? How to monetise?
-     How to maintain it? What if it's wrong?
-```
-
-This capstone walks you through the entire product design process using a structured framework. You'll design a real AI product from scratch.
+**Time:** 45 minutes | **Level:** Foundations | **No coding required**
 
 ---
 
-## The AI Product Design Framework
+## Background: From Consumer to Builder
+
+You've spent 19 labs learning *how* AI works. Now it's time to think like a builder.
+
+The most important skill in AI is not prompt engineering or even ML — it's **product thinking**:
+- What problem is actually worth solving?
+- Where does AI add value vs traditional software?
+- What could go wrong, and how do you prevent it?
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  1. PROBLEM DEFINITION                                  │
-│     What specific pain are you solving? For whom?       │
-├─────────────────────────────────────────────────────────┤
-│  2. DATA STRATEGY                                       │
-│     What data do you have? What do you need? Privacy?   │
-├─────────────────────────────────────────────────────────┤
-│  3. AI ARCHITECTURE                                     │
-│     Which model? RAG? Agents? Fine-tune or prompt?      │
-├─────────────────────────────────────────────────────────┤
-│  4. EVALUATION PLAN                                     │
-│     How do you know it's working? Metrics? Benchmarks?  │
-├─────────────────────────────────────────────────────────┤
-│  5. SAFETY & ALIGNMENT                                  │
-│     What can go wrong? Bias? Misuse? Failure modes?     │
-├─────────────────────────────────────────────────────────┤
-│  6. DEPLOYMENT & MONITORING                             │
-│     How do users access it? How do you detect drift?    │
-├─────────────────────────────────────────────────────────┤
-│  7. BUSINESS MODEL                                      │
-│     How does it create value? How do you capture it?    │
-└─────────────────────────────────────────────────────────┘
+The Product Builder's Hierarchy of Needs:
+  1. Problem-market fit  (does this pain point exist and matter?)
+  2. AI-solution fit     (is AI the right tool, or would a simple rule work?)
+  3. Data feasibility    (do you have / can you get training data?)
+  4. Safety & ethics     (what are the failure modes and harms?)
+  5. Business model      (who pays, how much, why won't they churn?)
 ```
 
 ---
 
-## Worked Example: SecureAdvisor — AI Cybersecurity Assistant
+## Step 1: The AI Product Ideation Framework
 
-Let's design a complete product together as a worked example.
-
----
-
-### Step 1: Problem Definition
-
-**Problem statement:**
-> Security analysts at mid-sized companies (50–500 employees) spend 3–4 hours per day triaging alerts, searching knowledge bases, and writing incident reports — time that should go to actual investigation.
-
-**Target user:** Tier-1 and Tier-2 SOC analysts
-
-**Job to be done (JTBD):**
-- "When I get a security alert, I need to quickly understand if it's a real threat and what to do"
-- "When writing an incident report, I need help structuring findings professionally"
-- "When a new CVE drops, I need to know if our environment is affected"
-
-**Success metric (user):**
-- Alert triage time reduced by ≥50%
-- Analyst satisfaction score ≥ 4/5
-- False negative rate (missed real threats) < 0.1%
-
-**What this is NOT:**
-- Not a replacement for analysts (augmentation, not automation)
-- Not a compliance tool
-- Not a threat intelligence platform
-
-> 💡 Narrow problem definitions win. "AI for cybersecurity" is not a product. "Reduce Tier-1 SOC triage time by 50% at mid-market companies" is a product.
-
----
-
-### Step 2: Data Strategy
-
-**Data inventory:**
-
-| Data Source | Volume | Quality | Privacy Risk |
-|-------------|--------|---------|-------------|
-| NVD CVE database | 250K CVEs | High | None |
-| MITRE ATT&CK | 800+ techniques | High | None |
-| Customer SIEM logs | Varies | Medium | HIGH — PII |
-| Incident reports | 10–100/company | High | Medium |
-| Threat intel feeds | Real-time | Medium | Low |
-| Vendor advisories | Thousands/year | High | None |
-
-**Data pipeline:**
-
-```python
-# Pseudocode: SecureAdvisor data pipeline
-class DataPipeline:
-    def ingest_public(self):
-        """Public knowledge: CVE, MITRE, advisories → RAG knowledge base"""
-        sources = [NVD(), MITREAttack(), VendorAdvisories(), SecurityBlogs()]
-        for source in sources:
-            docs = source.fetch_latest()
-            embeddings = embed(docs)
-            vector_db.upsert(embeddings)
-
-    def ingest_customer(self, tenant_id: str):
-        """Customer-specific: SIEM logs, past incidents → per-tenant context"""
-        # CRITICAL: never mix tenant data
-        with TenantIsolation(tenant_id):
-            logs = siem.fetch_recent(days=90)
-            clean_logs = pii_remover.process(logs)  # strip IPs, usernames
-            tenant_vector_db[tenant_id].upsert(embed(clean_logs))
-```
-
-**Critical data decisions:**
-- **Multi-tenancy isolation**: Every customer's data stays strictly separate
-- **PII scrubbing**: SIEM logs → strip IP addresses, usernames before LLM sees them
-- **Retention policy**: Logs kept 90 days; anonymised summaries kept 2 years
-- **Consent model**: Customers explicitly opt-in to using their data for improvements
-
----
-
-### Step 3: AI Architecture
+### When AI Adds Genuine Value
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                     SecureAdvisor Architecture               │
-│                                                              │
-│  User Query                                                  │
-│      │                                                       │
-│      ▼                                                       │
-│  Intent Router ─────────────────────────────────────────    │
-│      │              │                    │                   │
-│      ▼              ▼                    ▼                   │
-│  CVE Lookup    Alert Triage        Report Writer             │
-│      │              │                    │                   │
-│      ▼              ▼                    ▼                   │
-│  Public RAG    Hybrid RAG           Structured LLM           │
-│  (NVD, MITRE)  (Public + Tenant)    (template + fill)        │
-│      │              │                    │                   │
-│      └──────────────┴────────────────────┘                   │
-│                      │                                       │
-│                      ▼                                       │
-│               Claude Sonnet (LLM)                            │
-│                      │                                       │
-│                      ▼                                       │
-│              Response + Citations                            │
-└──────────────────────────────────────────────────────────────┘
+AI ADDS VALUE when:
+  ✅ Problem requires pattern recognition at scale (millions of events)
+  ✅ Human expertise is scarce or expensive (radiologists, security analysts)
+  ✅ Personalization matters at scale (recommendations, adaptive learning)
+  ✅ The task involves natural language, images, or audio
+  ✅ Speed matters more than perfect accuracy
+  ✅ Decisions benefit from probabilistic confidence scores
+
+AI is WRONG TOOL when:
+  ❌ A simple if-else rule covers 95% of cases
+  ❌ You don't have (and can't get) training data
+  ❌ Explainability is legally required and ML can't provide it
+  ❌ The problem changes so fast that models become stale immediately
+  ❌ Stakes are high, errors are catastrophic, and you can't validate
 ```
 
-**Model selection decision:**
+### Security Domain Opportunities
 
-| Option | Why Consider | Why Reject |
-|--------|-------------|------------|
-| GPT-4o | Great capabilities | Data leaves infrastructure |
-| Claude Sonnet | 200K context, strong reasoning | API dependency |
-| Llama 3.1 70B (self-hosted) | Privacy, no API cost | Infrastructure burden |
-| **Decision: Claude Sonnet + private deployment** | Balance of capability + control | — |
-
-**Why RAG instead of fine-tuning:**
-
-```python
-# Fine-tuning: bake knowledge into weights
-# Problem: CVE database updates daily — can't retrain daily
-# 
-# RAG: retrieve relevant knowledge at query time
-# Benefit: add new CVEs without retraining, cite sources
-# 
-# Fine-tuning IS appropriate for: style/format consistency,
-# domain-specific reasoning patterns, inference efficiency
-
-# Architecture: RAG for knowledge, fine-tune for format
-pipeline = """
-1. Retrieve: Top-5 relevant CVEs/techniques from vector DB
-2. Augment: Inject into prompt with structured context
-3. Generate: Claude produces grounded response
-4. Cite: Response includes source links (CVE IDs, ATT&CK IDs)
-"""
 ```
+Tier 1 — High impact, AI clearly adds value:
+  → Alert triage: rank 100k daily SIEM alerts → analyst sees only top 50
+  → Phishing detection: beyond rules, adapts to new campaigns
+  → Malware classification: static analysis + ML → faster than sandboxing
+  → Threat actor attribution: graph ML on IOC relationships
+  → Vulnerability prioritisation: CVSS + exploit probability + asset criticality
 
-**Agent vs non-agent:**
+Tier 2 — Medium impact, depends on context:
+  → Log anomaly detection: needs good baseline, many false positives
+  → Insider threat detection: privacy concerns, high sensitivity
+  → Penetration testing assistance: augments humans, doesn't replace
+  → Security policy compliance checking: LLM reads config, flags gaps
 
-```python
-# For SecureAdvisor: Agent with tools
-agent_tools = [
-    search_nvd_database,      # lookup CVE details
-    query_mitre_attack,       # find related techniques
-    check_customer_history,   # similar past incidents
-    generate_yara_rule,       # create detection signatures
-    create_jira_ticket,       # action: create incident ticket
-]
-
-# Agentic loop: query → tool calls → synthesise → respond
+Tier 3 — Proceed carefully:
+  → Automated patch decisions: what if the AI is wrong?
+  → Employee behaviour monitoring: legal and ethical minefield
+  → Autonomous offensive tools: serious dual-use risk
 ```
 
 ---
 
-### Step 4: Evaluation Plan
+## Step 2: Design Exercise — Choose Your Product
 
-**Automated evaluation:**
+Pick ONE of these hypothetical scenarios (or define your own):
 
-```python
-eval_suite = {
-    "CVE accuracy": {
-        "metric": "exact_match + fuzzy_match on CVE IDs",
-        "dataset": "100 CVE questions with verified answers",
-        "target": ">= 95% accuracy"
-    },
-    "Hallucination rate": {
-        "metric": "% responses citing non-existent CVEs",
-        "dataset": "200 queries, verified by security expert",
-        "target": "< 0.5% hallucination"
-    },
-    "Triage accuracy": {
-        "metric": "False negative rate on alert classification",
-        "dataset": "500 labelled alerts (200 real threats)",
-        "target": "FN rate < 0.1%"
-    },
-    "Response latency": {
-        "metric": "P95 response time",
-        "target": "< 3 seconds"
-    },
-    "Retrieval precision": {
-        "metric": "NDCG@5 on retrieved documents",
-        "target": "> 0.85"
-    }
-}
+### Option A: AI-Powered SOC Analyst Assistant
+
+**Problem**: Tier-1 SOC analysts spend 70% of their time on false positives. Alert fatigue causes real threats to be missed.
+
+**Proposed solution**: An AI assistant that:
+- Automatically triages incoming SIEM alerts (benign / suspicious / critical)
+- Enriches alerts with threat intel context
+- Drafts incident response notes
+- Learns from analyst decisions over time
+
+### Option B: Autonomous Phishing Campaign Detector
+
+**Problem**: Phishing campaigns evolve faster than signature-based tools can keep up.
+
+**Proposed solution**: A system that:
+- Monitors submitted URLs and screenshots in real time
+- Uses multi-modal AI (vision + text + URL features) to classify pages
+- Detects brand impersonation automatically
+- Blocks pages within 60 seconds of submission
+
+### Option C: AI Penetration Test Reporter
+
+**Problem**: Writing pentest reports takes 40% of a pentest engagement.
+
+**Proposed solution**: An LLM-powered tool that:
+- Ingests tool output (nmap, Burp Suite, Metasploit logs)
+- Generates structured findings in CVSS format
+- Drafts executive summary and technical detail sections
+- References relevant CVEs and remediation guides
+
+---
+
+## Step 3: Architecture Design Template
+
+For **your chosen product**, fill in this framework:
+
 ```
-
-**Human evaluation:**
-
-```python
-human_eval = {
-    "Analyst satisfaction": "Weekly survey, 1–5 scale, target 4.2+",
-    "Helpfulness":          "Was this response useful? Yes/No, target 80%+",
-    "Trust calibration":    "Did the model admit uncertainty when appropriate?",
-    "Escalation accuracy":  "Did it correctly identify when human review needed?",
-}
-```
-
-**A/B testing plan:**
-
-```python
-"""
-Week 1–2: 20% analysts get AI assistant (silent mode, suggestions not shown)
-Week 3–4: 20% see suggestions, compare triage time
-Week 5+:  Gradual rollout, monitoring false negative rate closely
-Never:    Full auto-action without human approval
-"""
+┌─────────────────────────────────────────────────────────────────┐
+│                    AI PRODUCT DESIGN CANVAS                     │
+├─────────────────┬───────────────────────────────────────────────┤
+│ Problem         │ [Who has what pain, how often, how severe?]  │
+│ Users           │ [Persona: role, technical level, urgency]    │
+│ Success metric  │ [What does good look like? How measured?]    │
+├─────────────────┼───────────────────────────────────────────────┤
+│ AI approach     │ [Classification / generation / retrieval?]   │
+│ Data source     │ [Where does training data come from?]        │
+│ Model choice    │ [Off-shelf API / fine-tuned / custom?]       │
+│ Evaluation      │ [AUC? F1? Human eval? A/B test?]            │
+├─────────────────┼───────────────────────────────────────────────┤
+│ System diagram  │                                               │
+│                 │  Input → Preprocessing → AI Model → Output   │
+│                 │            ↑                  ↓              │
+│                 │         Feature eng.       Postprocess        │
+│                 │            ↑                  ↓              │
+│                 │       Data pipeline      Human review         │
+├─────────────────┼───────────────────────────────────────────────┤
+│ Failure modes   │ [What if model is wrong? Who gets hurt?]     │
+│ Bias risks      │ [Does training data represent all users?]    │
+│ Safety measures │ [Human in loop? Confidence thresholds?]      │
+├─────────────────┼───────────────────────────────────────────────┤
+│ Cost estimate   │ [Compute, API, engineering, data labelling]  │
+│ Business model  │ [SaaS? Per-alert? License? Internal tool?]   │
+└─────────────────┴───────────────────────────────────────────────┘
 ```
 
 ---
 
-### Step 5: Safety and Alignment
+## Step 4: Worked Example — SOC Alert Triage (Option A)
 
-**Threat model for AI product:**
+### Problem Definition
 
-```python
-threats = {
-    "Prompt injection": {
-        "scenario": "Attacker embeds instruction in log file: 'Ignore all previous instructions...'",
-        "mitigation": "Input sanitisation, separate system/user message boundaries, canary tokens",
-    },
-    "Data exfiltration": {
-        "scenario": "Model asked to 'summarise all customer records'",
-        "mitigation": "Strict tenant isolation, data access controls, output filtering",
-    },
-    "Hallucination of CVEs": {
-        "scenario": "Model invents non-existent vulnerabilities, analyst wastes time",
-        "mitigation": "All CVE citations verified against live NVD; model says 'I don't know' if uncertain",
-    },
-    "Adversarial inputs": {
-        "scenario": "Attacker crafts SIEM log to manipulate AI classification",
-        "mitigation": "Model confidence scores, human review for edge cases, anomaly detection on model outputs",
-    },
-    "Bias in threat prioritisation": {
-        "scenario": "Model deprioritises threats associated with specific countries/vendors",
-        "mitigation": "Regular bias audits, diverse evaluation dataset, human override always available",
-    },
-    "Over-reliance": {
-        "scenario": "Analysts trust AI completely, stop thinking critically",
-        "mitigation": "Show confidence scores, explain reasoning, require human sign-off on critical actions",
-    },
-}
-
-for threat, details in threats.items():
-    print(f"Threat: {threat}")
-    print(f"  Scenario:   {details['scenario'][:70]}...")
-    print(f"  Mitigation: {details['mitigation'][:70]}...")
-    print()
+```
+Users:     Tier-1 SOC analysts at mid-sized enterprises (500-5000 employees)
+Pain:      300-500 SIEM alerts/day, 85% false positive rate
+           Analyst manually investigates each → 2-4 min per alert = 10-20 hours
+Severity:  Critical — real threats buried in noise → MTTD (mean time to detect) averages 21 days
+Goal:      Reduce analyst time on FPs by 60%, reduce MTTD to <4 hours
 ```
 
-**Alignment principles for SecureAdvisor:**
+### AI Approach
 
-```python
-alignment_principles = [
-    "NEVER take destructive action (block IP, delete files) without explicit human approval",
-    "ALWAYS cite sources — no claims without evidence",
-    "ALWAYS express uncertainty — 'I'm not sure' is correct and expected",
-    "NEVER access data outside the current tenant context",
-    "ALWAYS escalate to human when confidence < 80% on critical decisions",
-    "NEVER expose one customer's data to another customer",
-    "ALWAYS provide a 'why' explanation, not just a verdict",
-]
+```
+Model: Gradient Boosted Trees + LLM enrichment
+Input features:
+  - Alert type, severity, source IP, destination
+  - Historical alert patterns for same source
+  - Time of day, user context
+  - Threat intel enrichment (VirusTotal, AbuseIPDB scores)
+
+Output:
+  - Risk score (0-1)
+  - Triage decision (auto-close / escalate / investigate)
+  - Explanation (why this decision)
+  - Suggested SOAR playbook
+
+Training data:
+  - 6 months of analyst-resolved alerts (true positives + false positives)
+  - Min 50k samples needed for reliable classification
+  - Active learning: analysts' decisions feed back as labels
 ```
 
----
+### System Architecture
 
-### Step 6: Deployment and Monitoring
-
-**Deployment architecture:**
-
-```yaml
-# Infrastructure decision: private cloud deployment
-deployment:
-  strategy: kubernetes_on_aws
-  regions: [us-east-1, eu-west-1]  # data residency compliance
-
-  services:
-    api_gateway:      rate_limiting + auth
-    inference:        2x claude_sonnet_api (primary + fallback)
-    vector_db:        weaviate (tenant-isolated collections)
-    embedding_service: text-embedding-3-small (openai)
-
-  scaling:
-    min_replicas: 2
-    max_replicas: 20
-    target_latency_p95: 3000ms
+```
+SIEM
+ │
+ ▼
+[Kafka Stream] → [Feature Extractor] → [ML Triage Model] → Risk Score
+                        │                       │
+                  [Threat Intel API]    [LLM Explanation]
+                  (enrichment)          (GPT-4o / Claude)
+                        │                       │
+                        └─────────┬─────────────┘
+                                  ▼
+                         [Alert Dashboard]
+                          ├── Auto-closed (score < 0.1) → Queue for daily review
+                          ├── Auto-escalated (score > 0.85) → Page on-call
+                          └── Investigate (0.1-0.85) → Analyst queue
 ```
 
-**Monitoring plan:**
+### Safety & Ethics
 
-```python
-monitoring_metrics = {
-    "Model metrics": [
-        "hallucination_rate",           # checked by verifier service
-        "citation_accuracy",            # CVE IDs validated vs NVD
-        "false_negative_rate",          # weekly human audit sample
-        "response_confidence_dist",     # track confidence score drift
-    ],
-    "System metrics": [
-        "latency_p50_p95_p99",
-        "error_rate",
-        "vector_db_recall@5",
-    ],
-    "Business metrics": [
-        "analyst_triage_time",          # integration with ticketing
-        "model_suggestions_accepted",   # acceptance rate
-        "escalation_rate",              # how often model deferred to human
-    ],
-    "Safety metrics": [
-        "prompt_injection_attempts",    # logged, alerted at threshold
-        "cross_tenant_access_attempts", # zero tolerance, immediate alert
-        "output_filter_triggers",       # content policy triggers
-    ],
-}
+```
+Risks:
+  1. False negatives: real attack auto-closed → missed breach
+     Mitigation: conservative threshold (0.1), periodic review of closed alerts
+
+  2. Model drift: attacker learns to evade the triage model
+     Mitigation: drift monitoring, monthly retraining, A/B test new models
+
+  3. Bias: model trained on one environment, deployed in another
+     Mitigation: 30-day parallel run, measure performance vs manual baseline
+
+  4. Over-reliance: analysts stop reviewing, lose skills
+     Mitigation: random sampling of auto-closed alerts for analyst review
+
+Human-in-the-loop: ALL escalations are reviewed by human. No automated blocks.
+```
+
+### Cost Estimate
+
+```
+Engineering (1 ML eng, 1 backend, 3 months): £150k
+Data labelling (analyst time, 2 weeks):      £8k
+Infrastructure (GPU inference, 1 year):      £24k
+LLM API (Claude/GPT, 500 alerts/day):        £3k/year
+
+Total first year:  ~£185k
+ROI:               If saves 3 analyst hours/day at £50/hr → £55k/yr
+                   + Faster MTTD reduces breach cost by £200k+ avg
+Payback period:    ~2 years (conservative)
 ```
 
 ---
 
-### Step 7: Business Model
+## Step 5: Roadmap Planning
 
-```python
-business_model = {
-    "Target segment": "Mid-market companies (50–500 employees), 1–10 SOC analysts",
-    "Pricing": {
-        "Starter":    "$499/month — 1 analyst seat, public knowledge only",
-        "Team":       "$1,499/month — 5 seats, customer log integration",
-        "Enterprise": "Custom — unlimited seats, on-premise option, SLA",
-    },
-    "Value proposition": {
-        "Analyst":   "Save 2+ hours/day on triage and documentation",
-        "CISO":      "Faster MTTR, better coverage with same headcount",
-        "CFO":       "$500/month vs $80K/year analyst — ROI in first week",
-    },
-    "Moat": "Network effects: more customer data → better triage models → more customers",
-    "Risk": "OpenAI / Microsoft could build this into Copilot for Security",
-    "Differentiation": "Vertical depth (security-specific), privacy-first, explainability",
-}
+```
+Phase 1 — Proof of Concept (weeks 1-8):
+  ☐ Collect 6 months of historical alert data
+  ☐ Label sample with analyst decisions
+  ☐ Train baseline XGBoost classifier
+  ☐ Internal evaluation: does it beat random?
+  ☐ Demo to SOC manager
+
+Phase 2 — Pilot (weeks 9-20):
+  ☐ Deploy in shadow mode (predictions logged, not acted on)
+  ☐ Compare model vs analyst decisions on same alerts
+  ☐ Tune threshold to hit <1% false negative rate
+  ☐ Integrate LLM explanation generation
+  ☐ Build simple UI for analysts to see predictions
+
+Phase 3 — Production (weeks 21-32):
+  ☐ Enable auto-close for score < 0.05 (very high confidence benign)
+  ☐ Implement drift monitoring
+  ☐ Active learning pipeline: analyst decisions → retraining queue
+  ☐ SOAR integration for auto-escalated alerts
+  ☐ Monthly model review cadence
+
+Phase 4 — Scale (months 9-12):
+  ☐ Multi-tenant (serve multiple customer environments)
+  ☐ Model specialisation per industry vertical
+  ☐ Federated learning (share signals without sharing data)
+  ☐ Marketplace listing / partnership with SIEM vendors
 ```
 
 ---
 
-## Your Turn: Design Worksheet
+## Key Takeaways from the Foundations Track
 
-Use this template to design your own AI product:
+Congratulations — you've completed the **AI Foundations track**. Here's what you should now understand:
 
-```markdown
-## AI Product Design Worksheet
+1. **AI history**: From Turing to Transformers in 70 years — we're in the most rapid phase
+2. **How ML works**: Data → features → model → predictions (not magic)
+3. **LLMs**: Transformers + RLHF → instruction-following at scale
+4. **Prompt engineering**: Clear, specific, contextual prompts get better results
+5. **AI agents**: LLMs + tools + memory → autonomous task completion
+6. **Vision AI**: CNNs and ViTs process images; CLIP connects vision and language
+7. **AI ethics**: Bias, hallucination, privacy, accountability — all must be designed for
+8. **AI safety**: Alignment is hard; RLHF helps but isn't solved
+9. **Open vs closed**: Trade-offs in capability, privacy, cost, and control
+10. **Building AI products**: Problem-first, data-second, model-third
 
-### 1. Problem
-- Who has this problem? (Be specific — "security analysts at 50–500 person companies")
-- What do they do today instead? (Manual, slow, expensive, error-prone)
-- What's the cost of the problem? (Time, money, risk)
+### Your Next Step
 
-### 2. Data
-- What data do I have access to?
-- What data do I need to acquire?
-- What are the privacy/legal constraints?
+Choose your path:
+- **Practitioner track** → Get hands-on with scikit-learn, PyTorch, and production ML
+- **Security + AI** → Apply ML to threat detection, SIEM triage, malware analysis
+- **AI Engineering** → LangChain, RAG, fine-tuning, agent frameworks
+- **Build something** → Take your design from Step 2 and start with a 1-week spike
 
-### 3. AI Architecture
-- Foundation model: (GPT-4o / Claude / Gemini / Llama / other)
-- Approach: (Prompt engineering / RAG / Fine-tuning / Agents)
-- Why this approach vs alternatives?
-
-### 4. Evaluation
-- What does "good" look like? (Metrics with numbers)
-- How will I test before launching?
-- How will I monitor in production?
-
-### 5. Safety
-- What are the 3 worst failure modes?
-- How will I prevent/detect/recover from each?
-
-### 6. Deployment
-- Who accesses it and how? (API / web app / IDE plugin)
-- What's my rollout plan? (Pilot → gradual → full)
-
-### 7. Business
-- How does this create value?
-- How do I capture part of that value?
-- What's my unfair advantage?
-```
+The best way to learn AI is to build something with it. Start small. Iterate fast. Measure everything.
 
 ---
-
-## Product Ideas to Inspire You
-
-| Domain | Problem | AI Approach |
-|--------|---------|-------------|
-| Healthcare | Doctors spend 2h/day on documentation | LLM + voice → auto SOAP notes |
-| Legal | Lawyers charge $400/h for contract review | RAG + LLM → clause extraction |
-| Education | Students don't know what to study next | Adaptive learning + LLM tutor |
-| Finance | Analysts read 50 reports/day | Summarisation + sentiment + alerts |
-| HR | Hiring managers screen 200 CVs/role | Embedding similarity + LLM scoring |
-| Security | SOC analysts spend 3h/day on triage | SecureAdvisor (our example above) |
-| DevOps | Engineers debug for hours | Log analysis + RAG + LLM root cause |
-| Supply Chain | Procurement reads 1000s of supplier docs | Document parsing + risk scoring |
-
----
-
-## What Makes an AI Product Succeed
-
-Based on real product launches:
-
-```python
-success_factors = {
-    "Narrow focus wins":   "Solve ONE problem brilliantly vs many problems poorly",
-    "Data moat matters":   "Proprietary data = defensible advantage; prompts are not a moat",
-    "Trust is earned":     "Explainability + confidence scores + 'I don't know' build trust",
-    "Latency kills UX":    "If >3 seconds, users abandon; if >10 seconds, they never come back",
-    "Humans in the loop":  "For high-stakes decisions, always keep human override; reduces liability",
-    "Eval before launch":  "No eval = flying blind; launch with eval suite in place",
-    "Monitor everything":  "Model drift is silent; production monitoring is not optional",
-}
-
-failure_modes = {
-    "Demo-to-prod gap":    "Product demos on hand-picked examples but fails on real data",
-    "Hallucination trust": "Users trust model without verification → bad decisions",
-    "Privacy breach":      "Customer data leaks → career-ending incident",
-    "Prompt injection":    "Attacker hijacks product via crafted inputs",
-    "No eval baseline":    "Can't detect degradation without baseline metrics",
-    "Over-engineering":    "RAG + agents + fine-tuning when prompt engineering works",
-}
-```
-
----
-
-## Capstone Checklist
-
-Before you call your AI product "designed," verify:
-
-- [ ] Problem is specific (named target user, measurable pain)
-- [ ] Data sources identified (with privacy analysis)
-- [ ] Architecture decision justified (not just "GPT-4")
-- [ ] Evaluation suite defined (automated + human)
-- [ ] Top 3 failure modes documented with mitigations
-- [ ] Monitoring plan includes safety metrics
-- [ ] Business model answers: who pays, how much, why now
-
----
-
-## Congratulations — You've Completed AI Foundations 🎉
-
-Over 20 labs, you've covered:
-
-| Labs | Topics |
-|------|--------|
-| 01–03 | AI history, how LLMs work, transformers |
-| 04–07 | Prompt engineering, RAG, agents, fine-tuning |
-| 08–10 | AI coding tools, OpenClaw platform, multi-agent |
-| 11–14 | Vision AI, real-world AI, ethics, safety |
-| 15–18 | Open source vs closed, AI developer toolkit, RAG systems, AI in cybersecurity |
-| 19–20 | 2025 AI landscape, product design capstone |
-
-**What's next:** AI/ML Practitioner — 20 hands-on labs where you implement these concepts in Python with real verified code.
 
 ## Further Reading
-- [Chip Huyen — Designing Machine Learning Systems](https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/)
-- [LangChain Product Patterns](https://blog.langchain.dev/)
-- [A16z: The New Language Model Stack](https://a16z.com/emerging-architectures-for-llm-applications/)
-- [AI Snake Oil by Arvind Narayanan](https://www.aisnakeoil.com/)
+- [AI Product Playbook — Sequoia Capital](https://www.sequoiacap.com/article/ai-playbook/)
+- [Designing AI Products — Google PAIR](https://pair.withgoogle.com/)
+- [The Pragmatic Engineer — AI Special](https://newsletter.pragmaticengineer.com/)
+- [Anthropic's approach to AI safety](https://www.anthropic.com/research)
