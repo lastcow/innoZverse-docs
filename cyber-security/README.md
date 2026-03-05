@@ -98,12 +98,14 @@
 
 | Labs | Topics |
 |------|--------|
-| 01–05 | Security architecture principles, zero trust design, IAM, SIEM deployment |
-| 06–10 | Threat modeling (STRIDE/PASTA), risk assessment, security policy, SOC 2, ISO 27001 |
-| 11–15 | GDPR compliance, DevSecOps pipelines, Kubernetes security, secrets management, PKI |
-| 16–20 | DDoS mitigation, bug bounty programs, security metrics, supply chain security, capstone |
+| Labs | Topics |
+|------|--------|
+| 01–05 | SOC architecture, Elastic SIEM design, Threat Intelligence Platform (STIX/TAXII), Zero Trust (NIST SP 800-207), Cloud Security (CSPM/CWPP/CASB) |
+| 06–10 | IAM architecture (SAML/OIDC/JWT/RBAC/PAM), PKI & CA design (3-tier, OCSP, SPIFFE), SOAR automation, Container & Kubernetes security, DevSecOps pipeline |
+| 11–15 | Incident Response (NIST SP 800-61), Threat Hunting (PEAK/ATT&CK), Red Team Operations, BCP & Disaster Recovery, Compliance Frameworks (ISO 27001/SOC 2/PCI DSS) |
+| 16–20 | Vulnerability Management (CVSS/EPSS), DLP Architecture, Network Security Review, Security Metrics & FAIR Risk Quantification, Capstone Enterprise Architecture |
 
-**Coming soon** — Architect level labs in development
+**20 Labs · Docker-verified** — [Start here →](architect/README.md)
 {% endtab %}
 {% endtabs %}
 
