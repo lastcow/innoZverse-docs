@@ -12,3 +12,6 @@ TCP/IP, DNS, HTTP/HTTPS, DHCP, and the protocols that power the web.
 
 ### 🔒 Network Security
 Firewalls, VPNs, network monitoring, and securing your infrastructure.
+
+### 🏛️ Architect
+Advanced design patterns: data center CLOS fabrics, EVPN-VXLAN, campus Wi-Fi 6, micro-segmentation, compliance auditing, and multi-cloud networking. → [Architect Track](architect/README.md)
