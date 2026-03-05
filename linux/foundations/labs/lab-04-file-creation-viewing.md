@@ -1,173 +1,239 @@
-# Lab 4: File Creation and Viewing
+# Lab 04: Creating and Viewing Files
 
-## 🎯 Objective
-Learn to create files and view their contents using touch, cat, head, tail, wc, and the file command.
+## Objective
+Create files in multiple ways, view their contents with different tools, and understand when to use `cat`, `head`, `tail`, `less`, and `wc`. These are the bread-and-butter commands for working with log files and config files.
 
-## ⏱️ Estimated Time
-20 minutes
+**Time:** 25 minutes | **Level:** Foundations | **Docker:** `docker run -it --rm ubuntu:22.04 bash`
 
-## 📋 Prerequisites
-- Completed Lab 3: Directory Navigation
+---
 
-## 🔬 Lab Instructions
-
-### Step 1: Create Files with touch
+## Step 1: Creating Empty Files with touch
 
 ```bash
-touch /tmp/myfile.txt
-ls -la /tmp/myfile.txt
+touch /tmp/empty.txt
+ls -la /tmp/empty.txt
 ```
 
-**Expected output:**
+**📸 Verified Output:**
 ```
--rw-rw-r-- 1 zchen zchen 0 Mar  1 17:00 /tmp/myfile.txt
+-rw-r--r-- 1 root root 0 Mar  5 00:55 /tmp/empty.txt
 ```
+
+> 💡 `touch` does two things: if the file doesn't exist it creates it (zero bytes). If it does exist, it updates the **access/modification timestamps** — useful in scripts to signal "this file was processed."
+
+---
+
+## Step 2: Writing Content with echo and Redirection
 
 ```bash
-touch /tmp/file1.txt /tmp/file2.txt /tmp/file3.txt
-ls /tmp/file*.txt
+echo 'Hello, Linux!' > /tmp/hello.txt
+cat /tmp/hello.txt
 ```
 
-### Step 2: Write Content to Files
-
-```bash
-echo "Line 1: Hello World" > /tmp/sample.txt
-echo "Line 2: Linux is powerful" >> /tmp/sample.txt
-echo "Line 3: Practice makes perfect" >> /tmp/sample.txt
-echo "Line 4: Keep learning" >> /tmp/sample.txt
-echo "Line 5: End of file" >> /tmp/sample.txt
+**📸 Verified Output:**
+```
+Hello, Linux!
 ```
 
 ```bash
-cat > /tmp/config.txt << 'EOF'
-server=web01
-port=8080
-debug=false
-log_level=info
-max_connections=100
+# Append (>>) vs overwrite (>)
+echo 'line2' >> /tmp/hello.txt
+echo 'line3' >> /tmp/hello.txt
+cat /tmp/hello.txt
+```
+
+**📸 Verified Output:**
+```
+Hello, Linux!
+line2
+line3
+```
+
+> 💡 `>` **overwrites** (destructive). `>>` **appends** (safe). This distinction prevents many accidental data losses. When in doubt, use `>>`.
+
+---
+
+## Step 3: Word Count with wc
+
+```bash
+wc /tmp/hello.txt
+```
+
+**📸 Verified Output:**
+```
+ 3  4 26 /tmp/hello.txt
+```
+
+```bash
+# Just lines, words, bytes separately
+wc -l /tmp/hello.txt   # lines
+wc -w /tmp/hello.txt   # words
+wc -c /tmp/hello.txt   # bytes
+```
+
+**📸 Verified Output:**
+```
+3 /tmp/hello.txt
+4 /tmp/hello.txt
+26 /tmp/hello.txt
+```
+
+> 💡 `wc -l` is the fastest way to count entries in a log file. `wc -l /var/log/auth.log` instantly tells you how many authentication events occurred.
+
+---
+
+## Step 4: head and tail for Large Files
+
+```bash
+# Generate a 20-line file
+seq 1 20 > /tmp/numbers.txt
+
+head -5 /tmp/numbers.txt
+```
+
+**📸 Verified Output:**
+```
+1
+2
+3
+4
+5
+```
+
+```bash
+tail -5 /tmp/numbers.txt
+```
+
+**📸 Verified Output:**
+```
+16
+17
+18
+19
+20
+```
+
+> 💡 **`tail -f /var/log/syslog`** is one of the most-used monitoring commands — it watches a log file live and prints new lines as they arrive. `-f` = follow.
+
+---
+
+## Step 5: Line Numbers with cat -n
+
+```bash
+cat -n /tmp/hello.txt
+```
+
+**📸 Verified Output:**
+```
+     1	Hello, Linux!
+     2	line2
+     3	line3
+```
+
+```bash
+# Show non-printable characters
+cat -A /tmp/hello.txt
+```
+
+**📸 Verified Output:**
+```
+Hello, Linux!$
+line2$
+line3$
+```
+
+> 💡 `cat -A` shows `$` at line endings (Unix-style `\n`). Windows files show `^M$` — the `^M` is a carriage return (`\r`). This causes "^M errors" when running Windows-created scripts on Linux.
+
+---
+
+## Step 6: Viewing Hex/Octal Content
+
+```bash
+echo 'ABC' | od -A x -t x1z
+```
+
+**📸 Verified Output:**
+```
+000000 41 42 43 0a                                      >ABC.<
+000004
+```
+
+> 💡 `A=0x41`, `B=0x42`, `C=0x43`, `0a=\n` (newline). Understanding hex is essential for malware analysis, binary file parsing, and network packet inspection.
+
+---
+
+## Step 7: tee — Write and Display Simultaneously
+
+```bash
+echo "Security event detected at $(date)" | tee /tmp/security.log
+cat /tmp/security.log
+```
+
+**📸 Verified Output:**
+```
+Security event detected at Thu Mar  5 00:55:00 UTC 2026
+Security event detected at Thu Mar  5 00:55:00 UTC 2026
+```
+
+> 💡 `tee` is invaluable in scripts — it lets you **pipe output to a file AND to stdout at the same time**, so you can both log and display results. `command | tee output.log | grep ERROR`
+
+---
+
+## Step 8: Capstone — Parse a Simulated Log File
+
+```bash
+# Generate a realistic log file
+cat > /tmp/access.log << 'EOF'
+2026-03-05 00:01:23 INFO  User alice logged in from 192.168.1.10
+2026-03-05 00:01:45 INFO  User bob logged in from 192.168.1.20
+2026-03-05 00:02:10 ERROR Failed login for user admin from 10.0.0.99
+2026-03-05 00:02:15 ERROR Failed login for user admin from 10.0.0.99
+2026-03-05 00:02:20 ERROR Failed login for user admin from 10.0.0.99
+2026-03-05 00:03:01 INFO  User alice accessed /etc/passwd
+2026-03-05 00:03:45 WARN  Unusual process: nc -lvp 4444 by uid=1001
+2026-03-05 00:04:00 ERROR Privilege escalation attempt by bob
 EOF
+
+echo "Total log entries:"; wc -l /tmp/access.log
+echo ""
+echo "First 3 entries:"; head -3 /tmp/access.log
+echo ""
+echo "Last 2 entries:"; tail -2 /tmp/access.log
+echo ""
+echo "Error count:"; grep -c "ERROR" /tmp/access.log
 ```
 
-### Step 3: View Files with cat
+**📸 Verified Output:**
+```
+Total log entries:
+8 /tmp/access.log
 
-```bash
-cat /tmp/sample.txt
+First 3 entries:
+2026-03-05 00:01:23 INFO  User alice logged in from 192.168.1.10
+2026-03-05 00:01:45 INFO  User bob logged in from 192.168.1.20
+2026-03-05 00:02:10 ERROR Failed login for user admin from 10.0.0.99
+
+Last 2 entries:
+2026-03-05 00:03:45 WARN  Unusual process: nc -lvp 4444 by uid=1001
+2026-03-05 00:04:00 ERROR Privilege escalation attempt by bob
+
+Error count:
+4
 ```
 
-**Expected output:**
-```
-Line 1: Hello World
-Line 2: Linux is powerful
-Line 3: Practice makes perfect
-Line 4: Keep learning
-Line 5: End of file
-```
+---
 
-```bash
-cat -n /tmp/sample.txt
-```
+## Summary
 
-### Step 4: View Start of Files with head
-
-```bash
-head -n 3 /tmp/sample.txt
-```
-
-**Expected output:**
-```
-Line 1: Hello World
-Line 2: Linux is powerful
-Line 3: Practice makes perfect
-```
-
-```bash
-head -n 5 /etc/passwd
-```
-
-### Step 5: View End of Files with tail
-
-```bash
-tail -n 2 /tmp/sample.txt
-```
-
-**Expected output:**
-```
-Line 4: Keep learning
-Line 5: End of file
-```
-
-```bash
-head -n 4 /tmp/sample.txt | tail -n 2
-```
-
-**Expected output:**
-```
-Line 3: Practice makes perfect
-Line 4: Keep learning
-```
-
-### Step 6: Count with wc
-
-```bash
-wc /tmp/sample.txt
-```
-
-**Expected output:**
-```
- 5 15 89 /tmp/sample.txt
-```
-
-```bash
-wc -l /tmp/sample.txt
-wc -w /tmp/sample.txt
-wc -c /tmp/sample.txt
-wc -l /etc/passwd
-```
-
-### Step 7: Identify File Type with file
-
-```bash
-file /tmp/sample.txt
-```
-
-**Expected output:**
-```
-/tmp/sample.txt: ASCII text
-```
-
-```bash
-file /bin/ls
-```
-
-**Expected output:**
-```
-/bin/ls: ELF 64-bit LSB pie executable, x86-64, ...
-```
-
-```bash
-file /etc/passwd /bin/bash /tmp/sample.txt
-```
-
-## ✅ Verification
-
-```bash
-echo "verification test" > /tmp/lab4-verify.txt
-echo "second line" >> /tmp/lab4-verify.txt
-echo "third line" >> /tmp/lab4-verify.txt
-
-echo "Lines: $(wc -l < /tmp/lab4-verify.txt)"
-echo "First: $(head -n 1 /tmp/lab4-verify.txt)"
-echo "Last:  $(tail -n 1 /tmp/lab4-verify.txt)"
-echo "Type:  $(file /tmp/lab4-verify.txt)"
-
-rm /tmp/lab4-verify.txt /tmp/sample.txt /tmp/config.txt /tmp/myfile.txt /tmp/file*.txt 2>/dev/null
-echo "Lab 4 complete"
-```
-
-## 📝 Summary
-- `touch` creates empty files or updates timestamps
-- `echo "text" > file` creates/overwrites; `echo "text" >> file` appends
-- `cat` displays entire file; `cat -n` adds line numbers
-- `head -n N` shows first N lines; `tail -n N` shows last N lines
-- `wc -l` counts lines; `wc -w` words; `wc -c` characters
-- `file` identifies the type of a file based on its content
+| Command | Use Case |
+|---------|---------|
+| `touch file` | Create empty file / update timestamp |
+| `echo 'text' > file` | Write/overwrite file |
+| `echo 'text' >> file` | Append to file |
+| `cat file` | Display entire file |
+| `cat -n file` | Display with line numbers |
+| `head -N file` | First N lines |
+| `tail -N file` | Last N lines |
+| `tail -f file` | Follow file in real time |
+| `wc -l file` | Count lines |
+| `tee file` | Write to file AND stdout |

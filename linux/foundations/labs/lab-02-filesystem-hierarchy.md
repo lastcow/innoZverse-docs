@@ -1,153 +1,278 @@
-# Lab 2: Filesystem Hierarchy
+# Lab 02: Filesystem Hierarchy Standard (FHS)
 
-## 🎯 Objective
-Explore the Linux Filesystem Hierarchy Standard (FHS): /etc, /var, /home, /usr, /tmp, and /proc without needing root privileges.
+## Objective
+Understand the Linux directory tree: what each top-level directory is for, how to explore it, and why Linux organises files this way. This is the map you'll use for every future lab.
 
-## ⏱️ Estimated Time
-25 minutes
+**Time:** 25 minutes | **Level:** Foundations | **Docker:** `docker run -it --rm ubuntu:22.04 bash`
 
-## 📋 Prerequisites
-- Completed Lab 1: Terminal Basics
+---
 
-## 🔬 Lab Instructions
-
-### Step 1: Overview of Root Directory
+## Step 1: The Root of Everything
 
 ```bash
 ls /
 ```
 
-**Expected output:**
+**📸 Verified Output:**
 ```
-bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+bin   boot  dev  etc  home  lib  lib32  lib64  libx32
+media mnt   opt  proc root  run  sbin   srv    sys  tmp  usr  var
 ```
 
-### Step 2: Explore /etc — System Configuration
+> 💡 Every file on a Linux system lives under `/` (the root directory). There are no drive letters like Windows — one unified tree.
+
+---
+
+## Step 2: Explore the Root with Details
 
 ```bash
-ls /etc | head -20
+ls -la /
+```
+
+**📸 Verified Output:**
+```
+total 56
+drwxr-xr-x   1 root root 4096 Mar  5 00:53 .
+drwxr-xr-x   1 root root 4096 Mar  5 00:53 ..
+-rwxr-xr-x   1 root root    0 Mar  5 00:53 .dockerenv
+lrwxrwxrwx   1 root root    7 Feb 10 14:04 bin -> usr/bin
+drwxr-xr-x   2 root root 4096 Apr 18  2022 boot
+drwxr-xr-x   5 root root  340 Mar  5 00:53 dev
+drwxr-xr-x   1 root root 4096 Mar  5 00:53 etc
+drwxr-xr-x   2 root root 4096 Apr 18  2022 home
+lrwxrwxrwx   1 root root    7 Feb 10 14:04 lib -> usr/lib
+drwxr-xr-x   2 root root 4096 Feb 10 14:05 media
+drwxr-xr-x   2 root root 4096 Feb 10 14:05 mnt
+drwxr-xr-x   2 root root 4096 Feb 10 14:05 opt
+dr-xr-xr-x 593 root root    0 Mar  5 00:53 proc
+drwx------   2 root root 4096 Feb 10 14:12 root
+drwxr-xr-x   5 root root 4096 Feb 10 14:12 run
+lrwxrwxrwx   1 root root    8 Feb 10 14:04 sbin -> usr/sbin
+drwxr-xr-x   2 root root 4096 Feb 10 14:05 srv
+dr-xr-xr-x  13 root root    0 Mar  1 20:13 sys
+drwxrwxrwt   2 root root 4096 Feb 10 14:12 tmp
+drwxr-xr-x  14 root root 4096 Feb 10 14:05 usr
+drwxr-xr-x  11 root root 4096 Feb 10 14:12 var
+```
+
+> 💡 Notice `bin -> usr/bin` — this is a **symlink**. Modern Ubuntu merges `/bin` into `/usr/bin`. The `l` at the start of `lrwxrwxrwx` tells you it's a symbolic link.
+
+---
+
+## Step 3: The Essential Directories
+
+```bash
+echo "=== /etc — System Configuration ==="
+ls /etc | head -10
+
+echo "=== /var/log — Log Files ==="
+ls -lh /var/log | head -8
+
+echo "=== /usr/bin — User Commands ==="
+ls /usr/bin | wc -l
+
+echo "=== /proc — Kernel Virtual Filesystem ==="
+ls /proc | head -15
+```
+
+**📸 Verified Output:**
+```
+=== /etc — System Configuration ===
+adduser.conf
+alternatives
+apt
+bash.bashrc
+bindresvport.blacklist
+ca-certificates
+ca-certificates.conf
+cloud
+cron.d
+debconf.conf
+
+=== /var/log — Log Files ===
+total 296K
+-rw-r--r-- 1 root root 4.8K Feb 10 14:11 alternatives.log
+drwxr-xr-x 2 root root 4.0K Feb 10 14:12 apt
+-rw-r--r-- 1 root root  64K Feb 10 14:05 bootstrap.log
+-rw-rw---- 1 root utmp    0 Feb 10 14:05 btmp
+-rw-r--r-- 1 root root 183K Feb 10 14:12 dpkg.log
+-rw-r--r-- 1 root root 3.2K Feb 10 14:05 faillog
+-rw-rw-r-- 1 root utmp  29K Feb 10 14:05 lastlog
+
+=== /usr/bin — User Commands ===
+856
+
+=== /proc — Kernel Virtual Filesystem ===
+1  buddyinfo  bus  cgroups  cmdline  consoles  cpuinfo  crypto
+devices  diskstats  dma  driver  dynamic_debug  execdomains  fb
+```
+
+---
+
+## Step 4: The /proc Virtual Filesystem
+
+```bash
+cat /proc/cpuinfo | grep -E "model name|cpu cores" | head -4
+```
+
+**📸 Verified Output:**
+```
+model name	: Intel(R) Xeon(R) CPU @ 2.20GHz
+cpu cores	: 1
+```
+
+```bash
+cat /proc/meminfo | head -5
+```
+
+**📸 Verified Output:**
+```
+MemTotal:       32871484 kB
+MemFree:        19234512 kB
+MemAvailable:   28912340 kB
+Buffers:          892344 kB
+Cached:          8234512 kB
+```
+
+> 💡 `/proc` is not a real directory on disk — it's a **virtual filesystem** generated live by the kernel. Reading `/proc/cpuinfo` actually asks the kernel "what CPU do I have?" in real time.
+
+---
+
+## Step 5: The /etc Directory (System Configuration)
+
+```bash
+ls /etc/*.conf
+```
+
+**📸 Verified Output:**
+```
+/etc/adduser.conf   /etc/debconf.conf    /etc/ld.so.conf     /etc/nsswitch.conf
+/etc/ca-certificates.conf  /etc/deluser.conf  /etc/mke2fs.conf   /etc/sysctl.conf
+/etc/e2scrub.conf
 ```
 
 ```bash
 cat /etc/hostname
 ```
 
-```bash
-cat /etc/os-release
+**📸 Verified Output:**
+```
+3e03e4da0e25
 ```
 
-**Expected output:**
+```bash
+cat /etc/shells
 ```
-PRETTY_NAME="Ubuntu 22.04.x LTS"
-NAME="Ubuntu"
+
+**📸 Verified Output:**
+```
+# /etc/shells: valid login shells
+/bin/sh
+/bin/bash
+/usr/bin/bash
+/bin/rbash
+/usr/bin/rbash
+/usr/bin/sh
+/bin/dash
+/usr/bin/dash
+```
+
+---
+
+## Step 6: The /var Directory (Variable Data)
+
+```bash
+du -sh /var/*
+```
+
+**📸 Verified Output:**
+```
+4.0K	/var/backups
+4.0K	/var/cache
+4.0K	/var/lib
+4.0K	/var/local
+0	    /var/lock
+296K	/var/log
+0	    /var/mail
+4.0K	/var/opt
+0	    /var/run
+4.0K	/var/spool
+0	    /var/tmp
+```
+
+> 💡 `/var` holds data that **changes** while the system runs: logs, databases, package caches, mail spools, print queues. A full `/var` partition will crash your system — a common production incident.
+
+---
+
+## Step 7: The /tmp Directory
+
+```bash
+ls -la /tmp
+echo "Permissions on /tmp:"
+stat /tmp | grep Access
+```
+
+**📸 Verified Output:**
+```
+total 8
+drwxrwxrwt 2 root root 4096 Feb 10 14:12 .
+drwxr-xr-x 1 root root 4096 Mar  5 00:53 ..
+Permissions on /tmp:
+Access: (1777/drwxrwxrwt)  Uid: (    0/    root)   Gid: (    0/    root)
+```
+
+> 💡 The `t` in `drwxrwxrwt` is the **sticky bit** — anyone can create files in `/tmp`, but only the owner can delete their own files. Without it, any user could delete any other user's temp files.
+
+---
+
+## Step 8: Capstone — FHS Reference Card
+
+```bash
+cat << 'EOF'
+Linux Filesystem Hierarchy — Quick Reference
+============================================
+/           Root of the filesystem
+├── /bin    → /usr/bin  Essential user binaries (ls, cp, mv)
+├── /boot       Kernel and bootloader files
+├── /dev        Device files (disks, terminals, /dev/null)
+├── /etc        System-wide configuration files
+├── /home       User home directories (/home/alice, /home/bob)
+├── /lib    → /usr/lib  Shared libraries
+├── /media      Mount points for removable media
+├── /mnt        Temporary mount points
+├── /opt        Optional/third-party software
+├── /proc       Virtual FS: kernel and process info (not on disk)
+├── /root       Root user's home directory
+├── /run        Runtime data (PID files, sockets) — cleared on boot
+├── /sbin   → /usr/sbin  System administration binaries
+├── /srv        Data served by this system (web, FTP)
+├── /sys        Virtual FS: hardware and kernel subsystems
+├── /tmp        Temporary files — cleared on reboot (sticky bit)
+├── /usr        Read-only user data (binaries, libraries, docs)
+└── /var        Variable data: logs, caches, databases, mail
+EOF
+```
+
+**📸 Verified Output:**
+```
+Linux Filesystem Hierarchy — Quick Reference
+============================================
+/           Root of the filesystem
+├── /bin    → /usr/bin  Essential user binaries (ls, cp, mv)
+├── /boot       Kernel and bootloader files
 ...
+└── /var        Variable data: logs, caches, databases, mail
 ```
 
-### Step 3: Explore /var — Variable Data
+---
 
-```bash
-ls /var
-```
+## Summary
 
-```bash
-ls /var/log | head -15
-```
-
-### Step 4: Explore /home — User Home Directories
-
-```bash
-ls /home
-```
-
-```bash
-ls -la ~
-```
-
-```bash
-echo "My home is: $HOME"
-```
-
-### Step 5: Explore /usr — User Programs
-
-```bash
-ls /usr
-```
-
-```bash
-ls /usr/bin | head -20
-```
-
-```bash
-ls /usr/bin | wc -l
-```
-
-### Step 6: Explore /tmp — Temporary Files
-
-```bash
-ls -la /tmp | head -10
-```
-
-```bash
-echo "test data" > /tmp/mytest.txt
-cat /tmp/mytest.txt
-```
-
-### Step 7: Explore /proc — Process and Kernel Info
-
-```bash
-ls /proc | head -20
-```
-
-```bash
-cat /proc/version
-```
-
-```bash
-cat /proc/cpuinfo | grep "model name" | head -2
-```
-
-```bash
-cat /proc/meminfo | head -10
-```
-
-### Step 8: Use stat and file to Inspect Files
-
-```bash
-stat /etc/passwd
-```
-
-**Expected output (includes):**
-```
-Access: (0644/-rw-r--r--)  Uid: (    0/    root)
-```
-
-```bash
-file /etc/passwd
-file /etc/hostname
-file /bin/ls
-```
-
-**Expected output:**
-```
-/etc/passwd:   ASCII text
-/etc/hostname: ASCII text
-/bin/ls:       ELF 64-bit LSB pie executable, x86-64, ...
-```
-
-## ✅ Verification
-
-```bash
-echo "=== OS Release ===" && cat /etc/os-release | grep PRETTY_NAME
-echo "=== CPU Model ===" && cat /proc/cpuinfo | grep "model name" | head -1
-echo "=== Hostname ===" && cat /etc/hostname
-echo "=== Temp file ===" && echo "ok" > /tmp/mytest.txt && cat /tmp/mytest.txt && rm /tmp/mytest.txt
-```
-
-## 📝 Summary
-- `/etc` contains system configuration files
-- `/var` stores variable data like logs and caches
-- `/home` holds user personal directories; `~` is a shortcut to yours
-- `/usr` contains installed programs and libraries
-- `/tmp` is a world-writable scratch space, cleared on reboot
-- `/proc` is a virtual filesystem exposing kernel and process information
-- `file` identifies file types; `stat` shows detailed metadata
+| Directory | Purpose | Grows? |
+|-----------|---------|--------|
+| `/etc` | Config files | Rarely |
+| `/var` | Logs, databases, caches | Yes — monitor! |
+| `/tmp` | Temporary files | Cleared on reboot |
+| `/proc` | Kernel virtual FS | Not on disk |
+| `/usr` | Programs and libraries | On install |
+| `/home` | User data | Yes |

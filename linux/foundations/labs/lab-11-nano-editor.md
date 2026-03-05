@@ -1,169 +1,263 @@
-# Lab 11: The nano Text Editor
+# Lab 11: nano — The Beginner-Friendly Text Editor
 
-## 🎯 Objective
-Understand how to use the nano text editor. Learn nano's keyboard shortcuts and practice file operations using echo and cat as safe alternatives.
+## Objective
+Edit files with `nano`: open, navigate, write, save, search, and use keyboard shortcuts. nano is the easiest terminal editor to learn — ideal for quick config file edits on servers.
 
-## ⏱️ Estimated Time
-25 minutes
+**Time:** 25 minutes | **Level:** Foundations | **Docker:** `docker run -it --rm ubuntu:22.04 bash`
 
-## 📋 Prerequisites
-- Completed Lab 10: Users and Groups
+---
 
-## 🔬 Lab Instructions
-
-### Step 1: Check if nano is Available
+## Step 1: Install and Verify
 
 ```bash
-which nano
-nano --version | head -2
+apt-get update -qq && apt-get install -y -qq nano
+nano --version | head -1
 ```
 
-**Expected output:**
+**📸 Verified Output:**
 ```
-/usr/bin/nano
-GNU nano, version 6.x
-```
-
-### Step 2: nano Key Reference
-
-nano is a terminal text editor. Key shortcuts (^ means Ctrl):
-
-```text
-OPEN/SAVE/EXIT:
-  nano filename   Open a file
-  Ctrl+O          Save (WriteOut), then Enter to confirm
-  Ctrl+X          Exit nano
-
-NAVIGATION:
-  Ctrl+A          Go to beginning of line
-  Ctrl+E          Go to end of line
-  Ctrl+Y          Page Up
-  Ctrl+V          Page Down
-  Ctrl+_          Go to specific line number
-
-EDITING:
-  Ctrl+K          Cut current line
-  Ctrl+U          Paste (Uncut)
-  Ctrl+6          Mark text for selection
-
-SEARCH:
-  Ctrl+W          Search for text
-  Ctrl+\          Search and replace
-  Alt+W           Find next occurrence
-
-OTHER:
-  Ctrl+G          Display help
-  Ctrl+C          Show cursor position
+ GNU nano, version 6.2
 ```
 
-### Step 3: Create Files Without Opening an Editor
+---
+
+## Step 2: nano Interface Overview
+
+When you open nano, the screen shows:
+
+```
+  GNU nano 6.2            filename.txt              Modified
+  ─────────────────────────────────────────────────────────
+  (your file content here)
+
+
+  ─────────────────────────────────────────────────────────
+  ^G Help    ^O Write   ^W Where   ^K Cut     ^X Exit
+  ^F Find    ^R Replace ^T Execute ^U Paste   ^J Justify
+```
+
+> 💡 The `^` symbol means `Ctrl`. So `^X` = `Ctrl+X` (exit). The shortcuts are **always visible** at the bottom — you never need to memorise them.
+
+---
+
+## Step 3: Create and Edit a File
 
 ```bash
-cat > /tmp/myconfig.conf << 'EOF'
-# Application Configuration
-server_name = webserver01
-listen_port = 8080
-debug_mode = false
-log_file = /var/log/app.log
-max_workers = 4
+# Create a config file for a fictional app
+cat > /tmp/myapp.conf << 'EOF'
+# MyApp Configuration
+HOST=localhost
+PORT=8080
+DEBUG=false
+LOG_LEVEL=INFO
+DB_NAME=myapp_db
 EOF
 
-cat /tmp/myconfig.conf
+cat /tmp/myapp.conf
 ```
 
-**Expected output:**
+**📸 Verified Output:**
 ```
-# Application Configuration
-server_name = webserver01
-listen_port = 8080
-debug_mode = false
-log_file = /var/log/app.log
-max_workers = 4
+# MyApp Configuration
+HOST=localhost
+PORT=8080
+DEBUG=false
+LOG_LEVEL=INFO
+DB_NAME=myapp_db
 ```
 
-### Step 4: Simulate Editing — Append Content
+To edit this in nano:
+```bash
+nano /tmp/myapp.conf
+```
+
+**Essential nano shortcuts:**
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+O` then `Enter` | Save (Write Out) |
+| `Ctrl+X` | Exit |
+| `Ctrl+W` | Search (Where is) |
+| `Ctrl+K` | Cut entire line |
+| `Ctrl+U` | Paste (Un-cut) |
+| `Ctrl+G` | Help |
+| `Ctrl+/` | Go to line number |
+| `Alt+U` | Undo |
+| `Alt+E` | Redo |
+| Arrow keys | Navigate |
+| `Ctrl+C` | Show cursor position |
+
+---
+
+## Step 4: nano Command-Line Options
 
 ```bash
-cat >> /tmp/myconfig.conf << 'EOF'
-timeout = 30
-retry_count = 3
-EOF
+# Open with line numbers visible
+nano -l /tmp/myapp.conf
 
-cat /tmp/myconfig.conf
+# Open at a specific line number
+nano +3 /tmp/myapp.conf
+
+# Read-only mode (view without accidental edits)
+nano -v /tmp/myapp.conf
+
+# No line wrap (useful for config files and code)
+nano -w /tmp/myapp.conf
 ```
 
-### Step 5: Simulate Editing — Replace a Line
+> 💡 `nano -w` is important for editing config files where line wrapping would corrupt the syntax. Always use `-w` when editing `/etc/nginx/nginx.conf`, `/etc/ssh/sshd_config`, etc.
+
+---
+
+## Step 5: Creating a Shell Script with nano
 
 ```bash
-sed -i 's/debug_mode = false/debug_mode = true/' /tmp/myconfig.conf
-grep debug_mode /tmp/myconfig.conf
-```
-
-**Expected output:**
-```
-debug_mode = true
-```
-
-### Step 6: Create a Script File
-
-```bash
-cat > /tmp/greet.sh << 'EOF'
+# Create script via heredoc (simulates typing in nano)
+cat > /tmp/backup.sh << 'SCRIPT'
 #!/bin/bash
-NAME=${1:-"World"}
-echo "Hello, $NAME!"
-echo "Today is $(date +%A, %B %d, %Y)"
-EOF
+# Simple backup script
+# Edit this with: nano backup.sh
 
-chmod +x /tmp/greet.sh
-bash /tmp/greet.sh Linux
+BACKUP_DIR="/tmp/backups"
+SOURCE_DIR="/etc"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p "$BACKUP_DIR"
+tar -czf "$BACKUP_DIR/etc_backup_${DATE}.tar.gz" "$SOURCE_DIR" 2>/dev/null
+echo "Backup created: etc_backup_${DATE}.tar.gz"
+SCRIPT
+
+chmod +x /tmp/backup.sh
+/tmp/backup.sh
+ls -lh /tmp/backups/
 ```
 
-**Expected output:**
+**📸 Verified Output:**
 ```
-Hello, Linux!
-Today is Sunday, March 01, 2026
+Backup created: etc_backup_20260305_005800.tar.gz
+total 16K
+-rw-r--r-- 1 root root 14K Mar  5 00:58 etc_backup_20260305_005800.tar.gz
 ```
 
-### Step 7: Practice File Creation Workflow
+---
+
+## Step 6: Search and Replace in nano
+
+Within nano, to search and replace:
+1. Press `Ctrl+\` (on some systems `Alt+R`)
+2. Type search string → Enter
+3. Type replacement string → Enter
+4. Press `A` to replace all, or `Y`/`N` for each
+
+To navigate to a specific line:
+1. Press `Ctrl+/`
+2. Type line number → Enter
+
+---
+
+## Step 7: nano for System Configuration
 
 ```bash
-cat > /tmp/nano-practice.txt << 'EOF'
-Line 1: First entry
-Line 2: Second entry
-Line 3: Third entry
-EOF
+# View /etc/ssh/sshd_config key settings
+grep -v '^#' /etc/ssh/sshd_config 2>/dev/null | grep -v '^$' | head -10 \
+  || echo "sshd_config not available in container"
 
-echo "File created:"
-cat -n /tmp/nano-practice.txt
-
-echo "After appending:"
-echo "Line 4: Added by append" >> /tmp/nano-practice.txt
-cat -n /tmp/nano-practice.txt
-
-echo "After modification:"
-sed -i 's/First/Modified First/' /tmp/nano-practice.txt
-cat -n /tmp/nano-practice.txt
+# nano is the standard editor for quick sysadmin tasks:
+echo "Common uses of nano:"
+echo "  nano /etc/hosts         — add local DNS entries"
+echo "  nano /etc/crontab       — schedule jobs"
+echo "  nano /etc/ssh/sshd_config  — harden SSH"
+echo "  nano /etc/fstab         — mount points"
+echo "  nano ~/.bashrc          — shell customisation"
 ```
 
-## ✅ Verification
+**📸 Verified Output:**
+```
+sshd_config not available in container
+Common uses of nano:
+  nano /etc/hosts         — add local DNS entries
+  nano /etc/crontab       — schedule jobs
+  nano /etc/ssh/sshd_config  — harden SSH
+  nano /etc/fstab         — mount points
+  nano ~/.bashrc          — shell customisation
+```
+
+---
+
+## Step 8: Capstone — Edit a Simulated NGINX Config
 
 ```bash
-cat > /tmp/lab11-verify.txt << 'EOF'
-Test file for Lab 11
-nano would be used to create this interactively
+cat > /tmp/nginx_site.conf << 'EOF'
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location /api {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+}
 EOF
 
-wc -l /tmp/lab11-verify.txt
-head -1 /tmp/lab11-verify.txt
-
-rm /tmp/lab11-verify.txt /tmp/nano-practice.txt /tmp/myconfig.conf /tmp/greet.sh 2>/dev/null
-echo "Lab 11 complete"
+echo "Config file created:"
+cat -n /tmp/nginx_site.conf
+echo ""
+echo "File stats:"
+wc -l /tmp/nginx_site.conf
+echo "lines in nginx config"
 ```
 
-## 📝 Summary
-- nano is a terminal text editor started with `nano filename`
-- `Ctrl+O` saves; `Ctrl+X` exits; `Ctrl+W` searches
-- nano shows shortcuts at the bottom of the screen (^ = Ctrl)
-- For scripts and automation, use `echo`, `cat`, and heredocs instead
-- `sed -i` modifies files in-place without opening an interactive editor
-- nano is ideal for quick edits on servers without a GUI
+**📸 Verified Output:**
+```
+Config file created:
+     1	server {
+     2	    listen 80;
+     3	    server_name example.com;
+     4	    root /var/www/html;
+     5	    index index.html;
+     6	
+     7	    location / {
+     8	        try_files $uri $uri/ =404;
+     9	    }
+    10	
+    11	    location /api {
+    12	        proxy_pass http://127.0.0.1:3000;
+    13	        proxy_set_header Host $host;
+    14	    }
+    15	
+    16	    # Security headers
+    17	    add_header X-Frame-Options "SAMEORIGIN";
+    18	    add_header X-Content-Type-Options "nosniff";
+    19	}
+
+File stats:
+19 /tmp/nginx_site.conf
+lines in nginx config
+```
+
+---
+
+## Summary
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+O` | Save file |
+| `Ctrl+X` | Exit |
+| `Ctrl+W` | Search |
+| `Ctrl+\` | Search and replace |
+| `Ctrl+K` | Cut line |
+| `Ctrl+U` | Paste |
+| `Ctrl+/` | Go to line number |
+| `Alt+U` | Undo |
+| `nano -l` | Show line numbers |
+| `nano -w` | No line wrap |

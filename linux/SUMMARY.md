@@ -2,25 +2,24 @@
 
 * [Overview](README.md)
 
-## Foundations
-* [Introduction to the Terminal](foundations/intro-to-terminal.md)
-* [Navigating the File System](foundations/navigating-filesystem.md)
-* [File & Directory Management](foundations/file-directory-management.md)
-* [Permissions & Ownership](foundations/permissions-ownership.md)
-* [Text Editors (nano, vim)](foundations/text-editors.md)
-
-## Practitioner
-* [Text Processing (grep, awk, sed)](practitioner/text-processing.md)
-* [Pipes & Redirection](practitioner/pipes-redirection.md)
-* [Shell Scripting Basics](practitioner/shell-scripting-basics.md)
-* [Cron Jobs & Scheduling](practitioner/cron-jobs-scheduling.md)
-
-## Advanced
-* [Networking Fundamentals](advanced/networking-fundamentals.md)
-* [SSH & Remote Access](advanced/ssh-remote-access.md)
-* [Firewalls & Security](advanced/firewalls-security.md)
-* [System Monitoring & Performance](advanced/system-monitoring.md)
-
-## Architect
-* [High Availability & Clustering](architect/high-availability.md)
-* [Performance Engineering](architect/performance-engineering.md)
+## 🌱 Foundations
+* [Lab 01: Terminal Basics](foundations/labs/lab-01-terminal-basics.md)
+* [Lab 02: Filesystem Hierarchy (FHS)](foundations/labs/lab-02-filesystem-hierarchy.md)
+* [Lab 03: Directory Navigation](foundations/labs/lab-03-directory-navigation.md)
+* [Lab 04: Creating and Viewing Files](foundations/labs/lab-04-file-creation-viewing.md)
+* [Lab 05: Copying and Moving Files](foundations/labs/lab-05-copying-moving-files.md)
+* [Lab 06: Deleting Files and Directories](foundations/labs/lab-06-deleting-files.md)
+* [Lab 07: Understanding Permissions](foundations/labs/lab-07-understanding-permissions.md)
+* [Lab 08: chmod — Changing Permissions](foundations/labs/lab-08-chmod.md)
+* [Lab 09: chown and chgrp — Ownership](foundations/labs/lab-09-chown-chgrp.md)
+* [Lab 10: Users and Groups Management](foundations/labs/lab-10-users-and-groups.md)
+* [Lab 11: nano — Text Editing](foundations/labs/lab-11-nano-editor.md)
+* [Lab 12: grep — Searching Text](foundations/labs/lab-12-grep.md)
+* [Lab 13: find — Locating Files](foundations/labs/lab-13-find-command.md)
+* [Lab 14: Processes — ps and signals](foundations/labs/lab-14-processes.md)
+* [Lab 15: Disk Usage — df and du](foundations/labs/lab-15-disk-usage.md)
+* [Lab 16: Package Management — apt and dpkg](foundations/labs/lab-16-package-management.md)
+* [Lab 17: I/O Redirection and Pipes](foundations/labs/lab-17-io-redirection-pipes.md)
+* [Lab 18: Environment Variables](foundations/labs/lab-18-environment-variables.md)
+* [Lab 19: Shell Scripting Basics](foundations/labs/lab-19-shell-scripting-basics.md)
+* [Lab 20: Networking Basics (Capstone)](foundations/labs/lab-20-networking-basics.md)

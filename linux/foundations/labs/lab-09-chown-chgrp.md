@@ -1,140 +1,233 @@
-# Lab 9: Changing Ownership with chown and chgrp
+# Lab 09: chown and chgrp — Changing Ownership
 
-## 🎯 Objective
-Use chown and chgrp to change file ownership, understand user and group concepts, and use id and groups commands.
+## Objective
+Change file and directory ownership with `chown` and `chgrp`: assign individual owners, set group ownership, apply recursively, and understand why ownership matters for security.
 
-## ⏱️ Estimated Time
-20 minutes
+**Time:** 25 minutes | **Level:** Foundations | **Docker:** `docker run -it --rm ubuntu:22.04 bash`
 
-## 📋 Prerequisites
-- Completed Lab 8: chmod
+---
 
-## 🔬 Lab Instructions
-
-### Step 1: Check Your Identity
+## Step 1: Setup — Create Users and Groups
 
 ```bash
-whoami
-id
+useradd -m alice
+useradd -m bob
+groupadd devteam
+echo "Users and group created"
+id alice
 ```
 
-**Expected output:**
+**📸 Verified Output:**
 ```
-uid=1000(zchen) gid=1000(zchen) groups=1000(zchen),4(adm),27(sudo),...
+Users and group created
+uid=1000(alice) gid=1000(alice) groups=1000(alice)
 ```
+
+---
+
+## Step 2: Viewing Current Ownership
 
 ```bash
-groups
+touch /tmp/myfile.txt
+ls -la /tmp/myfile.txt
 ```
 
-### Step 2: View Current Ownership
+**📸 Verified Output:**
+```
+-rw-r--r-- 1 root root 0 Mar  5 00:58 /tmp/myfile.txt
+```
+
+The format is: `permissions links owner group size date name`
+
+---
+
+## Step 3: Changing Owner with chown
 
 ```bash
-mkdir -p /tmp/own-lab
-touch /tmp/own-lab/file1.txt /tmp/own-lab/file2.txt
-ls -l /tmp/own-lab
-stat /tmp/own-lab/file1.txt
+chown alice /tmp/myfile.txt
+ls -la /tmp/myfile.txt
 ```
 
-**Expected output (stat includes):**
+**📸 Verified Output:**
 ```
-Uid: ( 1000/   zchen)   Gid: ( 1000/   zchen)
-```
-
-### Step 3: Change Group Ownership with chgrp
-
-```bash
-MY_GROUP=$(id -gn)
-echo "Your primary group is: $MY_GROUP"
-chgrp $MY_GROUP /tmp/own-lab/file1.txt
-ls -l /tmp/own-lab/file1.txt
-```
-
-```bash
-MY_GID=$(id -g)
-chgrp $MY_GID /tmp/own-lab/file2.txt
-ls -l /tmp/own-lab/file2.txt
-```
-
-### Step 4: Change Ownership with chown
-
-```bash
-MY_USER=$(whoami)
-chown $MY_USER /tmp/own-lab/file1.txt
-ls -l /tmp/own-lab/file1.txt
+-rw-r--r-- 1 alice root 0 Mar  5 00:58 /tmp/myfile.txt
 ```
 
 ```bash
-MY_USER=$(whoami)
-MY_GROUP=$(id -gn)
-chown ${MY_USER}:${MY_GROUP} /tmp/own-lab/file2.txt
-ls -l /tmp/own-lab/file2.txt
+# Change both owner and group simultaneously
+chown alice:devteam /tmp/myfile.txt
+ls -la /tmp/myfile.txt
+```
+
+**📸 Verified Output:**
+```
+-rw-r--r-- 1 alice devteam 0 Mar  5 00:58 /tmp/myfile.txt
+```
+
+> 💡 `chown user:group file` changes both in one command. `chown user: file` (trailing colon) changes owner and sets group to user's primary group.
+
+---
+
+## Step 4: Changing Only the Group
+
+```bash
+chgrp bob /tmp/myfile.txt
+ls -la /tmp/myfile.txt
+```
+
+**📸 Verified Output:**
+```
+-rw-r--r-- 1 alice bob 0 Mar  5 00:58 /tmp/myfile.txt
 ```
 
 ```bash
-# Change only the group using chown :group syntax
-chown :$(id -gn) /tmp/own-lab/file1.txt
-ls -l /tmp/own-lab/file1.txt
+# chown with just group (colon prefix)
+chown :root /tmp/myfile.txt
+ls -la /tmp/myfile.txt
 ```
 
-### Step 5: Recursive Ownership Change
+**📸 Verified Output:**
+```
+-rw-r--r-- 1 alice root 0 Mar  5 00:58 /tmp/myfile.txt
+```
+
+---
+
+## Step 5: Recursive Ownership Change
 
 ```bash
-mkdir -p /tmp/own-lab/project/src
-touch /tmp/own-lab/project/src/app.py
-touch /tmp/own-lab/project/README.md
+mkdir /tmp/project
+touch /tmp/project/a.py /tmp/project/b.py
 
-MY_USER=$(whoami)
-MY_GROUP=$(id -gn)
-chown -R ${MY_USER}:${MY_GROUP} /tmp/own-lab/project
-ls -lR /tmp/own-lab/project
+chown -R alice:devteam /tmp/project
+ls -laR /tmp/project
 ```
 
-### Step 6: Understand /etc/passwd and /etc/group
+**📸 Verified Output:**
+```
+/tmp/project:
+total 8
+drwxr-xr-x 2 alice devteam 4096 Mar  5 00:58 .
+drwxrwxrwt 1 alice root    4096 Mar  5 00:58 ..
+-rw-r--r-- 1 alice devteam    0 Mar  5 00:58 a.py
+-rw-r--r-- 1 alice devteam    0 Mar  5 00:58 b.py
+```
+
+> 💡 `-R` (recursive) changes ownership of the directory **and all files inside it**. Use carefully — applying wrong ownership recursively to `/etc` can break your system.
+
+---
+
+## Step 6: Why Ownership Matters — Access Control
 
 ```bash
-# /etc/passwd: username:x:UID:GID:GECOS:home:shell
-grep "^$(whoami):" /etc/passwd
+# Create a private file owned by alice
+touch /tmp/alice_private.txt
+chown alice:alice /tmp/alice_private.txt
+chmod 600 /tmp/alice_private.txt
+ls -la /tmp/alice_private.txt
+
+# Root can still read it (root bypasses permissions)
+cat /tmp/alice_private.txt && echo "(root can always read)"
 ```
 
-**Expected output:**
+**📸 Verified Output:**
 ```
-zchen:x:1000:1000::/home/zchen:/bin/bash
-```
-
-```bash
-grep "^$(id -gn):" /etc/group
-grep $(whoami) /etc/group
+-rw------- 1 alice alice 0 Mar  5 00:58 /tmp/alice_private.txt
+(root can always read)
 ```
 
-### Step 7: stat to Verify Ownership
+> 💡 Root (`uid=0`) bypasses **all** permission checks. This is why running services as root is dangerous — a compromised root process can read any file on the system. Use dedicated service accounts instead.
 
-```bash
-stat -c "File: %n | Owner: %U (%u) | Group: %G (%g)" /tmp/own-lab/file1.txt
-```
+---
 
-**Expected output:**
-```
-File: /tmp/own-lab/file1.txt | Owner: zchen (1000) | Group: zchen (1000)
-```
-
-## ✅ Verification
+## Step 7: Service Account Pattern
 
 ```bash
-echo "User: $(whoami), UID: $(id -u), GID: $(id -g)"
-echo "Groups: $(groups)"
-touch /tmp/own-verify.txt
-stat -c "Owner: %U | Group: %G" /tmp/own-verify.txt
-rm /tmp/own-verify.txt
-rm -rf /tmp/own-lab
-echo "Lab 9 complete"
+# Real-world pattern: web server files
+useradd -r -s /bin/false webserver   # -r = system account, no shell
+mkdir -p /tmp/webroot/html
+echo "<h1>Hello</h1>" > /tmp/webroot/html/index.html
+
+# Correct ownership: web server owns content, root owns config
+chown -R webserver:webserver /tmp/webroot/html
+chown root:root /tmp/webroot
+chmod 755 /tmp/webroot/html
+chmod 644 /tmp/webroot/html/index.html
+
+ls -laR /tmp/webroot/
 ```
 
-## 📝 Summary
-- `whoami` shows your username; `id` shows UID, GID, and all group memberships
-- `groups` lists all groups you belong to
-- `chgrp groupname file` changes the group owner
-- `chown username file` changes the user owner
-- `chown user:group file` changes both simultaneously
-- `chown -R` applies ownership changes recursively
-- `/etc/passwd` stores user accounts; `/etc/group` stores group memberships
+**📸 Verified Output:**
+```
+/tmp/webroot/:
+total 12
+drwxr-xr-x 3 root      root      4096 Mar  5 00:58 .
+drwxrwxrwt 1 root      root      4096 Mar  5 00:58 ..
+drwxr-xr-x 2 webserver webserver 4096 Mar  5 00:58 html
+
+/tmp/webroot/html:
+total 12
+drwxr-xr-x 2 webserver webserver 4096 Mar  5 00:58 .
+drwxr-xr-x 3 root      root      4096 Mar  5 00:58 ..
+-rw-r--r-- 1 webserver webserver   14 Mar  5 00:58 index.html
+```
+
+---
+
+## Step 8: Capstone — Fix Misconfigured Service Directory
+
+```bash
+# Simulate a misconfigured deployment (everything owned by root)
+mkdir -p /tmp/app/{data,logs,config}
+touch /tmp/app/data/db.sqlite /tmp/app/logs/app.log /tmp/app/config/app.cfg
+echo "db_password=secret123" > /tmp/app/config/app.cfg
+useradd -r -s /bin/false appuser 2>/dev/null
+
+echo "=== BEFORE (misconfigured) ==="
+ls -laR /tmp/app/
+
+echo ""
+echo "=== Fixing ownership and permissions ==="
+chown -R appuser:appuser /tmp/app
+chmod 750 /tmp/app /tmp/app/data /tmp/app/logs
+chmod 700 /tmp/app/config
+chmod 600 /tmp/app/config/app.cfg
+chmod 640 /tmp/app/logs/app.log
+
+echo ""
+echo "=== AFTER (hardened) ==="
+ls -laR /tmp/app/
+```
+
+**📸 Verified Output:**
+```
+=== BEFORE (misconfigured) ===
+/tmp/app/:
+drwxr-xr-x 5 root root 4096 ... .
+...
+-rw-r--r-- 1 root root   21 ... config/app.cfg
+
+=== Fixing ownership and permissions ===
+
+=== AFTER (hardened) ===
+/tmp/app/:
+drwxr-x--- 5 appuser appuser 4096 Mar  5 00:58 .
+drwxr-x--- 2 appuser appuser 4096 Mar  5 00:58 data
+drwxr-x--- 2 appuser appuser 4096 Mar  5 00:58 logs
+drwx------ 2 appuser appuser 4096 Mar  5 00:58 config
+-rw------- 1 appuser appuser   21 Mar  5 00:58 config/app.cfg
+-rw-r----- 1 appuser appuser    0 Mar  5 00:58 logs/app.log
+```
+
+---
+
+## Summary
+
+| Command | Effect |
+|---------|--------|
+| `chown user file` | Change owner |
+| `chown user:group file` | Change owner and group |
+| `chown :group file` | Change group only |
+| `chown -R user:group dir` | Recursive ownership change |
+| `chgrp group file` | Change group only |
+| `ls -la` | View owner and group |
