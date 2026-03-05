@@ -1,5 +1,16 @@
 # Linux
 
+![Linux Hero](assets/hero-banner.svg)
+
+> **In a world of GUIs, the command line is your superpower.**
+> From your first `ls` to managing production clusters — every concept is taught hands-on, with real commands and verified output.
+
+---
+
+![Level Overview](assets/levels-diagram.svg)
+
+---
+
 {% hint style="success" %}
 **480 labs · 4 levels · Docker-verified output** — every command tested on Ubuntu 22.04
 {% endhint %}
