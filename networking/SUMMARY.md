@@ -2,20 +2,25 @@
 
 * [Overview](README.md)
 
-## Foundations
-* [OSI Model](foundations/osi-model.md)
-* [IP Addressing & Subnetting](foundations/ip-addressing.md)
-* [Routing & Switching](foundations/routing-switching.md)
-
-## Practitioner
-* [TCP/IP Protocol Suite](practitioner/tcp-ip.md)
-* [DNS & DHCP](practitioner/dns-dhcp.md)
-* [HTTP & HTTPS](practitioner/http-https.md)
-
-## Advanced
-* [Network Security Fundamentals](advanced/network-security.md)
-* [Wireless Security](advanced/wireless-security.md)
-
-## Architect
-* [Enterprise Network Design](architect/network-design.md)
-* [Cloud Networking Architecture](architect/cloud-networking.md)
+## 🌐 Fundamentals
+* [Fundamentals Overview](foundations/README.md)
+* [Lab 01: OSI Model](foundations/labs/lab-01-osi-model.md)
+* [Lab 02: TCP/IP Model](foundations/labs/lab-02-tcp-ip-model.md)
+* [Lab 03: IPv4 Addressing](foundations/labs/lab-03-ip-addressing-ipv4.md)
+* [Lab 04: Subnetting](foundations/labs/lab-04-subnetting.md)
+* [Lab 05: IPv6 Fundamentals](foundations/labs/lab-05-ipv6-fundamentals.md)
+* [Lab 06: MAC Addresses & Ethernet](foundations/labs/lab-06-mac-addresses-ethernet.md)
+* [Lab 07: Routing Basics](foundations/labs/lab-07-routing-basics.md)
+* [Lab 08: NAT & Port Forwarding](foundations/labs/lab-08-nat-and-port-forwarding.md)
+* [Lab 09: DNS Fundamentals](foundations/labs/lab-09-dns-fundamentals.md)
+* [Lab 10: DHCP Fundamentals](foundations/labs/lab-10-dhcp-fundamentals.md)
+* [Lab 11: TCP Deep Dive](foundations/labs/lab-11-tcp-deep-dive.md)
+* [Lab 12: UDP & ICMP](foundations/labs/lab-12-udp-and-icmp.md)
+* [Lab 13: HTTP & HTTPS](foundations/labs/lab-13-http-https-fundamentals.md)
+* [Lab 14: Network Troubleshooting Tools](foundations/labs/lab-14-network-troubleshooting-tools.md)
+* [Lab 15: Network Interfaces & Configuration](foundations/labs/lab-15-network-interfaces-configuration.md)
+* [Lab 16: Switching & VLANs](foundations/labs/lab-16-switching-vlans.md)
+* [Lab 17: Wireless Networking Basics](foundations/labs/lab-17-wireless-networking-basics.md)
+* [Lab 18: Network Security Fundamentals](foundations/labs/lab-18-network-security-fundamentals.md)
+* [Lab 19: Cloud Networking Basics](foundations/labs/lab-19-cloud-networking-basics.md)
+* [Lab 20: Capstone — Network Design](foundations/labs/lab-20-capstone-network-design.md)
