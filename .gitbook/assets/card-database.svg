@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0e02"/>
+      <stop offset="100%" style="stop-color:#1c1002"/>
+    </linearGradient>
+    <linearGradient id="or" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#fb923c"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="400" height="200" fill="url(#bg)"/>
+  <!-- Background rows (table) -->
+  <g opacity="0.08">
+    <rect x="210" y="20" width="175" height="12" fill="#f59e0b"/>
+    <rect x="210" y="36" width="175" height="12" fill="#f59e0b"/>
+    <rect x="210" y="52" width="175" height="12" fill="#f59e0b"/>
+    <rect x="210" y="68" width="175" height="12" fill="#f59e0b"/>
+    <rect x="210" y="84" width="175" height="12" fill="#f59e0b"/>
+    <rect x="210" y="100" width="175" height="12" fill="#f59e0b"/>
+    <rect x="210" y="116" width="175" height="12" fill="#f59e0b"/>
+    <rect x="210" y="132" width="175" height="12" fill="#f59e0b"/>
+  </g>
+  <!-- SQL query panel -->
+  <rect x="210" y="15" width="175" height="140" rx="6" fill="#120b00" stroke="#f59e0b" stroke-width="1" opacity="0.85"/>
+  <rect x="210" y="15" width="175" height="20" rx="6" fill="#f59e0b" opacity="0.15"/>
+  <text x="297" y="28" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="#fbbf24">query.sql</text>
+  <g font-family="ui-monospace,monospace" font-size="9" filter="url(#glow)">
+    <text x="220" y="52" fill="#60a5fa">SELECT</text>
+    <text x="264" y="52" fill="#e2e8f0"> u.id, u.name,</text>
+    <text x="220" y="65" fill="#e2e8f0">  e.event_type,</text>
+    <text x="220" y="78" fill="#e2e8f0">  COUNT(*) as hits</text>
+    <text x="220" y="91" fill="#60a5fa">FROM</text>
+    <text x="247" y="91" fill="#fbbf24"> users u</text>
+    <text x="220" y="104" fill="#60a5fa">JOIN</text>
+    <text x="245" y="104" fill="#fbbf24"> events e</text>
+    <text x="220" y="117" fill="#60a5fa">  ON</text>
+    <text x="242" y="117" fill="#e2e8f0"> u.id = e.uid</text>
+    <text x="220" y="130" fill="#60a5fa">WHERE</text>
+    <text x="255" y="130" fill="#fb923c"> hits &gt; 100</text>
+    <text x="220" y="143" fill="#60a5fa">GROUP BY</text>
+    <text x="275" y="143" fill="#e2e8f0"> u.id</text>
+  </g>
+  <!-- Database cylinders -->
+  <g transform="translate(30,20)" filter="url(#glow)">
+    <!-- DB 1 -->
+    <ellipse cx="60" cy="22" rx="40" ry="10" fill="#1a0e02" stroke="#f59e0b" stroke-width="1.5"/>
+    <rect x="20" y="22" width="80" height="40" fill="#1a0e02" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="none"/>
+    <line x1="20" y1="22" x2="20" y2="62" stroke="#f59e0b" stroke-width="1.5"/>
+    <line x1="100" y1="22" x2="100" y2="62" stroke="#f59e0b" stroke-width="1.5"/>
+    <ellipse cx="60" cy="62" rx="40" ry="10" fill="#f59e0b" opacity="0.2" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="60" y="45" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="#fbbf24">PRIMARY</text>
+    <!-- DB 2 (replica) -->
+    <ellipse cx="60" cy="95" rx="35" ry="9" fill="#1a0e02" stroke="#fb923c" stroke-width="1" opacity="0.8"/>
+    <rect x="25" y="95" width="70" height="35" fill="#1a0e02" stroke="#fb923c" stroke-width="1" opacity="0.8"/>
+    <line x1="25" y1="95" x2="25" y2="130" stroke="#fb923c" stroke-width="1" opacity="0.8"/>
+    <line x1="95" y1="95" x2="95" y2="130" stroke="#fb923c" stroke-width="1" opacity="0.8"/>
+    <ellipse cx="60" cy="130" rx="35" ry="9" fill="#fb923c" opacity="0.15" stroke="#fb923c" stroke-width="1"/>
+    <text x="60" y="117" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="#fb923c">REPLICA</text>
+    <!-- Arrow -->
+    <line x1="60" y1="72" x2="60" y2="86" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="65" y="83" font-family="ui-monospace,monospace" font-size="8" fill="#f59e0b">sync</text>
+  </g>
+  <!-- Label -->
+  <rect x="0" y="160" width="400" height="40" fill="#1a0e02" opacity="0.95"/>
+  <rect x="0" y="158" width="400" height="2" fill="url(#or)"/>
+  <text x="20" y="185" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="white">🗄️ Database</text>
+  <text x="200" y="182" font-family="ui-monospace,monospace" font-size="10" fill="#fbbf24" text-anchor="end">80 labs · SQL to NoSQL</text>
+</svg>

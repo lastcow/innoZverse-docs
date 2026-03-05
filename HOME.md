@@ -1,7 +1,5 @@
 ---
-description: >-
-  480+ verified, hands-on labs across Linux, Cybersecurity, Networking,
-  Database, Programming, and AI — built for engineers who learn by doing.
+description: 465+ verified, hands-on labs across Linux, Cybersecurity, Networking, Database, Programming, and AI — built for engineers who learn by doing.
 cover: .gitbook/assets/home-hero.svg
 coverY: 0
 layout:
@@ -9,24 +7,31 @@ layout:
     visible: true
     size: hero
   title:
-    visible: true
+    visible: false
   description:
-    visible: true
+    visible: false
   tableOfContents:
-    visible: true
+    visible: false
   outline:
     visible: false
   pagination:
     visible: false
 ---
 
-# innoZverse Documentation
+# innoZverse Docs
 
-> **The practitioner's knowledge base.** Every command verified. Every lab tested. No fluff.
+<div align="center">
+
+## The practitioner's knowledge base
+
+**465+ verified labs. Every command tested. No fluff.**\
+Pick a domain below and start learning.
+
+</div>
 
 ---
 
-## Choose Your Learning Path
+## Learning Domains
 
 <table data-view="cards">
   <thead>
@@ -40,38 +45,38 @@ layout:
   <tbody>
     <tr>
       <td><strong>🐧 Linux</strong></td>
-      <td>Master the command line from first boot to kernel internals. 80 verified labs across 4 levels.</td>
-      <td></td>
+      <td>From first boot to kernel internals. Shell scripting, system administration, performance tuning, and eBPF. 80 verified labs across 4 levels.</td>
+      <td><a href=".gitbook/assets/card-linux.svg">card-linux.svg</a></td>
       <td><a href="linux/README.md">linux/README.md</a></td>
     </tr>
     <tr>
       <td><strong>🔐 Cybersecurity</strong></td>
-      <td>Real pentest labs with two-container Kali → victim architecture. OWASP Top 10 and beyond. 60 labs.</td>
-      <td></td>
+      <td>Real pentest labs with live Kali → victim containers. OWASP Top 10, advanced exploitation, threat hunting, and digital forensics. 60 labs.</td>
+      <td><a href=".gitbook/assets/card-cybersecurity.svg">card-cybersecurity.svg</a></td>
       <td><a href="cyber-security/README.md">cyber-security/README.md</a></td>
     </tr>
     <tr>
       <td><strong>🌐 Networking</strong></td>
-      <td>Protocols, routing, firewalls, and packet analysis from OSI Layer 1 to BGP. 80 labs.</td>
-      <td></td>
+      <td>OSI model through BGP routing. Packet analysis, firewalls, VPNs, SDN, and network automation. 80 labs from CCNA to architect level.</td>
+      <td><a href=".gitbook/assets/card-networking.svg">card-networking.svg</a></td>
       <td><a href="networking/README.md">networking/README.md</a></td>
     </tr>
     <tr>
       <td><strong>🗄️ Database</strong></td>
-      <td>SQL, NoSQL, query optimisation, replication, and data engineering pipelines. 80 labs.</td>
-      <td></td>
+      <td>SQL mastery, NoSQL, query optimisation, replication, sharding, and data pipelines. PostgreSQL, MySQL, MongoDB, Redis. 80 labs.</td>
+      <td><a href=".gitbook/assets/card-database.svg">card-database.svg</a></td>
       <td><a href="database/README.md">database/README.md</a></td>
     </tr>
     <tr>
       <td><strong>💻 Programming</strong></td>
-      <td>Python, JavaScript, Java, Go, PHP, TypeScript, HTML/CSS — foundations through advanced. 105+ labs.</td>
-      <td></td>
+      <td>Python, JavaScript, Java, Go, PHP, TypeScript, HTML/CSS — foundations to advanced. 105+ Docker-verified labs across 7 languages.</td>
+      <td><a href=".gitbook/assets/card-programming.svg">card-programming.svg</a></td>
       <td><a href="programming/README.md">programming/README.md</a></td>
     </tr>
     <tr>
       <td><strong>🤖 AI & Machine Learning</strong></td>
-      <td>From AI history to enterprise security platforms. 60 verified labs with Docker-tested code.</td>
-      <td></td>
+      <td>AI history to enterprise security platforms. GNNs, federated learning, LLM security, RL agents, and MLOps. 60 Docker-tested labs.</td>
+      <td><a href=".gitbook/assets/card-ai.svg">card-ai.svg</a></td>
       <td><a href="artificial-intelligent-ai/README.md">artificial-intelligent-ai/README.md</a></td>
     </tr>
   </tbody>
@@ -79,92 +84,99 @@ layout:
 
 ---
 
-## How Labs Are Structured
-
-Every lab in innoZverse follows the same format so you always know what to expect.
+## Quick Start
 
 {% tabs %}
-{% tab title="🎯 Objective" %}
-Each lab starts with a clear, one-paragraph objective:
+{% tab title="🐳 Docker (Recommended)" %}
+Pull any image and start immediately — no account or licence required.
 
-- **What** you will build or demonstrate
-- **Why** it matters in the real world
-- **Time estimate** and **difficulty level**
-- **Docker image** or environment required
+```bash
+# AI & ML labs
+docker pull zchencow/innozverse-ai:latest
+docker run -it --rm zchencow/innozverse-ai:latest bash
 
-No ambiguity. You know exactly what you're getting into before writing a single command.
+# Cybersecurity labs (victim server)
+docker pull zchencow/innozverse-cybersec:latest
+
+# Pentest attacker (Kali Linux)
+docker pull zchencow/innozverse-kali:latest
+```
 {% endtab %}
 
-{% tab title="🔬 Verified Steps" %}
-Every step has been executed and the output captured:
+{% tab title="🐧 Linux / macOS" %}
+Most labs run on any Ubuntu 22.04 or macOS system with Python 3.10+.
 
-```
-**📸 Verified Output:**
-```text
-root@lab:~# nmap -sV 172.20.0.2
-Starting Nmap 7.94 ...
-PORT     STATE SERVICE VERSION
-80/tcp   open  http    Werkzeug/3.0.1 Python/3.11.9
-443/tcp  open  ssl/http Werkzeug/3.0.1
-```
-```
+```bash
+# Clone the lab content
+git clone https://github.com/lastcow/innoZverse-docs.git
+cd innoZverse-docs
 
-If the command doesn't produce that output, something is wrong — and you can debug from a known baseline.
+# Follow the lab README for environment setup
+# Most labs specify: docker run ... or python3 -c "..."
+```
 {% endtab %}
 
-{% tab title="💡 Callouts" %}
-Throughout each lab you'll find:
+{% tab title="☁️ Cloud (No local setup)" %}
+Run labs in your browser using GitHub Codespaces:
 
-> 💡 **Tips** — better ways to do what you just did
+1. Open [github.com/lastcow/innoZverse-docs](https://github.com/lastcow/innoZverse-docs)
+2. Click **Code → Codespaces → Create codespace**
+3. Docker is pre-installed — pull any `zchencow/innozverse-*` image
 
-{% hint style="info" %}
-**Info** — background context and "why this works"
-{% endhint %}
-
-{% hint style="warning" %}
-**Warning** — common mistakes and gotchas
-{% endhint %}
-
-{% hint style="danger" %}
-**Danger** — security implications or destructive commands
-{% endhint %}
-{% endtab %}
-
-{% tab title="🏁 Capstone" %}
-Step 8 of every lab is a **capstone challenge** that combines everything from steps 1–7 into a realistic scenario:
-
-- Security labs: full attack → detect → remediate chain
-- AI labs: end-to-end pipeline from raw data to production endpoint
-- Programming labs: working application with tests
-- Database labs: production schema with indexing and query optimisation
-
-The capstone is where the learning sticks.
+Free tier: 60 hours/month.
 {% endtab %}
 {% endtabs %}
 
 ---
 
-## Quick Start
+## Four Levels, One Path
 
-{% hint style="success" %}
-**No environment setup required for most labs.** Pull the Docker image and start immediately.
-{% endhint %}
-
-```bash
-# Pick your domain and pull the image
-docker pull zchencow/innozverse-ai:latest        # AI/ML labs
-docker pull zchencow/innozverse-cybersec:latest  # Cybersecurity labs
-docker pull zchencow/innozverse-kali:latest      # Pentest attacker
-
-# Start an interactive session
-docker run -it --rm zchencow/innozverse-ai:latest bash
-```
-
-All images are hosted on Docker Hub under `zchencow/innozverse-*` and require no account or license.
+<table data-view="cards">
+  <thead>
+    <tr>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>🌱 Foundations</strong></td>
+      <td>Core concepts from first principles. Guided walkthroughs. No prior experience required. Perfect for career-switchers and students.</td>
+    </tr>
+    <tr>
+      <td><strong>⚔️ Practitioner</strong></td>
+      <td>Industry-standard tools and production patterns. Real-world scenarios. Maps to OSCP, CCNA, AWS certifications. 1–3 years experience recommended.</td>
+    </tr>
+    <tr>
+      <td><strong>🔴 Advanced</strong></td>
+      <td>Deep internals, complex architectures, research-level techniques. Build tools, not just use them. Senior engineers and specialists.</td>
+    </tr>
+    <tr>
+      <td><strong>🏛️ Architect</strong></td>
+      <td>System design at scale. Trade-off frameworks. Cross-domain integration. For tech leads designing production infrastructure.</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
-## Lab Catalogue
+## What Makes These Labs Different
+
+{% hint style="success" %}
+**Every command is verified.** The output shown in each lab is real output from a real execution. If yours differs, something is genuinely wrong — and that's a useful debugging exercise.
+{% endhint %}
+
+{% hint style="info" %}
+**No setup hell.** Labs use pre-built Docker images. One `docker pull` and you're running code, not installing dependencies.
+{% endhint %}
+
+{% hint style="info" %}
+**Security-themed throughout.** Even non-security labs (Python, databases, AI) use cybersecurity datasets and scenarios — network intrusion detection, malware classification, SIEM log analysis.
+{% endhint %}
+
+---
+
+## Lab Count by Domain
 
 | Domain | Foundations | Practitioner | Advanced | Architect | Total |
 |--------|:-----------:|:------------:|:--------:|:---------:|:-----:|
@@ -172,113 +184,22 @@ All images are hosted on Docker Hub under `zchencow/innozverse-*` and require no
 | 🔐 Cybersecurity | 20 | 20 | 20 | — | **60** |
 | 🌐 Networking | 20 | 20 | 20 | 20 | **80** |
 | 🗄️ Database | 20 | 20 | 20 | 20 | **80** |
-| 💻 Programming | 15×7 | 15×7 | — | — | **105+** |
+| 💻 Programming | 105+ | — | — | — | **105+** |
 | 🤖 AI & ML | 20 | 20 | 20 | — | **60** |
 | **Total** | | | | | **465+** |
 
 ---
 
-## The Four Levels
+## Open Source
 
-{% tabs %}
-{% tab title="🌱 Foundations" %}
-**Who it's for:** Beginners and career-switchers
+All content is free and open on GitHub. Found a bug or a broken command? Open an issue — verified fixes are merged within 48 hours.
 
-**What you'll learn:**
-- Core concepts explained from first principles
-- Industry terminology with real-world analogies
-- Hands-on labs with guided walkthroughs
-- No prior experience required
-
-**Example labs:**
-- Linux: File permissions, users, and the shell
-- AI: How LLMs actually work (no jargon)
-- Cybersecurity: Setting up your first Kali environment
-{% endtab %}
-
-{% tab title="⚔️ Practitioner" %}
-**Who it's for:** Engineers with 1–3 years of experience
-
-**What you'll learn:**
-- Industry-standard tools and workflows
-- Real-world scenarios and troubleshooting
-- Production patterns and best practices
-- OWASP Top 10, MITRE ATT&CK, CVE analysis
-
-**Example labs:**
-- Cybersecurity: SQL injection in a live Flask app
-- AI: Deploy an ML model as a FastAPI endpoint
-- Linux: Kernel tuning for high-throughput workloads
-{% endtab %}
-
-{% tab title="🔴 Advanced" %}
-**Who it's for:** Senior engineers and specialists
-
-**What you'll learn:**
-- Deep internals and low-level mechanics
-- Complex architectures and system design
-- Research-level techniques with practical application
-- Building tools, not just using them
-
-**Example labs:**
-- AI: Federated learning with differential privacy
-- Cybersecurity: Lateral movement detection with GNNs
-- Linux: Custom eBPF programs for observability
-{% endtab %}
-
-{% tab title="🏛️ Architect" %}
-**Who it's for:** Tech leads, architects, and senior ICs
-
-**What you'll learn:**
-- System design at scale (millions of events/day)
-- Trade-off analysis and decision frameworks
-- Cross-domain integration (security + AI + networking)
-- Production operations and reliability engineering
-
-**Example labs:**
-- Database: Designing a multi-region, active-active cluster
-- Linux: Building a zero-trust infrastructure
-{% endtab %}
-{% endtabs %}
+[**github.com/lastcow/innoZverse-docs →**](https://github.com/lastcow/innoZverse-docs)
 
 ---
 
-## Built for Real Engineers
-
-{% hint style="info" %}
-**Verification-first design**: Every command in every lab has been executed on Ubuntu 22.04 inside Docker. The output you see is the output you get.
-{% endhint %}
-
-- **No vendor lock-in** — open-source tools and freely available Docker images
-- **No subscriptions** — all content is free and open on GitHub
-- **No stale tutorials** — labs are tested against current tool versions
-- **No hand-waving** — if a concept is hard, we explain it until it's not
-
----
-
-## Certification Alignment
-
-Labs map to industry certifications across all domains:
-
-| Domain | Certifications |
-|--------|---------------|
-| Linux | LPIC-1/2, RHCSA, CompTIA Linux+ |
-| Cybersecurity | OSCP, CEH, CompTIA Security+, eJPT |
-| Networking | CCNA, CompTIA Network+, JNCIA |
-| Database | Oracle OCA, MongoDB Associate, PostgreSQL Certified |
-| AI/ML | AWS ML Specialty, Google Professional ML Engineer, Azure AI Engineer |
-| Programming | AWS Developer, GCP ACE, Azure AZ-204 |
-
----
-
-## GitHub & Contributing
-
-All lab content is open source.
-
-[![GitHub](https://img.shields.io/badge/GitHub-lastcow%2FinnoZverse--docs-blue?logo=github)](https://github.com/lastcow/innoZverse-docs)
-
-Found a bug? Command doesn't work? Open an issue or submit a PR — verified corrections are merged within 48 hours.
-
----
+<div align="center">
 
 *innoZverse — Learn by doing. Verify everything.*
+
+</div>

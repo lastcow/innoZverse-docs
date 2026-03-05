@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0505"/>
+      <stop offset="100%" style="stop-color:#1c0a0a"/>
+    </linearGradient>
+    <linearGradient id="rd" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#f97316"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="400" height="200" fill="url(#bg)"/>
+  <!-- Scan lines -->
+  <g opacity="0.05" stroke="#ef4444" stroke-width="0.5">
+    <line x1="0" y1="33" x2="400" y2="33"/><line x1="0" y1="66" x2="400" y2="66"/>
+    <line x1="0" y1="99" x2="400" y2="99"/><line x1="0" y1="132" x2="400" y2="132"/>
+    <line x1="0" y1="165" x2="400" y2="165"/>
+  </g>
+  <!-- Shield -->
+  <g transform="translate(195,15)" filter="url(#glow)">
+    <path d="M70,0 L140,25 L140,80 Q140,130 70,155 Q0,130 0,80 L0,25 Z" fill="#ef4444" opacity="0.1" stroke="#ef4444" stroke-width="1.5"/>
+    <path d="M70,15 L125,35 L125,80 Q125,118 70,138 Q15,118 15,80 L15,35 Z" fill="#ef4444" opacity="0.08"/>
+    <!-- Lock icon in shield -->
+    <rect x="52" y="65" width="36" height="28" rx="4" fill="none" stroke="#ef4444" stroke-width="2"/>
+    <path d="M59,65 L59,55 Q59,42 70,42 Q81,42 81,55 L81,65" fill="none" stroke="#ef4444" stroke-width="2"/>
+    <circle cx="70" cy="78" r="5" fill="#ef4444"/>
+    <line x1="70" y1="82" x2="70" y2="88" stroke="#ef4444" stroke-width="2"/>
+  </g>
+  <!-- Attack lines radiating -->
+  <g opacity="0.3" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="3,4">
+    <line x1="30" y1="30" x2="200" y2="90"/>
+    <line x1="50" y1="100" x2="200" y2="95"/>
+    <line x1="30" y1="150" x2="200" y2="100"/>
+    <line x1="60" y1="170" x2="200" y2="105"/>
+  </g>
+  <!-- Attacker nodes -->
+  <g filter="url(#glow)">
+    <circle cx="35" cy="35" r="8" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="35" y="39" text-anchor="middle" font-size="9" fill="#ef4444">⚡</text>
+    <circle cx="45" cy="105" r="8" fill="none" stroke="#f97316" stroke-width="1.5"/>
+    <text x="45" y="109" text-anchor="middle" font-size="9" fill="#f97316">⚡</text>
+    <circle cx="35" cy="155" r="8" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="35" y="159" text-anchor="middle" font-size="9" fill="#ef4444">⚡</text>
+  </g>
+  <!-- Kali text -->
+  <text x="25" y="20" font-family="ui-monospace,monospace" font-size="9" fill="#ef4444" opacity="0.7">KALI ATTACKER</text>
+  <!-- Label -->
+  <rect x="0" y="160" width="400" height="40" fill="#1a0505" opacity="0.95"/>
+  <rect x="0" y="158" width="400" height="2" fill="url(#rd)"/>
+  <text x="20" y="185" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="white">🔐 Cybersecurity</text>
+  <text x="200" y="182" font-family="ui-monospace,monospace" font-size="10" fill="#f87171" text-anchor="end">60 labs · OWASP Top 10</text>
+</svg>
