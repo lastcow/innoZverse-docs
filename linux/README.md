@@ -82,17 +82,17 @@
 **Environment:** `docker run -it --rm ubuntu:22.04 bash`
 {% endtab %}
 
-{% tab title="🔒 Advanced — Coming Soon" %}
+{% tab title="🔒 Advanced — 20 Labs" %}
 **Tune, harden, and manage complex Linux systems**
 
-| Labs | Topics |
-|------|--------|
-| 01–05 | Kernel parameters (sysctl), performance profiling (perf, strace, lsof) |
-| 06–10 | Security hardening, SELinux/AppArmor policies, auditd, fail2ban |
-| 11–15 | LVM, RAID, filesystem tuning (ext4/xfs/btrfs), disk encryption (LUKS) |
-| 16–20 | Linux containers, namespaces, cgroups, Docker internals, systemd units |
+| Labs | Topics | Key Tools |
+|------|--------|-----------|
+| 01–05 | sysctl kernel params, perf profiling, strace, lsof, CPU/memory analysis | `sysctl`, `perf`, `strace`, `lsof`, `vmstat` |
+| 06–10 | CIS hardening, SELinux, AppArmor, auditd, fail2ban | `chattr`, `setenforce`, `aa-enforce`, `auditctl`, `fail2ban-client` |
+| 11–15 | LVM, software RAID, ext4/xfs/btrfs tuning, LUKS encryption, NFS | `lvcreate`, `mdadm`, `tune2fs`, `cryptsetup`, `exportfs` |
+| 16–20 | Namespaces, cgroups, Docker internals, systemd deep dive, capstone | `unshare`, `nsenter`, `cgcreate`, `runc`, `systemd-analyze` |
 
-🚧 **In development** — coming soon
+**Environment:** `docker run -it --rm --privileged ubuntu:22.04 bash`
 {% endtab %}
 
 {% tab title="🏛️ Architect — Coming Soon" %}
