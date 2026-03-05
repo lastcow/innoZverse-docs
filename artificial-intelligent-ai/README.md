@@ -99,12 +99,12 @@
 
 | Labs | Topics |
 |------|--------|
-| 01–05 | MLOps foundations, CI/CD for ML, feature stores, model registry, A/B testing |
-| 06–10 | Drift detection, monitoring dashboards, Kubernetes model serving, auto-scaling |
-| 11–15 | Responsible AI, bias auditing, explainability frameworks, EU AI Act compliance |
-| 16–20 | AI system design patterns, multi-model architectures, cost optimisation, capstone |
+| 01–05 | MLOps platform architecture, model serving at scale, vector databases, LLM infrastructure, RAG at scale |
+| 06–10 | AI observability & monitoring, federated learning, multi-agent systems, AI security red team, EU AI Act compliance |
+| 11–15 | AI cost optimization, enterprise AI platform, data pipeline architecture, responsible AI audit, LLM fine-tuning infrastructure |
+| 16–20 | Knowledge graph + LLM, real-time AI inference, AI SOC automation, distributed training, capstone enterprise AI security platform |
 
-**Coming soon** — Architect level labs in development
+**20 Labs available** — All Docker-verified with enterprise architecture patterns
 {% endtab %}
 {% endtabs %}
 
