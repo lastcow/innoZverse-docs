@@ -31,22 +31,22 @@
     <tr>
       <td><strong>🌱 Foundations</strong></td>
       <td>Terminal navigation, filesystem, permissions, text editing, users and packages. No prior experience needed — start from zero.</td>
-      <td><a href="foundations/">foundations/</a></td>
+      <td><a href="foundations/README.md">foundations/README.md</a></td>
     </tr>
     <tr>
       <td><strong>⚙️ Practitioner</strong></td>
       <td>Shell scripting, process management, networking tools, SSH, cron automation, log management. Become a confident Linux user.</td>
-      <td><a href="practitioner/">practitioner/</a></td>
+      <td><a href="practitioner/README.md">practitioner/README.md</a></td>
     </tr>
     <tr>
       <td><strong>🔒 Advanced</strong></td>
       <td>Kernel tuning, security hardening, SELinux/AppArmor, LVM, storage, containers, namespaces, cgroups, systemd mastery.</td>
-      <td><a href="advanced/">advanced/</a></td>
+      <td><a href="advanced/README.md">advanced/README.md</a></td>
     </tr>
     <tr>
       <td><strong>🏛️ Architect</strong></td>
       <td>High availability, Ansible automation, Prometheus/Grafana/ELK observability, enterprise hardening and compliance at scale.</td>
-      <td><a href="architect/">architect/</a></td>
+      <td><a href="architect/README.md">architect/README.md</a></td>
     </tr>
   </tbody>
 </table>

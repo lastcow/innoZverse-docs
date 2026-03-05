@@ -3,6 +3,7 @@
 * [Overview](README.md)
 
 ## 🌱 Foundations
+* [Foundations Overview](foundations/README.md)
 * [Lab 01: Terminal Basics](foundations/labs/lab-01-terminal-basics.md)
 * [Lab 02: Filesystem Hierarchy (FHS)](foundations/labs/lab-02-filesystem-hierarchy.md)
 * [Lab 03: Directory Navigation](foundations/labs/lab-03-directory-navigation.md)
@@ -25,6 +26,7 @@
 * [Lab 20: Networking Basics (Capstone)](foundations/labs/lab-20-networking-basics.md)
 
 ## ⚙️ Practitioner
+* [Practitioner Overview](practitioner/README.md)
 * [Lab 01: Shell Scripting — Variables & Conditionals](practitioner/labs/lab-01-shell-scripting-variables-conditionals.md)
 * [Lab 02: Shell Scripting — Loops & Iteration](practitioner/labs/lab-02-shell-scripting-loops.md)
 * [Lab 03: Shell Scripting — Functions & Arguments](practitioner/labs/lab-03-shell-scripting-functions-arguments.md)
@@ -47,6 +49,7 @@
 * [Lab 20: Capstone — Server Admin Workflow](practitioner/labs/lab-20-capstone-server-admin-workflow.md)
 
 ## 🔒 Advanced
+* [Advanced Overview](advanced/README.md)
 * [Lab 01: sysctl — Kernel Parameters](advanced/labs/lab-01-sysctl-kernel-parameters.md)
 * [Lab 02: Performance Profiling with perf](advanced/labs/lab-02-performance-profiling-perf.md)
 * [Lab 03: strace — System Call Tracing](advanced/labs/lab-03-strace-system-call-tracing.md)
@@ -69,6 +72,7 @@
 * [Lab 20: Capstone — Hardened Container-Ready Server](advanced/labs/lab-20-capstone-hardened-container-ready-server.md)
 
 ## 🏛️ Architect
+* [Architect Overview](architect/README.md)
 * [Lab 01: High Availability & Pacemaker/Corosync](architect/labs/lab-01-high-availability-pacemaker-corosync.md)
 * [Lab 02: HAProxy — Load Balancing](architect/labs/lab-02-haproxy-load-balancing.md)
 * [Lab 03: Keepalived — VRRP Failover](architect/labs/lab-03-keepalived-vrrp-failover.md)
