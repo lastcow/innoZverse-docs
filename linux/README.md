@@ -1,13 +1,8 @@
 # Linux
 
-![Linux Hero](assets/hero-banner.svg)
-
-> **In a world of GUIs, the command line is your superpower.**
-> From your first `ls` to managing production clusters — every concept is taught hands-on, with real commands and verified output.
-
----
-
-![Level Overview](assets/levels-diagram.svg)
+{% hint style="success" %}
+**480 labs · 4 levels · Docker-verified output** — every command tested on Ubuntu 22.04
+{% endhint %}
 
 ---
 
@@ -50,56 +45,56 @@
 ## 📋 Curriculum Overview
 
 {% tabs %}
-{% tab title="🌱 Foundations" %}
+{% tab title="🌱 Foundations — 20 Labs" %}
 **Master the Linux filesystem and command line from scratch**
 
-| Labs | Topics |
-|------|--------|
-| 1–5  | Intro to terminal, filesystem navigation, file operations, viewing files |
-| 6–10 | Permissions (chmod/chown), special bits, text editors (vim & nano) |
-| 11–15 | Users & groups, environment variables, shell config (.bashrc, .profile) |
-| 16–20 | Package management (apt/yum), archiving (tar/zip), process basics (ps, kill) |
+| Labs | Topics | Key Commands |
+|------|--------|-------------|
+| 01–05 | Terminal, FHS, navigation, file creation & viewing, copy/move | `ls`, `cd`, `pwd`, `touch`, `cp`, `mv` |
+| 06–10 | Delete files, permissions, chmod, chown, users & groups | `rm`, `chmod`, `chown`, `useradd`, `groupadd` |
+| 11–15 | nano editor, grep, find, processes, disk usage | `nano`, `grep`, `find`, `ps`, `df`, `du` |
+| 16–20 | Package management, I/O redirection, env vars, scripting, networking | `apt`, `>`, `>>`, `\|`, `export`, `ping`, `curl` |
 
-**Tools:** bash, vim, nano, apt, tar, grep, find
+**Environment:** `docker run -it --rm ubuntu:22.04 bash`
 {% endtab %}
 
-{% tab title="⚙️ Practitioner" %}
+{% tab title="⚙️ Practitioner — 20 Labs" %}
 **Automate tasks and administer systems confidently**
 
-| Labs | Topics |
-|------|--------|
-| 1–5  | Shell scripting: variables, conditionals, loops, functions, arguments |
-| 6–10 | Process management, signals, background jobs, cron & at scheduling |
-| 11–15 | Networking: ip, ss, curl, wget, netstat, firewall with ufw/iptables |
-| 16–20 | SSH key auth, log management (journalctl), system monitoring, performance |
+| Labs | Topics | Key Commands |
+|------|--------|-------------|
+| 01–05 | Shell scripting: variables, loops, functions, error handling, automation | `bash`, `if`, `for`, `while`, `trap`, `set -euo` |
+| 06–10 | Process management, background jobs, cron, systemd, monitoring | `kill`, `nohup`, `crontab`, `systemctl`, `vmstat` |
+| 11–15 | Networking: ip/ss, curl/wget, ufw, iptables, diagnostics | `ip`, `ss`, `curl`, `ufw`, `iptables`, `dig` |
+| 16–20 | SSH key auth, journalctl, performance tuning, grep/awk/sed, capstone | `ssh-keygen`, `journalctl`, `awk`, `sed` |
 
-**Tools:** bash scripts, cron, ssh, iptables, ufw, systemctl, journalctl
+**Environment:** `docker run -it --rm ubuntu:22.04 bash`
 {% endtab %}
 
-{% tab title="🔒 Advanced" %}
+{% tab title="🔒 Advanced — Coming Soon" %}
 **Tune, harden, and manage complex Linux systems**
 
 | Labs | Topics |
 |------|--------|
-| 1–5  | Kernel parameters (sysctl), performance profiling (perf, strace, lsof) |
-| 6–10 | Security hardening, SELinux/AppArmor policies, auditd, fail2ban |
+| 01–05 | Kernel parameters (sysctl), performance profiling (perf, strace, lsof) |
+| 06–10 | Security hardening, SELinux/AppArmor policies, auditd, fail2ban |
 | 11–15 | LVM, RAID, filesystem tuning (ext4/xfs/btrfs), disk encryption (LUKS) |
 | 16–20 | Linux containers, namespaces, cgroups, Docker internals, systemd units |
 
-**Tools:** sysctl, perf, strace, auditd, lvm, cryptsetup, nsenter, systemd
+🚧 **In development** — coming soon
 {% endtab %}
 
-{% tab title="🏛️ Architect" %}
+{% tab title="🏛️ Architect — Coming Soon" %}
 **Design and operate enterprise Linux infrastructure**
 
 | Labs | Topics |
 |------|--------|
-| 1–5  | High availability with Pacemaker/Corosync, load balancing, clustering |
-| 6–10 | Infrastructure as Code: Ansible playbooks, roles, inventory, vault |
+| 01–05 | High availability with Pacemaker/Corosync, load balancing, clustering |
+| 06–10 | Infrastructure as Code: Ansible playbooks, roles, inventory, vault |
 | 11–15 | Observability: Prometheus metrics, Grafana dashboards, ELK log pipeline |
-| 16–20 | Enterprise hardening, CIS benchmarks, compliance automation, large-scale ops |
+| 16–20 | Enterprise hardening, CIS benchmarks, compliance automation |
 
-**Tools:** Ansible, Prometheus, Grafana, Elasticsearch, Pacemaker, HAProxy
+🚧 **In development** — coming soon
 {% endtab %}
 {% endtabs %}
 
@@ -107,17 +102,54 @@
 
 ## ⚡ Lab Format
 
-Every lab is production-quality with verified output — not just theory:
+Every lab is production-quality with Docker-verified output:
 
-{% hint style="success" %}
+{% hint style="info" %}
 **Each lab includes:**
 - 🎯 **Objective** — clear goal and real-world relevance
-- 📚 **Background** — the WHY, not just the HOW
-- 🔬 **Step-by-step instructions** — real commands on Ubuntu 22.04
-- 📸 **Verified output** — actual terminal results captured from live runs
-- 💡 **Explanations** — what each flag and output means
-- 🚨 **Common mistakes** — what to watch out for
+- 🔬 **8 numbered steps** — progressive complexity, real Ubuntu 22.04 commands
+- 📸 **Verified output** — actual terminal results captured from live Docker runs
+- 💡 **Tip callouts** — what each flag means and why it matters
+- 🏁 **Step 8 Capstone** — a real-world scenario tying all concepts together
+- 📋 **Summary table** — quick reference for the lab's key commands
 {% endhint %}
+
+---
+
+## 🚀 Quick Start
+
+{% tabs %}
+{% tab title="Docker (Recommended)" %}
+```bash
+# Pull and enter Ubuntu 22.04 — identical to the lab environment
+docker run -it --rm ubuntu:22.04 bash
+
+# Verify you're in the right place
+uname -a
+cat /etc/os-release
+```
+{% endtab %}
+
+{% tab title="Ubuntu / WSL2" %}
+```bash
+# Already on Ubuntu 22.04? Just open a terminal.
+# On Windows? Use WSL2:
+wsl --install -d Ubuntu-22.04
+
+# Verify
+lsb_release -a
+```
+{% endtab %}
+
+{% tab title="Cloud (Free)" %}
+```bash
+# GitHub Codespaces — free 60h/month, Ubuntu-based
+# 1. Go to github.com/codespaces
+# 2. New codespace → Blank
+# 3. All labs work out of the box
+```
+{% endtab %}
+{% endtabs %}
 
 ---
 
@@ -128,23 +160,7 @@ Every lab is production-quality with verified output — not just theory:
 | **CompTIA Linux+** | Foundations + Practitioner |
 | **LPIC-1** | Foundations + Practitioner |
 | **LPIC-2** | Advanced |
-| **RHCSA (Red Hat)** | Practitioner + Advanced |
-| **RHCE (Red Hat)** | Advanced + Architect |
-| **Linux Foundation LFCS** | Foundations + Practitioner |
+| **RHCSA** | Practitioner + Advanced |
+| **RHCE** | Advanced + Architect |
+| **LFCS (Linux Foundation)** | Foundations + Practitioner |
 | **CKA (Kubernetes Admin)** | Advanced + Architect |
-
----
-
-## 🚀 Start Here
-
-{% hint style="info" %}
-**Never used Linux before?** Begin at [Lab 1: Introduction to the Terminal](foundations/labs/lab-01-intro-to-terminal.md) — every command is explained from first principles.
-
-**Coming from Windows/Mac?** Start at [Lab 2: Navigating the Filesystem](foundations/labs/lab-02-filesystem-navigation.md) to understand how Linux organizes files differently.
-
-**Already comfortable in the terminal?** Jump to [Lab 1: Shell Scripting Fundamentals](practitioner/labs/lab-01-shell-scripting.md) to level up your automation skills.
-{% endhint %}
-
-{% hint style="warning" %}
-**Environment:** All labs are tested on **Ubuntu 22.04 LTS**. Use WSL2 on Windows, a VM, or any Ubuntu-based cloud instance. Commands may vary slightly on RHEL/CentOS.
-{% endhint %}
