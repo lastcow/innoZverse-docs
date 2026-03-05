@@ -25,22 +25,22 @@
     <tr>
       <td><strong>🌱 Foundations</strong></td>
       <td>Relational model, SQL basics, SELECT/JOIN/GROUP BY, schema design, ERDs. Set up MySQL and PostgreSQL from scratch.</td>
-      <td><a href="foundations/">foundations/</a></td>
+      <td><a href="foundations/README.md">foundations/README.md</a></td>
     </tr>
     <tr>
       <td><strong>⚙️ Practitioner</strong></td>
       <td>Advanced SQL, subqueries, window functions, indexing strategies, ACID transactions, and hands-on NoSQL with MongoDB and Redis.</td>
-      <td><a href="practitioner/">practitioner/</a></td>
+      <td><a href="practitioner/README.md">practitioner/README.md</a></td>
     </tr>
     <tr>
       <td><strong>🔴 Advanced</strong></td>
       <td>Replication, sharding, query optimisation with EXPLAIN, database security, encryption, backup strategies and high availability.</td>
-      <td><a href="advanced/">advanced/</a></td>
+      <td><a href="advanced/README.md">advanced/README.md</a></td>
     </tr>
     <tr>
       <td><strong>🏛️ Architect</strong></td>
       <td>Distributed systems, CAP theorem, cloud databases (AWS RDS, DynamoDB, MongoDB Atlas), data warehousing and large-scale migrations.</td>
-      <td><a href="architect/">architect/</a></td>
+      <td><a href="architect/README.md">architect/README.md</a></td>
     </tr>
   </tbody>
 </table>
