@@ -95,17 +95,17 @@
 **Environment:** `docker run -it --rm --privileged ubuntu:22.04 bash`
 {% endtab %}
 
-{% tab title="🏛️ Architect — Coming Soon" %}
+{% tab title="🏛️ Architect — 20 Labs" %}
 **Design and operate enterprise Linux infrastructure**
 
-| Labs | Topics |
-|------|--------|
-| 01–05 | High availability with Pacemaker/Corosync, load balancing, clustering |
-| 06–10 | Infrastructure as Code: Ansible playbooks, roles, inventory, vault |
-| 11–15 | Observability: Prometheus metrics, Grafana dashboards, ELK log pipeline |
-| 16–20 | Enterprise hardening, CIS benchmarks, compliance automation |
+| Labs | Topics | Key Tools |
+|------|--------|-----------|
+| 01–05 | High availability, Pacemaker/Corosync, HAProxy, Keepalived, clustering | `pcs`, `crm_mon`, `haproxy`, `keepalived` |
+| 06–10 | Ansible: inventory, playbooks, roles, vault, full provisioning | `ansible`, `ansible-playbook`, `ansible-vault`, `ansible-galaxy` |
+| 11–15 | Prometheus metrics, Grafana dashboards, ELK log pipeline | `prometheus`, `grafana`, `elasticsearch`, `logstash`, `filebeat` |
+| 16–20 | CIS hardening, OpenSCAP, AIDE integrity, patch management, capstone | `lynis`, `oscap`, `aide`, `unattended-upgrades` |
 
-🚧 **In development** — coming soon
+**Environment:** `docker run -it --rm --privileged ubuntu:22.04 bash`
 {% endtab %}
 {% endtabs %}
 
