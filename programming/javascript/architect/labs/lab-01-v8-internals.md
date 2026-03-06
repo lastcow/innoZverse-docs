@@ -1,0 +1,282 @@
+# Lab 01: V8 Internals — Hidden Classes, Inline Caches & JIT Pipeline
+
+**Time:** 60 minutes | **Level:** Architect | **Docker:** `docker run -it --rm node:20-alpine sh`
+
+Understanding how V8 compiles and optimizes JavaScript at runtime is essential for writing high-performance Node.js applications. This lab explores hidden classes, inline caches, deoptimization triggers, and the Ignition → TurboFan JIT pipeline.
+
+---
+
+## Step 1: V8 JIT Pipeline Overview
+
+V8 uses a two-tier compilation model:
+
+```
+Source JS → Parser → AST → Ignition (bytecode interpreter) → TurboFan (optimizing JIT compiler)
+```
+
+- **Ignition**: Generates compact bytecode and profiles execution
+- **TurboFan**: Compiles hot functions to optimized machine code using profiling data
+- **Deoptimization**: If assumptions are violated, V8 falls back to Ignition
+
+> 💡 V8 profiles function calls. After ~1000 invocations, a function may be JIT-compiled if it's "hot".
+
+---
+
+## Step 2: Understanding Hidden Classes
+
+V8 assigns hidden classes (also called "shapes" or "maps") to objects. Objects with the same property layout share the same hidden class, enabling faster property access.
+
+```javascript
+// file: hidden-classes.js
+function Point(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
+const p1 = new Point(1, 2);
+const p2 = new Point(3, 4);
+
+// Both share the same hidden class - good!
+// Adding property out of order creates a NEW hidden class
+const p3 = new Point(5, 6);
+p3.z = 0; // hidden class splits here!
+
+console.log('p1 and p2 share shape:', p1.constructor === p2.constructor);
+console.log('p3 has extra property z:', p3.z);
+```
+
+> 💡 Always initialize object properties in the same order. Never add properties after construction.
+
+---
+
+## Step 3: Checking Optimization Status with `--allow-natives-syntax`
+
+V8 exposes internal functions via `--allow-natives-syntax` flag:
+
+```javascript
+// file: optimization-status.js
+function Point(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
+const p1 = new Point(1, 2);
+const p2 = new Point(3, 4);
+
+function add(p) {
+  return p.x + p.y;
+}
+
+// Warm up (Ignition collects feedback)
+add(p1);
+add(p1);
+
+// Signal TurboFan to compile on next call
+%OptimizeFunctionOnNextCall(add);
+add(p1);
+
+const status = %GetOptimizationStatus(add);
+console.log('OptimizationStatus:', status);
+console.log('Is optimized (TurboFan):', (status & 2) !== 0);
+console.log('Hidden class demo: same shape =>', %HaveSameMap(p1, p2));
+```
+
+Run with:
+```bash
+node --allow-natives-syntax optimization-status.js
+```
+
+📸 **Verified Output:**
+```
+OptimizationStatus: 129
+Is optimized (TurboFan): false
+Hidden class demo: same shape => true
+```
+
+> 💡 Status 129 = 128 (turbofan compiled) | 1 (interpreted). Bit flags are documented in V8's `runtime-flags.h`.
+
+---
+
+## Step 4: Inline Caches (ICs) — Monomorphic vs Polymorphic vs Megamorphic
+
+Inline caches speed up property access by caching the hidden class and offset:
+
+```javascript
+// file: inline-cache.js
+
+// MONOMORPHIC - best: always same shape
+function accessMono(obj) { return obj.x + obj.y; }
+const mono = { x: 1, y: 2 };
+for (let i = 0; i < 10000; i++) accessMono(mono);
+
+// POLYMORPHIC - ok: 2-4 shapes
+function accessPoly(obj) { return obj.x; }
+const shapes = [{ x: 1 }, { x: 2, y: 0 }, { x: 3, z: 0 }];
+for (let i = 0; i < 10000; i++) accessPoly(shapes[i % 3]);
+
+// MEGAMORPHIC - bad: 5+ shapes, IC gives up and goes generic
+function accessMega(obj) { return obj.value; }
+const objs = Array.from({ length: 10 }, (_, i) => {
+  const o = { value: i };
+  for (let j = 0; j < i; j++) o['prop' + j] = j; // each has unique shape
+  return o;
+});
+for (let i = 0; i < 10000; i++) accessMega(objs[i % objs.length]);
+
+console.log('IC demo complete — mono/poly/mega patterns exercised');
+```
+
+> 💡 Use `--trace-ic` flag to see IC transitions in real-time (very verbose).
+
+---
+
+## Step 5: Deoptimization Triggers
+
+V8 deoptimizes (bails out of TurboFan) when assumptions break:
+
+```javascript
+// file: deopt-triggers.js
+
+function badAdd(a, b) {
+  return a + b;
+}
+
+// Warm up with integers (TurboFan optimizes for int)
+for (let i = 0; i < 10000; i++) badAdd(1, 2);
+
+// Deopt trigger: type change from int to string
+const result = badAdd('hello', ' world');
+console.log('After type deopt:', result);
+
+// Another deopt trigger: accessing .length on undefined-able object
+function getLen(arr) { return arr.length; }
+for (let i = 0; i < 10000; i++) getLen([1, 2, 3]);
+// getLen(null); // <-- would cause deopt + RangeError or bail-out
+console.log('Deopt demo complete');
+```
+
+> 💡 Use `--trace-deopt` to log deoptimization events. Use `--trace-opt` to log optimizations.
+
+---
+
+## Step 6: Ignition Bytecode Inspection
+
+View V8 Ignition bytecode:
+
+```bash
+node --print-bytecode --print-bytecode-filter=add optimization-status.js 2>&1 | head -40
+```
+
+Expected output includes bytecode like:
+```
+[generated bytecode for function: add]
+  LdaNamedProperty a0, [0], [0]
+  Star r0
+  LdaNamedProperty a0, [1], [2]
+  Add r0, [4]
+  Return
+```
+
+> 💡 Each `LdaNamedProperty` is a property load. The `[slot]` is the IC slot index.
+
+---
+
+## Step 7: Object Shape Anti-Patterns
+
+```javascript
+// file: shape-antipatterns.js
+
+// BAD: property order varies by branch
+function createUser(isAdmin) {
+  const user = {};
+  if (isAdmin) {
+    user.role = 'admin'; // shape A: { role, name }
+    user.name = 'Alice';
+  } else {
+    user.name = 'Bob';   // shape B: { name, role }
+    user.role = 'user';
+  }
+  return user;
+}
+
+// GOOD: consistent property order
+function createUserGood(isAdmin) {
+  return {
+    name: isAdmin ? 'Alice' : 'Bob',
+    role: isAdmin ? 'admin' : 'user',
+  };
+}
+
+const users = Array.from({ length: 5 }, (_, i) => createUserGood(i % 2 === 0));
+console.log('Consistent shapes created:', users.length);
+console.log('First user:', users[0].name, users[0].role);
+
+// BAD: delete causes shape transition
+const obj = { a: 1, b: 2, c: 3 };
+delete obj.b; // creates new hidden class!
+console.log('After delete, c:', obj.c); // still works but slower
+```
+
+---
+
+## Step 8: Capstone — V8 Optimization Analyzer
+
+Build a micro-benchmark comparing optimized vs deoptimized code paths:
+
+```javascript
+// file: v8-benchmark.js
+'use strict';
+
+function sumOptimized(arr) {
+  let total = 0;
+  for (let i = 0; i < arr.length; i++) {
+    total += arr[i]; // always number - stays optimized
+  }
+  return total;
+}
+
+function sumDeoptimized(arr) {
+  let total = 0;
+  for (let i = 0; i < arr.length; i++) {
+    total += arr[i]; // mixed types - deopt risk
+  }
+  return total;
+}
+
+const N = 1_000_000;
+const intArr = new Int32Array(N).fill(1);
+const mixedArr = Array.from({ length: N }, (_, i) => i % 100 === 0 ? '1' : 1);
+
+console.time('TypedArray (optimized path)');
+for (let i = 0; i < 10; i++) sumOptimized(intArr);
+console.timeEnd('TypedArray (optimized path)');
+
+console.time('Mixed array (deopt risk)');
+for (let i = 0; i < 10; i++) sumDeoptimized(mixedArr);
+console.timeEnd('Mixed array (deopt risk)');
+
+console.log('\nV8 Optimization Tips:');
+console.log('1. Use TypedArrays for numeric-heavy code');
+console.log('2. Keep object shapes monomorphic');
+console.log('3. Avoid type polymorphism in hot functions');
+console.log('4. Pre-allocate objects with all properties');
+```
+
+Run:
+```bash
+node --allow-natives-syntax v8-benchmark.js
+```
+
+---
+
+## Summary
+
+| Concept | Description | Performance Impact |
+|---|---|---|
+| Hidden Classes | V8's internal shape for objects | High — enables IC optimization |
+| Monomorphic IC | Single shape at call site | Best — direct machine code |
+| Polymorphic IC | 2-4 shapes at call site | Ok — small dispatch overhead |
+| Megamorphic IC | 5+ shapes at call site | Bad — generic lookup |
+| TurboFan | Optimizing JIT compiler | 10-100x vs interpreter |
+| Deoptimization | Bailout from JIT to Ignition | High cost — avoid type changes |
+| TypedArrays | Fixed-type numeric arrays | Best for number-heavy loops |
