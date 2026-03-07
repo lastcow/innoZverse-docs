@@ -107,17 +107,69 @@
 
 ## ⚡ Lab Format
 
-Every lab uses a real database engine running locally or in Docker:
+Every lab uses a real database engine running in Docker with verified output:
 
-{% hint style="success" %}
+{% hint style="info" %}
 **Each lab includes:**
-- 🎯 **Objective** — clear goal with real-world application
-- 📚 **Background** — why this concept matters and when to use it
-- 🔬 **Step-by-step instructions** — real SQL and shell commands
-- 📸 **Verified output** — actual query results from live database runs
-- 📊 **Diagrams** — ERDs and execution plans where relevant
-- 🚨 **Common mistakes** — pitfalls and how to avoid them
+- 🎯 **Objective** — clear goal and real-world relevance
+- 🔬 **8 numbered steps** — progressive complexity, real SQL and shell commands
+- 📸 **Verified output** — actual query results captured from live Docker runs
+- 💡 **Tip callouts** — what each clause means and why it matters
+- 🏁 **Step 8 Capstone** — a real-world scenario tying all concepts together
+- 📋 **Summary table** — quick reference for the lab's key commands
 {% endhint %}
+
+---
+
+## 🚀 Quick Start
+
+{% tabs %}
+{% tab title="MySQL 8 (Docker)" %}
+```bash
+# Start MySQL 8
+docker run -d --name mysql-lab \
+  -e MYSQL_ROOT_PASSWORD=labpass \
+  -p 3306:3306 mysql:8.0
+
+# Connect
+docker exec -it mysql-lab mysql -uroot -plabpass
+```
+{% endtab %}
+
+{% tab title="PostgreSQL 15 (Docker)" %}
+```bash
+# Start PostgreSQL 15
+docker run -d --name pg-lab \
+  -e POSTGRES_PASSWORD=labpass \
+  -p 5432:5432 postgres:15
+
+# Connect
+docker exec -it pg-lab psql -U postgres
+```
+{% endtab %}
+
+{% tab title="MongoDB (Docker)" %}
+```bash
+# Start MongoDB
+docker run -d --name mongo-lab \
+  -p 27017:27017 mongo:7
+
+# Connect
+docker exec -it mongo-lab mongosh
+```
+{% endtab %}
+
+{% tab title="Redis (Docker)" %}
+```bash
+# Start Redis
+docker run -d --name redis-lab \
+  -p 6379:6379 redis:7
+
+# Connect
+docker exec -it redis-lab redis-cli
+```
+{% endtab %}
+{% endtabs %}
 
 ---
 
@@ -131,20 +183,4 @@ Every lab uses a real database engine running locally or in Docker:
 | **AWS Certified Database Specialty** | Advanced + Architect |
 | **Google Professional Data Engineer** | Architect |
 | **Snowflake SnowPro Core** | Architect |
-
----
-
-## 🚀 Start Here
-
-{% hint style="info" %}
-**New to databases?** Start at [Lab 1: Introduction to Relational Databases](foundations/labs/lab-01-relational-model.md) — no prior SQL knowledge needed.
-
-**Already know SQL?** Jump to [Lab 1: Advanced SQL — Window Functions](practitioner/labs/lab-01-window-functions.md) to master the features most developers skip.
-
-**Working with NoSQL?** Head to [Lab 16: MongoDB Fundamentals](practitioner/labs/lab-16-mongodb-fundamentals.md) for hands-on document database work.
-{% endhint %}
-
-{% hint style="warning" %}
-**Environment:** Labs use **MySQL 8** and **PostgreSQL 15** via Docker. MongoDB and Redis labs use Docker containers. All commands tested on Ubuntu 22.04.
-{% endhint %}
 
