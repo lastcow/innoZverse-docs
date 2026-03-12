@@ -1,6 +1,7 @@
 # Table of Contents
 
 * [Introduction](README.md)
+* [Help Center & Setup Guide](HELP_CENTER.md)
 
 ## 🐧 Linux
 
