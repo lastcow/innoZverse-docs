@@ -1,7 +1,14 @@
 # Table of Contents
 
 * [Introduction](README.md)
-* [Help Center & Setup Guide](HELP_CENTER.md)
+
+## 📚 Help & Setup
+
+* [Getting Started & Setup Guide](help/README.md)
+  * [Installation Guide](help/installation.md)
+  * [OpenClaw Setup](help/openclaw-setup.md)
+  * [Docker Quick Start](help/docker-quickstart.md)
+  * [Troubleshooting](help/troubleshooting.md)
 
 ## 🐧 Linux
 
