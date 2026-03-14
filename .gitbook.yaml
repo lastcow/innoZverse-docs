@@ -1,0 +1,26 @@
+root: .
+spaces:
+  help:
+    title: Help & Setup
+    order: 1
+    icon: 🆘
+  cyber-security:
+    title: Cybersecurity
+    order: 2
+    icon: ⚔
+  networking:
+    title: Networking
+    order: 3
+    icon: 🔗
+  artificial-intelligent-ai:
+    title: AI & Security
+    order: 4
+    icon: ◉
+  programming:
+    title: Mobile & Web
+    order: 5
+    icon: 📲
+  linux:
+    title: Linux
+    order: 6
+    icon: 🐧
