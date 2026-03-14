@@ -2,14 +2,6 @@
 
 * [Home](README.md)
 
-## 🆘 Help & Setup
-
-* [Getting Started](help/README.md)
-* [Installation Guide](help/installation.md)
-* [OpenClaw Setup](help/openclaw-setup.md)
-* [Docker Quick Start](help/docker-quickstart.md)
-* [Troubleshooting](help/troubleshooting.md)
-
 ## ⚔ Cyber Security
 
 * [Overview](cyber-security/README.md)
