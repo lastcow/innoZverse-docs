@@ -7,16 +7,16 @@
 ## 🎯 Mission
 
 We're building the world's most reliable technical education platform. Every lab is:
-- ✅ **Verified** by human experts AND powerful AI agents
-- 🐳 **Docker-proven** — all outputs come from live containers, not screenshots
-- 🔄 **Continuously updated** as new vulnerabilities, tools, and techniques emerge
-- 🌍 **Freely accessible** — knowledge belongs to everyone
+- ✓ **Verified** by human experts AND powerful AI agents
+- ✓ **Docker-proven** — all outputs come from live containers, not screenshots
+- ✓ **Continuously updated** as new vulnerabilities, tools, and techniques emerge
+- ✓ **Freely accessible** — knowledge belongs to everyone
 
 ---
 
 ## 📚 Learning Paths
 
-### 🔐 **Cybersecurity**
+### ⚔ **Cybersecurity**
 Master offensive and defensive security from fundamentals to red team operations.
 - OWASP Top 10 exploitation and mitigation
 - Penetration testing methodologies
@@ -28,7 +28,7 @@ Master offensive and defensive security from fundamentals to red team operations
 
 ---
 
-### 🌐 **Networking**
+### 🔗 **Networking**
 Build deep understanding of network protocols, architecture, and security.
 - TCP/IP, DNS, routing, VPNs, firewalls
 - Network reconnaissance and packet analysis
@@ -40,7 +40,7 @@ Build deep understanding of network protocols, architecture, and security.
 
 ---
 
-### ☁️ **Cloud & DevOps**
+### ▲ **Cloud & DevOps**
 Design, deploy, and secure modern cloud infrastructure.
 - Kubernetes, Docker, container orchestration
 - CI/CD pipelines and Infrastructure-as-Code
@@ -52,7 +52,7 @@ Design, deploy, and secure modern cloud infrastructure.
 
 ---
 
-### 🤖 **AI & Security**
+### ◉ **AI & Security**
 Harness AI for modern penetration testing and threat detection.
 - AI-driven reconnaissance and exploitation
 - Shannon framework for automated pentest orchestration
@@ -64,7 +64,7 @@ Harness AI for modern penetration testing and threat detection.
 
 ---
 
-### 📱 **Mobile & Web**
+### 📲 **Mobile & Web**
 Full-stack security from APIs to frontend frameworks.
 - REST and GraphQL API security
 - Frontend vulnerability testing
@@ -80,13 +80,13 @@ Full-stack security from APIs to frontend frameworks.
 
 | Feature | Details |
 |---------|---------|
-| **AI Verified** | Every lab validated by Claude-powered AI agents. No fake screenshots. |
-| **Docker Certified** | 100% of lab outputs come from live Docker containers. Reproducible on any system. |
-| **Hands-On** | No theory-only content. Every concept tested with real commands and verified results. |
-| **Current** | New vulnerabilities documented within weeks. Tools updated as they're released. |
-| **Expert-Curated** | Labs reviewed by cybersecurity professionals, cloud architects, and security researchers. |
-| **Open Access** | Free forever. No paywalls. No vendor lock-in. |
-| **Global Community** | Labs translated and adapted by learners worldwide. Your contributions matter. |
+| **⚡ AI Verified** | Every lab validated by Claude-powered AI agents. No fake screenshots. |
+| **🐳 Docker Certified** | 100% of lab outputs come from live Docker containers. Reproducible on any system. |
+| **⚙ Hands-On** | No theory-only content. Every concept tested with real commands and verified results. |
+| **📈 Current** | New vulnerabilities documented within weeks. Tools updated as they're released. |
+| **👨‍💼 Expert-Curated** | Labs reviewed by cybersecurity professionals, cloud architects, and security researchers. |
+| **🔓 Open Access** | Free forever. No paywalls. No vendor lock-in. |
+| **🌍 Global Community** | Labs translated and adapted by learners worldwide. Your contributions matter. |
 
 ---
 
@@ -103,11 +103,13 @@ No prerequisites. No account needed. Just learning.
 
 ## 📊 By The Numbers
 
-- **450+** labs across 5 domains
-- **2,000+** verified Docker outputs
-- **100%** pass rate — every lab works
-- **0** paywalls — free and open forever
-- **∞** community contributions welcome
+```
+450+     Labs across 5 domains
+2,000+   Verified Docker outputs
+100%     Pass rate — every lab works
+∞        Community contributions welcome
+$0       Cost — free and open forever
+```
 
 ---
 
@@ -126,10 +128,12 @@ We believe:
 
 ## 🔗 Get Started Now
 
-- **[Cybersecurity](cyber-security/README.md)** — Start with Foundations (Lab 01)
-- **[Networking](networking/README.md)** — Begin with TCP/IP Fundamentals
-- **[Cloud & DevOps](cloud/README.md)** — Explore container fundamentals
-- **[Help & Setup](help/README.md)** — Installation, Docker, troubleshooting
+| | |
+|--|--|
+| **Security** | [Cybersecurity](cyber-security/README.md) — Start with Foundations (Lab 01) |
+| **Networks** | [Networking](networking/README.md) — Begin with TCP/IP Fundamentals |
+| **Cloud** | [Cloud & DevOps](cloud/README.md) — Explore container fundamentals |
+| **Help** | [Help & Setup](help/README.md) — Installation, Docker, troubleshooting |
 
 ---
 
