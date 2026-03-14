@@ -1,3 +1,7 @@
+# GitBook configuration for Help & Setup space
+# This folder is synced as an independent space in GitBook
+# Set monorepo path to '/help' when connecting this space in GitBook UI
+
 title: Help & Setup
 structure:
   readme: README.md
