@@ -33,6 +33,11 @@
       <td><a href="practitioner/">practitioner/</a></td>
     </tr>
     <tr>
+      <td><strong>🤖 AI-Assisted Security</strong></td>
+      <td>AI-driven penetration testing with Shannon, automated vulnerability discovery, AI agents for recon and exploitation, Claude Code integration, and modern security orchestration. Real-world Juice Shop lab with 12 documented vulnerabilities.</td>
+      <td><a href="AI/">AI/</a></td>
+    </tr>
+    <tr>
       <td><strong>🔴 Advanced</strong></td>
       <td>Blind SQLi, SSTI, JWT attacks, race conditions, GraphQL, OAuth 2.0, SSRF, NoSQL injection, network pentesting, Linux privilege escalation, malware analysis, digital forensics, and red team capstone.</td>
       <td><a href="advanced/">advanced/</a></td>

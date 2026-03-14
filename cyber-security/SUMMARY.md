@@ -48,6 +48,10 @@
 * [Lab 19: Security Headers](practitioner/labs/lab-19-security-headers.md)
 * [Lab 20: Capstone — Web Application Penetration Test](practitioner/labs/lab-20-capstone-pentest.md)
 
+## 🤖 AI-Assisted Security
+
+* [Shannon × OWASP Juice Shop Lab](AI/shannon_juice_shop_lab.md)
+
 ## ⚡ Advanced
 
 * [Lab 01: Blind SQL Injection](advanced/labs/lab-01-blind-sqli.md)
