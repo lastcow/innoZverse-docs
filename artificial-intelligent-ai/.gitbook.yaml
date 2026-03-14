@@ -1,5 +1,4 @@
-root: ./
-
+title: AI & Machine Learning
 structure:
   readme: README.md
   summary: SUMMARY.md

@@ -13,11 +13,11 @@ spaces:
     order: 3
     icon: 🔗
   artificial-intelligent-ai:
-    title: AI & Security
+    title: AI & Machine Learning
     order: 4
     icon: ◉
   programming:
-    title: Mobile & Web
+    title: Programming
     order: 5
     icon: 📲
   linux:
