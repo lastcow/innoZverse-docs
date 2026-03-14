@@ -1,63 +1,94 @@
 ---
-description: Welcome to your team’s developer platform
+description: Open knowledge for an open world. Production-grade labs verified by humans and AI.
 ---
 
-# Developer Platform
+# innoZverse
 
-<h2 align="center">Developer platform template</h2>
+<h2 align="center">Production-grade labs verified by humans, AI, and Docker</h2>
 
-<p align="center">Welcome to your team’s new developer platform</p>
+<p align="center">Open access to hands-on cybersecurity, networking, cloud, and AI labs. Free forever.</p>
 
-<p align="center"><a href="http://app.gitbook.com/join" class="button primary">Sign up</a> <a href="http://app.gitbook.com/join" class="button secondary">Log in</a></p>
+---
 
-<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th><th data-hidden data-card-cover data-type="files"></th></tr></thead><tbody><tr><td><h4><i class="fa-leaf">:leaf:</i></h4></td><td><strong>No code</strong></td><td>Get started with the developer platform in 5 minutes.</td><td><a href="https://template.gitbook.com/space-product-docs">https://template.gitbook.com/space-product-docs</a></td><td><a href=".gitbook/assets/no-code.jpg">no-code.jpg</a></td></tr><tr><td><h4><i class="fa-server">:server:</i></h4></td><td><strong>Hosted</strong></td><td>Learn more about hosting the developer platform.</td><td><a href="https://template.gitbook.com/space-product-docs">https://template.gitbook.com/space-product-docs</a></td><td><a href=".gitbook/assets/hosted.jpg">hosted.jpg</a></td></tr><tr><td><h4><i class="fa-terminal">:terminal:</i></h4></td><td><strong>API reference</strong></td><td>Browse, test, and implement APIs.</td><td><a href="https://template.gitbook.com/space-api-reference">https://template.gitbook.com/space-api-reference</a></td><td><a href=".gitbook/assets/api-reference.jpg">api-reference.jpg</a></td></tr></tbody></table>
+## 📚 Categories We're Working On
 
-{% columns %}
-{% column %}
-### Get started in 5 minutes
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4>⚔</h4></td><td><strong>Cybersecurity</strong></td><td>Penetration testing, OWASP Top 10, threat hunting, AI-driven vulnerability discovery.</td><td></td></tr><tr><td><h4>🔗</h4></td><td><strong>Networking</strong></td><td>TCP/IP, routing, VPNs, firewalls, enterprise architecture, zero-trust design.</td><td></td></tr><tr><td><h4>▲</h4></td><td><strong>Cloud & DevOps</strong></td><td>Kubernetes, CI/CD, infrastructure-as-code, container security, cloud platforms.</td><td></td></tr><tr><td><h4>◉</h4></td><td><strong>AI & Machine Learning</strong></td><td>LLMs, neural networks, AI agents, security implications, ethical AI.</td><td></td></tr><tr><td><h4>📲</h4></td><td><strong>Programming</strong></td><td>Full-stack web, APIs, mobile security, modern frameworks, real-world attacks.</td><td></td></tr><tr><td><h4>🐧</h4></td><td><strong>Linux</strong></td><td>System administration, shell scripting, privilege escalation, hardening.</td><td></td></tr></tbody></table>
 
-Setting up your first API call should be the easiest part of getting started. With clear endpoints, copy-paste-ready examples, and quick authentication, you’ll be up and running in minutes—not hours.
+---
 
-No guesswork, no complexity—just your first successful call, fast.
+## ✅ All Labs Verified — Manually, AI, and Docker
 
-<a href="https://template.gitbook.com/space-product-docs" class="button primary" data-icon="rocket-launch">Get started</a> <a href="https://template.gitbook.com/space-api-reference" class="button secondary" data-icon="terminal">API reference</a>
-{% endcolumn %}
-
-{% column %}
-{% code title="index.js" overflow="wrap" %}
-```javascript
-// Import the SDK
-import ExampleAPI from "example-api";
-
-// Initialize the client
-const client = new ExampleAPI({ apiKey: "YOUR_API_KEY" });
-
-// Send your first message
-const response = await client.messages.send({
-  message: "Hello, world!"
-});
-
-```
-{% endcode %}
-{% endcolumn %}
-{% endcolumns %}
+Every lab in innoZverse is tested by multiple methods:
 
 {% columns %}
 {% column %}
-<figure><img src="https://gitbookio.github.io/onboarding-template-images/placeholder.png" alt=""><figcaption></figcaption></figure>
+### Human Expert Review
+- Verified by cybersecurity professionals
+- Technical architects review content
+- Real-world attack scenarios validated
 {% endcolumn %}
 
 {% column %}
-### Learn more about the developer platform
+### AI Verification
+- Claude AI agents validate setup
+- Output correctness checked automatically
+- Edge cases discovered and fixed
+{% endcolumn %}
 
-Read guides, watch tutorials, and learn more about working with the developer platform and integrating it with your own stack.
-
-<a href="https://template.gitbook.com/space-help-center" class="button primary" data-icon="book-open">Guides</a> <a href="https://template.gitbook.com/space-product-docs" class="button secondary" data-icon="book">Documentation</a>
+{% column %}
+### Docker Proven
+- 100% of outputs from live containers
+- No fake screenshots or mocked results
+- Reproducible on any system, right now
 {% endcolumn %}
 {% endcolumns %}
 
-<h2 align="center">Join a community of over 3,000 developers</h2>
+**If it's in our docs, it works.**
 
-<p align="center">Join our Discord community or create your first PR in just a few steps.</p>
+---
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th></th><th data-hidden data-card-cover data-type="files"></th></tr></thead><tbody><tr><td><h4><i class="fa-discord">:discord:</i></h4></td><td><strong>Discord community</strong></td><td>Join our Discord community to post questions, get help, and share resources with over 3,000 like-minded developers.</td><td><a href="https://www.gitbook.com/" class="button secondary">Join Discord</a></td><td></td></tr><tr><td><h4><i class="fa-github">:github:</i></h4></td><td><strong>GitHub</strong></td><td>Our product is 100% open source and built by developers just like you. Head to our GitHub repository to learn how to submit your first PR.</td><td><a href="https://www.gitbook.com/" class="button secondary">Submit a PR</a></td><td></td></tr></tbody></table>
+## 🔄 Continuously Creating
+
+New labs are built constantly as the tech landscape evolves:
+
+<table data-view="cards"><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td><h4>📈 Latest Vulnerabilities</h4></td><td>New CVEs documented within weeks of discovery</td><td></td></tr><tr><td><h4>🛠 Emerging Tools</h4></td><td>New frameworks and exploits covered as they're released</td><td></td></tr><tr><td><h4>🎯 Community Feedback</h4></td><td>Your suggestions drive what we build next</td><td></td></tr><tr><td><h4>⚙ Hands-On Depth</h4></td><td>Every concept tested with real commands and verified results</td><td></td></tr></tbody></table>
+
+---
+
+## 🌍 Open Access — Knowledge for Everyone
+
+We believe knowledge should be shared across the world.
+
+{% columns %}
+{% column %}
+<h4>💰 Free Forever</h4>
+<p>No paywalls. No gatekeeping. No corporate lock-in.</p>
+
+<h4>📖 Open Source</h4>
+<p>All content on GitHub. Remix, share, and adapt freely.</p>
+{% endcolumn %}
+
+{% column %}
+<h4>🌐 Global Community</h4>
+<p>Labs translated and adapted by learners everywhere.</p>
+
+<h4>🤝 Everyone Welcome</h4>
+<p>Students, professionals, researchers, hobbyists. All belong here.</p>
+{% endcolumn %}
+{% endcolumns %}
+
+---
+
+## 🚀 Get Started
+
+Pick a category and start learning:
+
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4>⚔</h4></td><td><strong>Cybersecurity</strong></td><td>80+ labs from foundations to red team</td><td><a href="../cyber-security/README.md">Explore</a></td></tr><tr><td><h4>🔗</h4></td><td><strong>Networking</strong></td><td>Protocols, routing, enterprise design</td><td><a href="../networking/README.md">Explore</a></td></tr><tr><td><h4>▲</h4></td><td><strong>Cloud & DevOps</strong></td><td>Kubernetes, CI/CD, infrastructure</td><td><a href="../cloud/README.md">Explore</a></td></tr><tr><td><h4>◉</h4></td><td><strong>AI & ML</strong></td><td>LLMs, agents, neural networks</td><td><a href="../artificial-intelligent-ai/README.md">Explore</a></td></tr><tr><td><h4>📲</h4></td><td><strong>Programming</strong></td><td>Full-stack, APIs, mobile security</td><td><a href="../programming/README.md">Explore</a></td></tr><tr><td><h4>🐧</h4></td><td><strong>Linux</strong></td><td>Admin, scripting, hardening</td><td><a href="../linux/README.md">Explore</a></td></tr></tbody></table>
+
+**First time?** Start with [Help & Setup](../help/README.md) for installation and Docker quickstart.
+
+---
+
+<h2 align="center">Built for learners. By professionals. Forever free.</h2>
+
+<p align="center">innoZverse — Open knowledge for an open world.</p>
