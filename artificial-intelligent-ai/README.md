@@ -1,51 +1,20 @@
-# AI & Machine Learning
+# Overview
 
-![AI Hero](assets/hero-banner.svg)
+![AI Hero](.gitbook/assets/hero-banner.svg)
 
-> **Intelligence is not magic — it's mathematics, data, and code.**
-> From your first neural network to deploying production ML pipelines — every concept is taught hands-on, with real Docker-verified code and cybersecurity-themed examples.
+> **Intelligence is not magic — it's mathematics, data, and code.** From your first neural network to deploying production ML pipelines — every concept is taught hands-on, with real Docker-verified code and cybersecurity-themed examples.
 
----
+***
 
-![Level Overview](assets/levels-diagram.svg)
+![Level Overview](.gitbook/assets/levels-diagram.svg)
 
----
+***
 
 ## 🗺️ Choose Your Level
 
-<table data-view="cards">
-  <thead>
-    <tr>
-      <th></th>
-      <th></th>
-      <th data-hidden data-card-target data-type="content-ref"></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>🌱 Foundations</strong></td>
-      <td>AI history, how LLMs work, prompt engineering, RAG, agents, ethics, safety, open-source vs closed models. 20 conceptual labs — no code required, code samples included.</td>
-      <td><a href="foundations/">foundations/</a></td>
-    </tr>
-    <tr>
-      <td><strong>⚔️ Practitioner</strong></td>
-      <td>Hands-on ML: regression, trees, neural networks, NLP, embeddings, fine-tuning, RAG chatbots, AI agents, anomaly detection, multimodal AI, and deploying with FastAPI. All 20 labs Docker-verified.</td>
-      <td><a href="practitioner/">practitioner/</a></td>
-    </tr>
-    <tr>
-      <td><strong>🔴 Advanced</strong></td>
-      <td>Computer vision pipelines, working with real LLM APIs, building AI applications at scale, adversarial ML, model hardening, production MLOps patterns.</td>
-      <td><a href="advanced/">advanced/</a></td>
-    </tr>
-    <tr>
-      <td><strong>🏛️ Architect</strong></td>
-      <td>MLOps at scale: CI/CD for ML, feature stores, model registries, A/B testing, drift detection, Kubernetes serving, responsible AI governance, AI system design patterns.</td>
-      <td><a href="architect/">architect/</a></td>
-    </tr>
-  </tbody>
-</table>
+<table data-view="cards"><thead><tr><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><strong>🌱 Foundations</strong></td><td>AI history, how LLMs work, prompt engineering, RAG, agents, ethics, safety, open-source vs closed models. 20 conceptual labs — no code required, code samples included.</td><td><a href="foundations/">foundations</a></td></tr><tr><td><strong>⚔️ Practitioner</strong></td><td>Hands-on ML: regression, trees, neural networks, NLP, embeddings, fine-tuning, RAG chatbots, AI agents, anomaly detection, multimodal AI, and deploying with FastAPI. All 20 labs Docker-verified.</td><td><a href="practitioner/">practitioner</a></td></tr><tr><td><strong>🔴 Advanced</strong></td><td>Computer vision pipelines, working with real LLM APIs, building AI applications at scale, adversarial ML, model hardening, production MLOps patterns.</td><td><a href="advanced/">advanced</a></td></tr><tr><td><strong>🏛️ Architect</strong></td><td>MLOps at scale: CI/CD for ML, feature stores, model registries, A/B testing, drift detection, Kubernetes serving, responsible AI governance, AI system design patterns.</td><td><a href="architect/">architect</a></td></tr></tbody></table>
 
----
+***
 
 ## 📋 Curriculum Overview
 
@@ -53,14 +22,14 @@
 {% tab title="🌱 Foundations" %}
 **Understand AI before you build with it**
 
-| Labs | Topics |
-|------|--------|
-| 01–03 | History of AI, how AI works, ML taxonomy |
-| 04–06 | Data and bias, neural networks demystified, transformers and attention |
-| 07–10 | LLMs explained, prompt engineering, AI agents, OpenClaw platform |
-| 11–14 | Vision AI, AI in the real world, AI ethics, safety and alignment |
+| Labs  | Topics                                                                      |
+| ----- | --------------------------------------------------------------------------- |
+| 01–03 | History of AI, how AI works, ML taxonomy                                    |
+| 04–06 | Data and bias, neural networks demystified, transformers and attention      |
+| 07–10 | LLMs explained, prompt engineering, AI agents, OpenClaw platform            |
+| 11–14 | Vision AI, AI in the real world, AI ethics, safety and alignment            |
 | 15–18 | Open-source vs closed, developer toolkit, building RAG, AI in cybersecurity |
-| 19–20 | AI landscape 2025–2026, capstone: design your own AI product |
+| 19–20 | AI landscape 2025–2026, capstone: design your own AI product                |
 
 **No code execution required** — includes illustrative Python/PyTorch code samples throughout
 {% endtab %}
@@ -68,15 +37,15 @@
 {% tab title="⚔️ Practitioner" %}
 **Build and train real ML models — all Docker-verified**
 
-| Labs | Topics |
-|------|--------|
+| Labs  | Topics                                                                                   |
+| ----- | ---------------------------------------------------------------------------------------- |
 | 01–03 | Linear/logistic regression, decision trees + random forests, gradient boosting + XGBoost |
-| 04–06 | Feature engineering, model evaluation + metrics, neural networks from scratch (NumPy) |
-| 07–09 | Convolutional neural networks, transfer learning, text classification with BERT |
-| 10–12 | NER + information extraction, sentiment analysis pipeline, embeddings + semantic search |
-| 13–15 | Fine-tuning with LoRA, RAG chatbot, AI agents (ReAct pattern + tool use) |
-| 16–18 | Time series forecasting, anomaly detection (Isolation Forest + UEBA), multimodal AI |
-| 19–20 | Deploying ML with FastAPI + Docker, end-to-end ML pipeline capstone |
+| 04–06 | Feature engineering, model evaluation + metrics, neural networks from scratch (NumPy)    |
+| 07–09 | Convolutional neural networks, transfer learning, text classification with BERT          |
+| 10–12 | NER + information extraction, sentiment analysis pipeline, embeddings + semantic search  |
+| 13–15 | Fine-tuning with LoRA, RAG chatbot, AI agents (ReAct pattern + tool use)                 |
+| 16–18 | Time series forecasting, anomaly detection (Isolation Forest + UEBA), multimodal AI      |
+| 19–20 | Deploying ML with FastAPI + Docker, end-to-end ML pipeline capstone                      |
 
 **Docker image:** `zchencow/innozverse-ai:latest` · **Theme:** cybersecurity scenarios throughout
 {% endtab %}
@@ -84,11 +53,11 @@
 {% tab title="🔴 Advanced" %}
 **Production-grade AI engineering**
 
-| Labs | Topics |
-|------|--------|
-| 01–05 | PyTorch deep dive, custom training loops, advanced CV pipelines, object detection |
-| 06–10 | LLM API integration, streaming, function calling, LangChain, vector databases |
-| 11–15 | Building AI apps, adversarial examples, model robustness, prompt injection defence |
+| Labs  | Topics                                                                                  |
+| ----- | --------------------------------------------------------------------------------------- |
+| 01–05 | PyTorch deep dive, custom training loops, advanced CV pipelines, object detection       |
+| 06–10 | LLM API integration, streaming, function calling, LangChain, vector databases           |
+| 11–15 | Building AI apps, adversarial examples, model robustness, prompt injection defence      |
 | 16–20 | MLflow experiment tracking, model versioning, distributed training, production capstone |
 
 **Coming soon** — Advanced level labs in development
@@ -97,18 +66,18 @@
 {% tab title="🏛️ Architect" %}
 **Design AI systems that scale and comply**
 
-| Labs | Topics |
-|------|--------|
-| 01–05 | MLOps platform architecture, model serving at scale, vector databases, LLM infrastructure, RAG at scale |
-| 06–10 | AI observability & monitoring, federated learning, multi-agent systems, AI security red team, EU AI Act compliance |
-| 11–15 | AI cost optimization, enterprise AI platform, data pipeline architecture, responsible AI audit, LLM fine-tuning infrastructure |
+| Labs  | Topics                                                                                                                           |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 01–05 | MLOps platform architecture, model serving at scale, vector databases, LLM infrastructure, RAG at scale                          |
+| 06–10 | AI observability & monitoring, federated learning, multi-agent systems, AI security red team, EU AI Act compliance               |
+| 11–15 | AI cost optimization, enterprise AI platform, data pipeline architecture, responsible AI audit, LLM fine-tuning infrastructure   |
 | 16–20 | Knowledge graph + LLM, real-time AI inference, AI SOC automation, distributed training, capstone enterprise AI security platform |
 
 **20 Labs available** — All Docker-verified with enterprise architecture patterns
 {% endtab %}
 {% endtabs %}
 
----
+***
 
 ## ⚡ Lab Format
 
@@ -116,15 +85,16 @@ Every Practitioner lab follows a consistent, verified format:
 
 {% hint style="success" %}
 **Each lab includes:**
-- 🎯 **Objective** — what you'll build and why it matters operationally
-- 📚 **Background** — the theory and intuition behind each algorithm
-- 🔬 **8 step-by-step instructions** — from environment setup to production capstone
-- 📸 **Verified output** — real terminal output captured from Docker runs
-- 💡 **Tip callouts** — explains *why*, not just *how*
-- 🔒 **Security theme** — all examples use cybersecurity datasets (CVEs, SIEM, network traffic)
+
+* 🎯 **Objective** — what you'll build and why it matters operationally
+* 📚 **Background** — the theory and intuition behind each algorithm
+* 🔬 **8 step-by-step instructions** — from environment setup to production capstone
+* 📸 **Verified output** — real terminal output captured from Docker runs
+* 💡 **Tip callouts** — explains _why_, not just _how_
+* 🔒 **Security theme** — all examples use cybersecurity datasets (CVEs, SIEM, network traffic)
 {% endhint %}
 
----
+***
 
 ## 🐳 Quick Start
 
@@ -170,35 +140,35 @@ Open any lab, copy the code blocks into Colab cells — they run as-is.
 {% endtab %}
 {% endtabs %}
 
----
+***
 
 ## 🏆 Certifications Aligned
 
-| Certification | Relevant Levels |
-|---|---|
-| **AWS ML Specialty** | Foundations + Practitioner |
-| **Google Professional ML Engineer** | Practitioner + Advanced |
-| **Azure AI Engineer Associate** | Foundations + Practitioner |
-| **Databricks ML Professional** | Advanced + Architect |
-| **TensorFlow Developer Certificate** | Practitioner |
+| Certification                        | Relevant Levels            |
+| ------------------------------------ | -------------------------- |
+| **AWS ML Specialty**                 | Foundations + Practitioner |
+| **Google Professional ML Engineer**  | Practitioner + Advanced    |
+| **Azure AI Engineer Associate**      | Foundations + Practitioner |
+| **Databricks ML Professional**       | Advanced + Architect       |
+| **TensorFlow Developer Certificate** | Practitioner               |
 
----
+***
 
 ## 🔒 Cybersecurity Theme
 
 {% hint style="info" %}
 All Practitioner and Advanced labs use **cybersecurity-relevant datasets**:
 
-- Network intrusion detection (classifying attack vs benign traffic)
-- SIEM log anomaly detection (isolation forest on security events)
-- CVE severity prediction and threat intelligence
-- Malware classification from PE file features
-- SOC alert triage with multimodal AI (text + screenshot analysis)
+* Network intrusion detection (classifying attack vs benign traffic)
+* SIEM log anomaly detection (isolation forest on security events)
+* CVE severity prediction and threat intelligence
+* Malware classification from PE file features
+* SOC alert triage with multimodal AI (text + screenshot analysis)
 
 This makes concepts concrete for security professionals and adds real-world context for ML engineers wanting to enter the security space.
 {% endhint %}
 
----
+***
 
 ## 🚀 Start Here
 

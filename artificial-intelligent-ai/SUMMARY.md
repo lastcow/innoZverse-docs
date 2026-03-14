@@ -1,4 +1,4 @@
-# AI & Machine Learning
+# Table of contents
 
 * [Overview](README.md)
 
@@ -23,7 +23,7 @@
 * [Lab 17: Building a RAG System in Practice](foundations/labs/lab-17-rag-system.md)
 * [Lab 18: AI in Cybersecurity — Threat Detection and AI Attacks](foundations/labs/lab-18-ai-cybersecurity.md)
 * [Lab 19: The AI Landscape in 2025–2026](foundations/labs/lab-19-ai-landscape-2025.md)
-* [Lab 20: Capstone — Design Your Own AI Product](foundations/labs/lab-20-capstone-design-ai-product.md)
+* [Lab 20: Capstone — Design Your Own AI Product](foundations/lab-20-capstone-design-your-own-ai-product.md)
 
 ## ⚔️ Practitioner
 

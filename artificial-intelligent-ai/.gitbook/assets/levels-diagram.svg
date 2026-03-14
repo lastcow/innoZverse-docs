@@ -1,0 +1,69 @@
+<svg viewBox="0 0 1200 160" xmlns="http://www.w3.org/2000/svg" font-family="Inter, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="l1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#16a34a"/>
+    </linearGradient>
+    <linearGradient id="l2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="l3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#b91c1c"/>
+    </linearGradient>
+    <linearGradient id="l4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#b45309"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="160" fill="#0c0a1e" rx="12"/>
+
+  <!-- Title -->
+  <text x="600" y="28" fill="#64748b" font-size="13" text-anchor="middle" letter-spacing="2">LEARNING PATH</text>
+
+  <!-- Level 1: Foundations -->
+  <rect x="40" y="44" width="250" height="96" rx="10" fill="#0f1a0f" stroke="#22c55e" stroke-width="1.5"/>
+  <rect x="40" y="44" width="250" height="6" rx="3" fill="url(#l1)"/>
+  <text x="165" y="80" fill="#22c55e" font-size="22" text-anchor="middle">🌱</text>
+  <text x="165" y="102" fill="#f1f5f9" font-size="15" font-weight="600" text-anchor="middle">Foundations</text>
+  <text x="165" y="122" fill="#64748b" font-size="12" text-anchor="middle">AI history · LLMs · Prompt eng</text>
+  <text x="165" y="136" fill="#64748b" font-size="12" text-anchor="middle">Ethics · Safety · 20 labs</text>
+
+  <!-- Arrow 1→2 -->
+  <path d="M292 92 L318 92" stroke="#334155" stroke-width="2" marker-end="url(#arr)"/>
+  <polygon points="318,87 330,92 318,97" fill="#334155"/>
+
+  <!-- Level 2: Practitioner -->
+  <rect x="332" y="44" width="250" height="96" rx="10" fill="#150e2e" stroke="#8b5cf6" stroke-width="1.5"/>
+  <rect x="332" y="44" width="250" height="6" rx="3" fill="url(#l2)"/>
+  <text x="457" y="80" fill="#8b5cf6" font-size="22" text-anchor="middle">⚔️</text>
+  <text x="457" y="102" fill="#f1f5f9" font-size="15" font-weight="600" text-anchor="middle">Practitioner</text>
+  <text x="457" y="122" fill="#64748b" font-size="12" text-anchor="middle">ML · NLP · Agents · RAG</text>
+  <text x="457" y="136" fill="#64748b" font-size="12" text-anchor="middle">Docker-verified · 20 labs</text>
+
+  <!-- Arrow 2→3 -->
+  <polygon points="584,87 596,92 584,97" fill="#334155"/>
+  <path d="M582 92 L596 92" stroke="#334155" stroke-width="2"/>
+
+  <!-- Level 3: Advanced -->
+  <rect x="622" y="44" width="250" height="96" rx="10" fill="#1a0e0e" stroke="#ef4444" stroke-width="1.5"/>
+  <rect x="622" y="44" width="250" height="6" rx="3" fill="url(#l3)"/>
+  <text x="747" y="80" fill="#ef4444" font-size="22" text-anchor="middle">🔴</text>
+  <text x="747" y="102" fill="#f1f5f9" font-size="15" font-weight="600" text-anchor="middle">Advanced</text>
+  <text x="747" y="122" fill="#64748b" font-size="12" text-anchor="middle">Computer vision · LLM ops</text>
+  <text x="747" y="136" fill="#64748b" font-size="12" text-anchor="middle">AI systems · 20 labs</text>
+
+  <!-- Arrow 3→4 -->
+  <polygon points="874,87 886,92 874,97" fill="#334155"/>
+  <path d="M872 92 L886 92" stroke="#334155" stroke-width="2"/>
+
+  <!-- Level 4: Architect -->
+  <rect x="912" y="44" width="250" height="96" rx="10" fill="#1a1200" stroke="#f59e0b" stroke-width="1.5"/>
+  <rect x="912" y="44" width="250" height="6" rx="3" fill="url(#l4)"/>
+  <text x="1037" y="80" fill="#f59e0b" font-size="22" text-anchor="middle">🏛️</text>
+  <text x="1037" y="102" fill="#f1f5f9" font-size="15" font-weight="600" text-anchor="middle">Architect</text>
+  <text x="1037" y="122" fill="#64748b" font-size="12" text-anchor="middle">MLOps · AI system design</text>
+  <text x="1037" y="136" fill="#64748b" font-size="12" text-anchor="middle">Production scale · 20 labs</text>
+</svg>

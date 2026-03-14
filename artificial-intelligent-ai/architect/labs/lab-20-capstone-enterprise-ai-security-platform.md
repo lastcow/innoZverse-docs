@@ -2,13 +2,14 @@
 
 **Time:** 50 minutes | **Level:** Architect | **Docker:** `docker run -it --rm zchencow/innozverse-ai:latest bash`
 
----
+***
 
 ## Overview
 
 This capstone synthesizes every concept from the Architect series into a single, deployable Enterprise AI Security Platform. You'll design and implement all six pillars: a production ML threat detection pipeline, an LLM-powered analyst assistant with RAG, an automated response agent, a bias/fairness audit, EU AI Act compliance scoring, and a cost model — then verify the entire system end-to-end in Docker.
 
 **What you'll build:**
+
 1. Threat Detection ML Pipeline (streaming → ensemble → SIEM alert)
 2. LLM Analyst Assistant (TF-IDF RAG over threat intelligence)
 3. Automated Response Agent (decision tree + tool calls)
@@ -16,7 +17,7 @@ This capstone synthesizes every concept from the Architect series into a single,
 5. EU AI Act Compliance Checklist (risk tier classification)
 6. Cost Model ($M/year TCO calculation)
 
----
+***
 
 ## Platform Architecture
 
@@ -51,7 +52,7 @@ This capstone synthesizes every concept from the Architect series into a single,
 └──────────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## Step 1: Threat Detection ML Pipeline
 
@@ -133,7 +134,7 @@ for ev in test_events:
 
 > 💡 **Production Pipeline:** In production, replace synthetic data with Kafka Streams ingestion. Use MLflow for model versioning (see Lab 01) and Prometheus + Grafana for drift monitoring (Lab 06). Deploy with canary release at 5% traffic before full rollout (Lab 02).
 
----
+***
 
 ## Step 2: LLM Analyst Assistant (TF-IDF RAG)
 
@@ -192,7 +193,7 @@ for query in queries:
         print(f"  [{sim:.3f}] {doc[:80]}...")
 ```
 
----
+***
 
 ## Step 3: Automated Response Agent
 
@@ -285,7 +286,7 @@ for i, alert in enumerate(test_alerts, 1):
         print(f"  {j:2d}. {action}")
 ```
 
----
+***
 
 ## Step 4: Bias and Fairness Audit
 
@@ -352,7 +353,7 @@ disparate_impact_audit(rf, X_audit, None, demographics, group_names)
 
 > 💡 **Fairness Metrics Beyond Disparate Impact:** Also evaluate equalized odds (equal TPR/FPR across groups), calibration (predicted probabilities match actual rates), and individual fairness (similar individuals treated similarly). EU AI Act requires bias documentation for high-risk systems.
 
----
+***
 
 ## Step 5: EU AI Act Compliance
 
@@ -440,7 +441,7 @@ compliance = EUAIActCompliance()
 score = compliance.assess()
 ```
 
----
+***
 
 ## Step 6: Cost Model
 
@@ -516,7 +517,7 @@ def enterprise_ai_security_cost_model(n_gpus=8, n_fte=10, cloud='aws'):
 total_cost = enterprise_ai_security_cost_model(n_gpus=8, n_fte=10, cloud='aws')
 ```
 
----
+***
 
 ## Step 7: Platform Integration Test
 
@@ -568,7 +569,7 @@ def run_platform_integration_test():
 run_platform_integration_test()
 ```
 
----
+***
 
 ## Step 8: Full End-to-End Docker Verification
 
@@ -656,6 +657,7 @@ print(f'Total: \${total:.2f}M/year')
 ```
 
 📸 **Verified Output:**
+
 ```
 === 1. Threat Detection ML Pipeline ===
 RandomForest accuracy: 0.930
@@ -687,22 +689,23 @@ Total: $3.35M/year
 
 The full platform verifies: 93% threat detection accuracy, relevant threat intel retrieval with 0.346 cosine similarity, compliance scoring identifying 2 gaps requiring remediation, and a $3.35M/year TCO with estimated 166% ROI if 2 breaches per year are prevented.
 
----
+***
 
 ## Summary
 
-| Platform Component | Technology | Key Metric |
-|--------------------|-----------|------------|
-| Threat Detection | RandomForest ensemble | 93.0% accuracy |
-| Feature Engineering | 5-dimensional SIEM vectors | Login, bytes, failures, lateral, IPs |
-| RAG Analyst Assistant | TF-IDF + cosine similarity | 0.346 top relevance score |
-| Response Agent | Decision tree + tool registry | Tier 1-3 auto-escalation |
-| Bias Audit | Disparate impact (4/5ths rule) | Per-demographic flag rates |
-| EU AI Act Compliance | Checklist-based scorer | 67% (High-Risk — 2 gaps) |
-| Platform TCO | 5-category cost model | $3.35M/year |
-| ROI | Breach prevention model | ~166% estimated ROI |
+| Platform Component    | Technology                     | Key Metric                           |
+| --------------------- | ------------------------------ | ------------------------------------ |
+| Threat Detection      | RandomForest ensemble          | 93.0% accuracy                       |
+| Feature Engineering   | 5-dimensional SIEM vectors     | Login, bytes, failures, lateral, IPs |
+| RAG Analyst Assistant | TF-IDF + cosine similarity     | 0.346 top relevance score            |
+| Response Agent        | Decision tree + tool registry  | Tier 1-3 auto-escalation             |
+| Bias Audit            | Disparate impact (4/5ths rule) | Per-demographic flag rates           |
+| EU AI Act Compliance  | Checklist-based scorer         | 67% (High-Risk — 2 gaps)             |
+| Platform TCO          | 5-category cost model          | $3.35M/year                          |
+| ROI                   | Breach prevention model        | \~166% estimated ROI                 |
 
 **Platform Design Principles:**
+
 1. **Defense in depth:** ML detection + rules + human review — no single point of failure
 2. **Explainability first:** RandomForest feature importances + SHAP for every alert
 3. **Fairness by design:** Disparate impact audit baked into CI/CD pipeline
@@ -712,7 +715,7 @@ The full platform verifies: 93% threat detection accuracy, relevant threat intel
 
 **Architect Series Complete:** You have now designed and implemented every layer of an enterprise AI platform — from MLOps infrastructure through LLM serving, observability, federated learning, multi-agent systems, security, compliance, cost optimization, and now a fully integrated AI security platform.
 
----
+***
 
-*← [Lab 19 — Distributed Training Architecture](lab-19-distributed-training-architecture.md)*  
-*↑ [Architect Series Index](../README.md)*
+_←_ [_Lab 19 — Distributed Training Architecture_](lab-19-distributed-training-architecture.md)\
+&#xNAN;_↑_ [_Architect Series Index_](../)
